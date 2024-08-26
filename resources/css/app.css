@@ -18,15 +18,12 @@ body {
     gap: 15px;
 }
 
-
-/* Элемент | http://127.0.0.1:8000/ */
-
 .lines-container {
     display: flex;
     flex-direction: row;
     justify-content: space-between;
     margin: 1%;
-    width: fit-content;
+    width: 98%;
     gap: 1%;
 }
 
@@ -41,21 +38,59 @@ body {
     border-radius: 10PX;
     box-shadow: #967247 0px 0px 10px;
     color: #fff;
+}
+
+.line_title b {
     font-weight: 600;
 }
+
+.line_items {
+    margin: 3% 0;
+}
+
+.load-container {
+    display: flex;
+    width: 100vw;
+    height: 100vh;
+    background: #4d4d4d78;
+    position: fixed;
+    z-index: 10000;
+    top: 0;
+    align-items: center;
+    justify-content: center;
+
+}
+
+.load-modal {
+    width: 30vh;
+    height: 30vh;
+    background: white;
+    border-radius: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#app {
+    position: relative;
+}
+
+.load-content {
+    width: fit-content;
+    height: fit-content;
+    color:grey;
+}
+
+
 
 /* TEST */
 div.line:nth-child(1)>div:nth-child(1) {
     background-color: red;
 }
 
-/* Элемент | http://127.0.0.1:8000/ */
-
 div.line:nth-child(2)>div:nth-child(1) {
     background-color: blue;
 }
-
-/* Элемент | http://127.0.0.1:8000/ */
 
 div.line:nth-child(3)>div:nth-child(1) {
     background-color: orange;
