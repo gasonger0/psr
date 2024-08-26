@@ -10,4 +10,5 @@ class LinesController extends Controller
     public function getList() {
         return Lines::all()->toJson();
     }
+
 }

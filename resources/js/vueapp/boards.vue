@@ -1,6 +1,7 @@
 <script setup>
 import { Card, Button, Upload } from 'ant-design-vue';
 import { ref } from 'vue';
+import axios from 'axios';
 import Loading from './loading.vue';
 import { UploadOutlined, BarChartOutlined, EditOutlined } from '@ant-design/icons-vue';
 </script>
@@ -69,16 +70,54 @@ export default {
                 }
             ],
             uploadedFile: ref(null),
-            isLoading: ref(false)
+            isLoading: ref(true)
         }
     },
     methods: {
+
+        // FILE UPLOAD //
         processXlsx(file) {
             return false;
+        },
+        // FILE UPLOAD //
+
+        getLines() {
+            this.isLoading = true;
+            axios.get('/api/get_lines')
+                .then(response => {
+                    this.lines = response.data;
+                    this.isLoading = false;
+                })
+        },
+        getWorkers() {
+            this.isLoading = true;
+            axios.get('/api/get_workers')
+                .then(response => {
+                    this.workers = response.data;
+                    this.slots.forEach(slot => {
+                        console.log(slot);
+                        // if (new Date(slot.started_at) < new Date() && new Date() < new Date(slot.ended_at)) {
+                        //     let worker = this.workers.find(worker => worker.worker_id == slot.workers_id);
+                        //     console.log(worker);
+                        //     worker.current_line_id = slot.line_id;
+                        // }
+                    })
+                    this.isLoading = false;
+                });
+        },
+        getSlots() {
+            this.isLoading = true;
+            axios.get('/api/get_slots')
+                .then(response => {
+                    this.slots = response.data;
+                    this.isLoading = false;
+                });
         }
     },
     created() {
-
+        this.getLines();
+        this.getSlots();
+        this.getWorkers();
     }
 }
 </script>
@@ -104,25 +143,22 @@ export default {
     </div>
     <div class="lines-container">
         <div class="line" v-for="line in lines">
-            <div class="line_title" :data-id="line.id">
+            <div class="line_title" :data-id="line.line_id">
                 <b>{{ line.title }}</b>
-                <span>{{  }}</span>
+            </div>
+            <div class="line_sub-title">
+
             </div>
 
-            <section class="line_items" v-for="(v, k) in workers.filter(el => el.line_id == line.id)">
+            <section class="line_items" v-for="(v, k) in workers.filter(el => el.current_line_id == line.line_id)">
                 <Card :title="v.name">
                     <template #extra>
-                        <span
-                            style="color: #1677ff;text-decoration: underline;"
-                            @click="() => {
-                                isLoading = true;
-                            }">
+                        <span style="color: #1677ff;text-decoration: underline;">
                             {{ v.company }}
                         </span>
                     </template>
                     <span  v-show="v.break_start && v.break_end">
                         Перерыв на обед: {{ v.break_start + ' - ' + v.break_end }} 
-
                     </span>
                 </Card>
             </section>
