@@ -75,9 +75,19 @@ export default {
         }
     },
     methods: {
-
         // FILE UPLOAD //
         processXlsx(file) {
+            console.log(file);
+            if (file) {
+                let fd = new FormData();
+                fd.append('file', file);
+
+                axios.post('/api/load_xlsx', fd).then((response) => {
+                    if (response) {
+                        console.log(response);
+                    }
+                })
+            }
             return false;
         },
         // FILE UPLOAD //
@@ -100,13 +110,17 @@ export default {
                         let curTime = new Date();
                         let timeString = curTime.getHours() + ':' + curTime.getMinutes() + ':' + curTime.getSeconds();
                         this.slots.forEach(slot => {
-                            console.log(slot);
                             if (slot.started_at < timeString && timeString < slot.ended_at) {
                                 let worker = this.workers.find(worker => worker.worker_id == slot.workers_id);
-                                console.log(worker);
                                 worker.current_line_id = slot.line_id;
+                                worker.current_slot = slot;
                             }
                         });
+                        this.workers.forEach((worker) => {
+                            if (worker.break_started_at < timeString < worker.break_ended_at) {
+                                worker.on_break = true;
+                            }
+                        })
                         this.isLoading = false;
                         resolve(true);
                     });
@@ -146,28 +160,53 @@ export default {
         })
     },
     updated() {
-        let draggable = this.document.querySelectorAll('.line');
+        let draggable = this.document.querySelectorAll('.line_items');
 
-        draggable.forEach((line) => {
-            line.addEventListener(`dragstart`, (evt) => {
-                evt.target.classList.add(`selected`);
+        draggable.forEach(line => {
+            line.addEventListener(`dragstart`, (ev) => {
+                ev.target.classList.add(`selected`);
             })
 
-            line.addEventListener(`dragend`, (evt) => {
-                evt.target.classList.remove(`selected`);
+            line.addEventListener(`dragend`, (ev) => {
+                ev.target.classList.remove(`selected`);
             });
 
-            line.addEventListener(`dragover`, (ev) => {
+            line.addEventListener('dragover', (ev) => {
                 ev.preventDefault();
-
-                const activeElement = document.querySelector(`.selected`);
+                const activeElement = document.querySelector('.selected');
                 const currentElement = ev.target;
-                
+                // ev.target.classList.contains('draggable-card') ? ev.target :
+                // ev.target.closest('.draggable-card');
+                const isMoveable = activeElement !== currentElement;
+
+                if (!isMoveable) {
+                    return;
+                }
+
+                const nextElement = this.getNextElement(ev.clientY, currentElement);
+                console.log(nextElement);
+                // Проверяем, нужно ли менять элементы местами
+                if (
+                    nextElement &&
+                    activeElement === nextElement.previousElementSibling ||
+                    activeElement === nextElement
+                ) {
+                    // Если нет, выходим из функции, чтобы избежать лишних изменений в DOM
+                    return;
+                }
+
+                const lastElement = line.lastElementChild;
                 console.log(activeElement);
-                console.log(currentElement);
-                currentElement.removeChild(activeElement);
-                activeElement.closest('line').appendChild(activeElement);
-            });
+                if (nextElement == null) {
+                    line.append(activeElement);
+                } else {
+                    if (nextElement.parentElement != line) {
+                        line.append(activeElement);
+                    } else {
+                        line.insertBefore(activeElement, nextElement);
+                    }
+                }
+            })
         })
     }
 }
@@ -203,9 +242,12 @@ export default {
                     <br>
                     <span>Всего работников на линии: {{ line.count_current }}</span>
                 </div>
+
             </Card>
-            <section class="line_items" v-for="(v, k) in workers.filter(el => el.current_line_id == line.line_id)">
-                <Card :title="v.title" draggable="true" class="draggable-card">
+            <section class="line_items">
+                <Card :title="v.title" draggable="true" class="draggable-card"
+                    v-for="(v, k) in workers.filter(el => el.current_line_id == line.line_id)"
+                    :style="v.on_break ? 'opacity: 0.6' : ''">
                     <template #extra>
                         <span style="color: #1677ff;text-decoration: underline;">
                             {{ v.company }}

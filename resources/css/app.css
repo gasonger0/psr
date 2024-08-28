@@ -31,6 +31,10 @@ body {
     flex: 1 1 0px;
 }
 
+.line_items {
+    min-height:10vh;
+}
+
 .line_title {
     /* background-color: bisque;
     margin: 1% 0 3%; 
@@ -44,7 +48,7 @@ body {
     font-weight: 600;
 }
 
-.line_items {
+.draggable-card {
     margin: 3% 0;
 }
 
