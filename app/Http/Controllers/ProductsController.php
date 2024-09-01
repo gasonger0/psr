@@ -7,24 +7,19 @@ use Illuminate\Http\Request;
 
 class ProductsController extends Controller
 {
-    static public function insertFromXlsx($data = []) {
-        if ($data == []) {
-            return;
-        }
-        $result = [];
-        foreach ($data as $prod) {
-            $id = Products::insertGetId([
-                'title' => $prod]);
-            $result[$prod] = $id;
-        }
+    static public function add($shift = null, $title = null, $workers_count = null, $started_at = null, $ended_at = null) {
+        if ($title = null) return;
+     
+        $product = new Products();
 
-        return $result;
+        // $product->shift = $shift;
+        $product->title = $title;
+        $product->workers_count = $workers_count;
+        $product->started_at = $started_at;
+        $product->ended_at = $ended_at;
+
+        $product->save();
+
+        return;
     }
-
-    static public function prepareProducts($data) {
-        $unique = array_unique($data);
-        if (count($unique) > 0) {
-            return self::insertFromXlsx($unique);
-        }
-    } 
 }

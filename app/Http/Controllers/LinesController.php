@@ -7,8 +7,22 @@ use Illuminate\Http\Request;
 
 class LinesController extends Controller
 {
-    public function getList() {
-        return Lines::all()->toJson();
+    static public function getList($columns = ['*']) {
+        return Lines::all($columns)->toJson();
+    }
+
+    static public function add($title = null, $workers_count = null, $started_at = null, $ended_at = null) {
+        if (empty($title)) return;
+
+        $line = new Lines;
+        
+        $line->title            = $title;
+        $line->workers_count    = $workers_count;
+        $line->started_at       = $started_at;
+        $line->ended_at         = $ended_at;
+
+        $line->save();
+        return;
     }
 
 }

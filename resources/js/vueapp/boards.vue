@@ -1,9 +1,8 @@
 <script setup>
-import { Card, Button, Upload } from 'ant-design-vue';
+import { Card } from 'ant-design-vue';
 import { ref } from 'vue';
 import axios from 'axios';
 import Loading from './loading.vue';
-import { UploadOutlined, BarChartOutlined, EditOutlined } from '@ant-design/icons-vue';
 </script>
 <script>
 export default {
@@ -69,29 +68,12 @@ export default {
                     ended_at: '17:00'
                 }
             ],
-            uploadedFile: ref(null),
             isLoading: ref(true),
-            document: document
+            document: document,
+            listenerSet: false
         }
     },
     methods: {
-        // FILE UPLOAD //
-        processXlsx(file) {
-            console.log(file);
-            if (file) {
-                let fd = new FormData();
-                fd.append('file', file);
-
-                axios.post('/api/load_xlsx', fd).then((response) => {
-                    if (response) {
-                        console.log(response);
-                    }
-                })
-            }
-            return false;
-        },
-        // FILE UPLOAD //
-
         async getLines() {
             return new Promise((resolve, reject) => {
                 this.isLoading = true;
@@ -135,6 +117,28 @@ export default {
                     });
             });
         },
+        changeLine(line_id, worker_id) {
+
+            // Остановить предыдущую смену этого работника (изменить время)
+            // Создать новый слот
+            // axios.post('/api/add_slot') {
+            //     JSON.stringify({
+                    
+            //     })
+            // }
+        },
+        calcCount() {
+            this.lines = this.lines.map((line) => {
+                line.count_current = this.workers.filter((wrkr) => wrkr.current_line_id == line.line_id).length;
+                return line;
+            });
+
+        },
+        updateData(ev){
+            console.log(ev);
+            this.slots = ev.slots;
+            this.workers = ev.workers;
+        },        
         getNextElement(cursorPosition, currentElement) {
             // Получаем объект с размерами и координатами
             const currentElementCoord = currentElement.getBoundingClientRect();
@@ -154,82 +158,77 @@ export default {
         await this.getSlots();
         await this.getWorkers();
 
-        this.lines = this.lines.map((line) => {
-            line.count_current = this.workers.filter((wrkr) => wrkr.current_line_id == line.line_id).length;
-            return line;
-        })
+        this.calcCount();
+
+        this.$emit('data-recieved', this.$data);
     },
     updated() {
-        let draggable = this.document.querySelectorAll('.line_items');
+        if (!this.listenerSet) {
+            let draggable = this.document.querySelectorAll('.line_items');
 
-        draggable.forEach(line => {
-            line.addEventListener(`dragstart`, (ev) => {
-                ev.target.classList.add(`selected`);
-            })
+            draggable.forEach(line => {
+                line.addEventListener(`dragstart`, (ev) => {
+                    ev.target.classList.add(`selected`);
+                })
 
-            line.addEventListener(`dragend`, (ev) => {
-                ev.target.classList.remove(`selected`);
-            });
+                line.addEventListener(`dragend`, (ev) => {
+                    console.log(ev);
+                    if (ev.target.classList.contains('selected')) {
+                        // console.log(this.workers.find(el => el.worker_id == ev.target.dataset.id));
+                        // let worker = this.workers.find(el => el.worker_id == ev.target.dataset.id);
+                        // if (worker) {
+                        //     worker.current_line_id = Number(ev.target.closest('.line').dataset.id);
+                        // }
+                        ev.target.classList.remove(`selected`);
+                        this.changeLine(ev.target.closest('.line').dataset.id, ev.target.dataset.id);
+                        // this.getWorkers();
+                        this.$emit('data-recieved', this.$data);
+                    }
+                });
 
-            line.addEventListener('dragover', (ev) => {
-                ev.preventDefault();
-                const activeElement = document.querySelector('.selected');
-                const currentElement = ev.target;
-                // ev.target.classList.contains('draggable-card') ? ev.target :
-                // ev.target.closest('.draggable-card');
-                const isMoveable = activeElement !== currentElement;
+                line.addEventListener('dragover', (ev) => {
+                    ev.preventDefault();
+                    const activeElement = document.querySelector('.selected');
+                    const currentElement = ev.target;
+                    // ev.target.classList.contains('draggable-card') ? ev.target :
+                    // ev.target.closest('.draggable-card');
+                    const isMoveable = activeElement !== currentElement;
 
-                if (!isMoveable) {
-                    return;
-                }
+                    if (!isMoveable) {
+                        return;
+                    }
 
-                const nextElement = this.getNextElement(ev.clientY, currentElement);
-                console.log(nextElement);
-                // Проверяем, нужно ли менять элементы местами
-                if (
-                    nextElement &&
-                    activeElement === nextElement.previousElementSibling ||
-                    activeElement === nextElement
-                ) {
-                    // Если нет, выходим из функции, чтобы избежать лишних изменений в DOM
-                    return;
-                }
+                    const nextElement = this.getNextElement(ev.clientY, currentElement);
+                    // Проверяем, нужно ли менять элементы местами
+                    if (
+                        nextElement &&
+                        activeElement === nextElement.previousElementSibling ||
+                        activeElement === nextElement
+                    ) {
+                        // Если нет, выходим из функции, чтобы избежать лишних изменений в DOM
+                        return;
+                    }
 
-                const lastElement = line.lastElementChild;
-                console.log(activeElement);
-                if (nextElement == null) {
-                    line.append(activeElement);
-                } else {
-                    if (nextElement.parentElement != line) {
+                    const lastElement = line.lastElementChild;
+                    if (nextElement == null) {
                         line.append(activeElement);
                     } else {
-                        line.insertBefore(activeElement, nextElement);
+                        if (nextElement.parentElement != line) {
+                            line.append(activeElement);
+                        } else {
+                            line.insertBefore(activeElement, nextElement);
+                        }
                     }
-                }
-            })
-        })
+                })
+            });
+        }
+        this.listenerSet = true;
     }
 }
 </script>
 <template>
-    <div class="top-container">
-        <Upload :v-model:file-list="uploadedFile" name="file" :before-upload="processXlsx">
-            <Button type="primary" style="background-color: green;">
-                <UploadOutlined />
-                Новый график
-            </Button>
-        </Upload>
-        <Button type="default">
-            <BarChartOutlined />
-            Отчёт
-        </Button>
-        <Button type="primary">
-            <EditOutlined />
-            Редактировать график
-        </Button>
-    </div>
     <div class="lines-container">
-        <div class="line" v-for="line in lines">
+        <div class="line" v-for="line in lines" :data-id="line.line_id">
             <Card :bordered="false">
                 <template #title>
                     <div class="line_title" :data-id="line.line_id">
@@ -240,14 +239,14 @@ export default {
                     <span>Необходимо работников: {{ line.workers_count ? line.workers_count : 'без ограничений'
                         }}</span>
                     <br>
-                    <span>Всего работников на линии: {{ line.count_current }}</span>
+                    <span>Всего работников на линии: {{ line.count_current ? line.count_current : '0' }}</span>
                 </div>
 
             </Card>
             <section class="line_items">
                 <Card :title="v.title" draggable="true" class="draggable-card"
                     v-for="(v, k) in workers.filter(el => el.current_line_id == line.line_id)"
-                    :style="v.on_break ? 'opacity: 0.6' : ''">
+                    :style="v.on_break ? 'opacity: 0.6' : ''" :data-id="v.worker_id">
                     <template #extra>
                         <span style="color: #1677ff;text-decoration: underline;">
                             {{ v.company }}
