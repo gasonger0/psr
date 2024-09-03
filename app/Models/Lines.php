@@ -1,8 +1,8 @@
 <?php
 
 namespace App\Models;
+use Carbon\Carbon;
 
-use DateTimeInterface;
 use Illuminate\Database\Eloquent\Model;
 
 class Lines extends Model
@@ -12,7 +12,13 @@ class Lines extends Model
     public $incrementing = true;
     protected $dateFormat = 'U';
 
-    // protected function serializeDate(DateTimeInterface $date): string {
-    //     return $date->format('d-m-Y H:i:s');
-    // }
+    public function setCreatedAtAttribute($value)
+    {
+        $this->attributes['created_at'] = Carbon::parse($value)->format('Y-m-d H:i:s');
+    }
+
+    public function setUpdatedAtAttribute($value)
+    {
+        $this->attributes['updated_at'] = Carbon::parse($value)->format('Y-m-d H:i:s');
+    }
 }

@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use DateTimeInterface;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 
 class Workers extends Model
@@ -12,7 +12,13 @@ class Workers extends Model
     public $incrementing = true;
     protected $dateFormat = 'U';
     
-    // protected function serializeDate(DateTimeInterface $date): string {
-    //     return $date->format('d-m-Y H:i:s');
-    // }
+    public function setCreatedAtAttribute($value)
+    {
+        $this->attributes['created_at'] = Carbon::parse($value)->format('Y-m-d H:i:s');
+    }
+
+    public function setUpdatedAtAttribute($value)
+    {
+        $this->attributes['updated_at'] = Carbon::parse($value)->format('Y-m-d H:i:s');
+    }
 }

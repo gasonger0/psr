@@ -22,7 +22,10 @@ class LinesController extends Controller
         $line->ended_at         = $ended_at;
 
         $line->save();
-        return;
+        return $line->line_id;
     }
 
+    static public function dropData() {
+        return Lines::truncate();
+    }
 }

@@ -1,8 +1,10 @@
 <script setup>
-import { Card } from 'ant-design-vue';
+import { BackTop, Card, FloatButton, Input, Switch, TimeRangePicker, Button } from 'ant-design-vue';
 import { ref } from 'vue';
 import axios from 'axios';
 import Loading from './loading.vue';
+import dayjs from 'dayjs';
+import { PlusCircleOutlined } from '@ant-design/icons-vue';
 </script>
 <script>
 export default {
@@ -80,6 +82,12 @@ export default {
                 axios.get('/api/get_lines')
                     .then(response => {
                         this.lines = response.data;
+                        this.lines.map((el) => {
+                            el.edit = false;
+                            el.showDelete = ref(false);
+                            el.time = ref([dayjs(el.started_at, 'hh:mm:ss'), dayjs(el.ended_at, 'HH:mm:ss')]);
+                            return el;
+                        })
                         resolve(true);
                     });
             });
@@ -93,7 +101,7 @@ export default {
                         let timeString = curTime.getHours() + ':' + curTime.getMinutes() + ':' + curTime.getSeconds();
                         this.slots.forEach(slot => {
                             if (slot.started_at < timeString && timeString < slot.ended_at) {
-                                let worker = this.workers.find(worker => worker.worker_id == slot.workers_id);
+                                let worker = this.workers.find(worker => worker.worker_id == slot.worker_id);
                                 worker.current_line_id = slot.line_id;
                                 worker.current_slot = slot;
                             }
@@ -123,7 +131,7 @@ export default {
             // Создать новый слот
             // axios.post('/api/add_slot') {
             //     JSON.stringify({
-                    
+
             //     })
             // }
         },
@@ -134,11 +142,11 @@ export default {
             });
 
         },
-        updateData(ev){
+        updateData(ev) {
             console.log(ev);
             this.slots = ev.slots;
             this.workers = ev.workers;
-        },        
+        },
         getNextElement(cursorPosition, currentElement) {
             // Получаем объект с размерами и координатами
             const currentElementCoord = currentElement.getBoundingClientRect();
@@ -229,24 +237,37 @@ export default {
 <template>
     <div class="lines-container">
         <div class="line" v-for="line in lines" :data-id="line.line_id">
-            <Card :bordered="false">
+            <Card :bordered="false" class="head">
                 <template #title>
                     <div class="line_title" :data-id="line.line_id">
                         <b>{{ line.title }}</b>
                     </div>
+                    <Switch v-model:checked="line.edit" checked-children="Редактирование" un-checked-children="Просмотр" class="title-switch"/>
                 </template>
-                <div class="line_sub-title">
-                    <span>Необходимо работников: {{ line.workers_count ? line.workers_count : 'без ограничений'
-                        }}</span>
-                    <br>
-                    <span>Всего работников на линии: {{ line.count_current ? line.count_current : '0' }}</span>
-                </div>
-
+                <template v-if="line.edit">
+                    <div style="width:100%; max-width:400px;">
+                        <span style="display: flex; justify-content: space-between; margin-bottom:10px;align-items: center;">
+                            <span style="height:fit-content;">Необходимо:&nbsp;&nbsp;</span> 
+                            <Input v-model:value="line.workers_count"/>
+                        </span>
+                        <TimeRangePicker v-model:value="line.time" format="HH:mm" :showTime="true"
+                        :allowClear="true" type="time" :showDate="false" style="display: flex; justify-content: space-between; align-items: center;"/>
+                    </div>
+                </template>
+                <template v-else>
+                    <div class="line_sub-title">
+                        <span :style="line.count_current < line.workers_count ? 'color:red;' : ''">Необходимо работников: {{ line.workers_count ? line.workers_count : 'без ограничений'
+                            }}</span>
+                        <br>
+                        <span>Всего работников на линии: {{ line.count_current ? line.count_current : '0' }}</span>
+                    </div>
+                </template>
             </Card>
             <section class="line_items">
                 <Card :title="v.title" draggable="true" class="draggable-card"
                     v-for="(v, k) in workers.filter(el => el.current_line_id == line.line_id)"
-                    :style="v.on_break ? 'opacity: 0.6' : ''" :data-id="v.worker_id">
+                    :style="v.on_break ? 'opacity: 0.6' : ''" :data-id="v.worker_id"
+                    @mouseover="el.showDelete = true" @mouseleave="el.showDelete = false">
                     <template #extra>
                         <span style="color: #1677ff;text-decoration: underline;">
                             {{ v.company }}
@@ -255,9 +276,19 @@ export default {
                     <span v-show="v.break_started_at && v.break_ended_at">
                         Перерыв на обед: {{ v.break_started_at + ' - ' + v.break_ended_at }}
                     </span>
+                    <Button type="primary" danger ghost v-show="showDelete">Убрать со смены</Button>
                 </Card>
             </section>
         </div>
     </div>
     <Loading :open="isLoading" />
+    <FloatButton type="primary">
+        <template #tooltip>
+            <div>Добавить линию</div>
+        </template>
+        <template #icon>
+            <PlusCircleOutlined />
+        </template>
+    </FloatButton>
+    <BackTop/>
 </template>

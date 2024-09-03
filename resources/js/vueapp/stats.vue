@@ -29,7 +29,7 @@ export default {
                 };
 
                 let slots = this.slots.filter((i) => {
-                    if (i.workers_id == el.worker_id) {
+                    if (i.worker_id == el.worker_id) {
                         return i;
                     }
                 });
@@ -79,7 +79,7 @@ export default {
                         }
                         el.break_started_at = el.break.time[0].format('HH:mm:ss');
                         el.break_ended_at = el.break.time[1].format('HH:mm:ss');
-                        el.break = undefined;
+                        // el.break = undefined;
                         return el;
                     }
                 });
@@ -117,12 +117,13 @@ export default {
 }
 </script>
 <template>
-
-    <Modal v-model:open="$props.open" cancelText="Закрыть" title="Редактировать график" style="width:90vw; height:90vh;"
-        @ok="updateData" @cancel="updateData(false)">
+    <Modal v-model:open="$props.open" cancelText="Закрыть" title="Редактировать график" 
+        @ok="updateData" @cancel="updateData(false)" style="width:98vw;">
         <Switch checked-children="Редактирование" un-checked-children="Просмотр" v-model:checked="edit" />
+        <br/>
+        <br/>
         <div class="table-container">
-            <Table :dataSource="workers" :columns="lines">
+            <Table :dataSource="workers" :columns="lines" :pagination="{pageSize: 6}" small>
                 <template #bodyCell="{ column, record, text }">
                     <template v-if="column.dataIndex != 'title' &&
                         record[column.dataIndex]">
@@ -133,7 +134,7 @@ export default {
                         <template v-else>
                             <TimeRangePicker v-model:value="record[column.dataIndex]['time']"
                                 @change="(ev) => { console.log(ev); }" format="HH:mm" :showTime="true"
-                                :allowClear="true" type="time" :showDate="false" />
+                                :allowClear="true" type="time" :showDate="false" :size="'small'"/>
                         </template>
                     </template>
                     <template v-else>

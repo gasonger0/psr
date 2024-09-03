@@ -12,7 +12,7 @@ class WorkersController extends Controller
     }
 
     static public function add($company = null, $title = null, $b_start = null, $b_end = null)  {
-        if (!$title) return;
+        if (empty($title)) return;
 
         $worker = new Workers();
 
@@ -22,7 +22,10 @@ class WorkersController extends Controller
         $worker->break_ended_at = $b_end;
 
         $worker->save();
+        return $worker->id;
+    }
 
-        return;
+    static public function dropData() {
+        return Workers::truncate();
     }
 }
