@@ -76,22 +76,6 @@ export default {
         }
     },
     methods: {
-        async getLines() {
-            return new Promise((resolve, reject) => {
-                this.isLoading = true;
-                axios.get('/api/get_lines')
-                    .then(response => {
-                        this.lines = response.data;
-                        this.lines.map((el) => {
-                            el.edit = false;
-                            el.showDelete = ref(false);
-                            el.time = ref([dayjs(el.started_at, 'hh:mm:ss'), dayjs(el.ended_at, 'HH:mm:ss')]);
-                            return el;
-                        })
-                        resolve(true);
-                    });
-            });
-        },
         async getWorkers() {
             return new Promise((resolve, reject) => {
                 axios.get('/api/get_workers')
@@ -159,7 +143,46 @@ export default {
                 currentElement :
                 currentElement.nextElementSibling;
             return nextElement;
+        },
+
+        /*------------------- LINES START -------------------*/
+        async getLines() {
+            return new Promise((resolve, reject) => {
+                this.isLoading = true;
+                axios.get('/api/get_lines')
+                    .then(response => {
+                        this.lines = response.data;
+                        this.lines.map((el) => {
+                            el.edit = false;
+                            el.showDelete = ref(false);
+                            el.time = ref([dayjs(el.started_at, 'hh:mm:ss'), dayjs(el.ended_at, 'HH:mm:ss')]);
+                            return el;
+                        })
+                        resolve(true);
+                    });
+            });
+        },
+        addLineFront() {
+            this.lines.push({
+                edit: true,
+                time: ref([dayjs(), dayjs()]),
+                title: 'Новая линия',
+                workers_count: 0,
+                line_id: -1
+            });
+            let x = this.document.querySelector('.lines-container');
+            setTimeout(() => {
+                x.scrollTo(
+                    { left: x.clientWidth, behavior: 'smooth' }
+                );
+            }, 100);
+            return;
+        },
+        saveLine() {
+
         }
+
+        /*-------------------- LINES END --------------------*/
     },
     async created() {
         await this.getLines();
@@ -231,6 +254,7 @@ export default {
             });
         }
         this.listenerSet = true;
+        this.document.querySelector('.lines-container').scrollTo({left: 0});
     }
 }
 </script>
@@ -242,21 +266,25 @@ export default {
                     <div class="line_title" :data-id="line.line_id">
                         <b>{{ line.title }}</b>
                     </div>
-                    <Switch v-model:checked="line.edit" checked-children="Редактирование" un-checked-children="Просмотр" class="title-switch"/>
+                    <Switch v-model:checked="line.edit" checked-children="Редактирование" un-checked-children="Просмотр"
+                        class="title-switch" @change="(c, e) => {c ? saveLine(line) : return;}"/>
                 </template>
                 <template v-if="line.edit">
                     <div style="width:100%; max-width:400px;">
-                        <span style="display: flex; justify-content: space-between; margin-bottom:10px;align-items: center;">
-                            <span style="height:fit-content;">Необходимо:&nbsp;&nbsp;</span> 
-                            <Input v-model:value="line.workers_count"/>
+                        <span
+                            style="display: flex; justify-content: space-between; margin-bottom:10px;align-items: center;">
+                            <span style="height:fit-content;">Необходимо:&nbsp;&nbsp;</span>
+                            <Input v-model:value="line.workers_count" />
                         </span>
-                        <TimeRangePicker v-model:value="line.time" format="HH:mm" :showTime="true"
-                        :allowClear="true" type="time" :showDate="false" style="display: flex; justify-content: space-between; align-items: center;"/>
+                        <TimeRangePicker v-model:value="line.time" format="HH:mm" :showTime="true" :allowClear="true"
+                            type="time" :showDate="false"
+                            style="display: flex; justify-content: space-between; align-items: center;" />
                     </div>
                 </template>
                 <template v-else>
                     <div class="line_sub-title">
-                        <span :style="line.count_current < line.workers_count ? 'color:red;' : ''">Необходимо работников: {{ line.workers_count ? line.workers_count : 'без ограничений'
+                        <span :style="line.count_current < line.workers_count ? 'color:red;' : ''">Необходимо
+                            работников: {{ line.workers_count ? line.workers_count : 'без ограничений'
                             }}</span>
                         <br>
                         <span>Всего работников на линии: {{ line.count_current ? line.count_current : '0' }}</span>
@@ -266,8 +294,8 @@ export default {
             <section class="line_items">
                 <Card :title="v.title" draggable="true" class="draggable-card"
                     v-for="(v, k) in workers.filter(el => el.current_line_id == line.line_id)"
-                    :style="v.on_break ? 'opacity: 0.6' : ''" :data-id="v.worker_id"
-                    @mouseover="el.showDelete = true" @mouseleave="el.showDelete = false">
+                    :style="v.on_break ? 'opacity: 0.6' : ''" :data-id="v.worker_id" @mouseover="el.showDelete = true"
+                    @mouseleave="el.showDelete = false">
                     <template #extra>
                         <span style="color: #1677ff;text-decoration: underline;">
                             {{ v.company }}
@@ -282,7 +310,7 @@ export default {
         </div>
     </div>
     <Loading :open="isLoading" />
-    <FloatButton type="primary">
+    <FloatButton type="primary" @click="addLineFront">
         <template #tooltip>
             <div>Добавить линию</div>
         </template>
@@ -290,5 +318,5 @@ export default {
             <PlusCircleOutlined />
         </template>
     </FloatButton>
-    <BackTop/>
+    <BackTop />
 </template>

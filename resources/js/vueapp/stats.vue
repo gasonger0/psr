@@ -55,7 +55,8 @@ export default {
             this.lines.unshift({
                 title: 'Сотрудник',
                 dataIndex: 'title',
-                width: 200
+                width: 200,
+                fixed: 'left'
             }, {
                 title: 'Время обеда',
                 dataIndex: 'break',
