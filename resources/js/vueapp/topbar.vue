@@ -17,9 +17,13 @@ export default {
             let fd = new FormData();
             fd.append('file', file);
 
+            this.$emit('notify', 'info', "Подождите, идёт обработка файла...");
+
+
             axios.post('/api/load_xlsx', fd).then((response) => {
                 if (response) {
                     console.log(response);
+                    this.$emit('notify', 'success', "Файл успешно загружен. Обновите страницу, чтобы оперировать актуальными данными");
                 }
             })
             console.log(file);

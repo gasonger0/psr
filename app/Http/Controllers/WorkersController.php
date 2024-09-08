@@ -25,6 +25,20 @@ class WorkersController extends Controller
         return $worker->id;
     }
 
+    static public function save(Request $request) {
+        $data = $request->post();
+        if (empty($data)) return 0;
+        foreach ($data as $r) {
+            $slot = Workers::find($r['worker_id']);
+            $slot->break_started_at = $r['started_at'];
+            $slot->break_ended_at = $r['ended_at'];
+            $slot->save();
+            if (!$slot)
+                echo 'Ошибка.';
+        }
+        return 0;
+    }
+
     static public function dropData() {
         return Workers::truncate();
     }

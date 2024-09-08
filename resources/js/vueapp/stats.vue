@@ -2,6 +2,7 @@
 import { Table, Switch, Modal, TimeRangePicker } from 'ant-design-vue';
 import { ref } from 'vue';
 import dayjs from 'dayjs';
+import axios from 'axios';
 </script>
 <script>
 export default {
@@ -18,14 +19,17 @@ export default {
             slots: null,
             lines: null,
             workers: null,
-            edit: ref(false)
+            edit: ref(false),
+            updSlots: [],
+            updWorkers: []
         }
     },
     methods: {
         processRows() {
             this.workers.forEach(el => {
                 el.break = {
-                    time: ref([dayjs(el.break_started_at, 'hh:mm:ss'), dayjs(el.break_ended_at, 'HH:mm:ss')])
+                    time: ref([dayjs(el.break_started_at, 'hh:mm:ss'), dayjs(el.break_ended_at, 'HH:mm:ss')]),
+                    worker_id: el.worker_id
                 };
 
                 let slots = this.slots.filter((i) => {
@@ -60,38 +64,51 @@ export default {
             }, {
                 title: 'Время обеда',
                 dataIndex: 'break',
-                width: 200
+                width: 200,
+                fixed: 'left'
             });
         },
-        updateData(upd) {
-            if (!upd) {
-                let slots = [];
-                let workers = this.workers.map(el => {
-                    if (el) {
-                        for (let i in el) {
-                            if (/^\d+$/.test(i)) {
-                                slots.push({
-                                    slot_id: el[i].slot_id,
-                                    line_id: el[i].line_id,
-                                    started_at: el[i].time[0].format('HH:mm:ss'),
-                                    endded_at: el[i].time[1].format('HH:mm:ss'),
-                                })
-                            }
-                        }
-                        el.break_started_at = el.break.time[0].format('HH:mm:ss');
-                        el.break_ended_at = el.break.time[1].format('HH:mm:ss');
-                        // el.break = undefined;
-                        return el;
-                    }
-                });
-                this.$emit('close-modal', [slots, workers]);
-            } else {
-                this.$emit('close-modal');
+        addUpdate(rec) {
+            let item = null;
+            if (rec.slot_id) {
+                item = this.updSlots.find(el => el.slot_id == rec.slot_id);
+            } else if (rec.worker_id) {
+                item = this.updWorkers.find(el => el.worker_id == rec.worker_id);
             }
-            return;
-            //     slots:   slots,
-            //     workers: workers
-            // }
+            if (item) {
+                item.started_at = rec.time[0].format('HH:mm:ss');
+                item.ended_at = rec.time[1].format('HH:mm:ss');
+            } else {
+                if (rec.slot_id) {
+                    this.updSlots.push({
+                        slot_id: rec.slot_id,
+                        started_at: rec.time[0].format('HH:mm:ss'),
+                        ended_at: rec.time[1].format('HH:mm:ss')
+                    });
+                } else if (rec.worker_id) {
+                    this.updWorkers.push({
+                        worker_id: rec.worker_id,
+                        started_at: rec.time[0].format('HH:mm:ss'),
+                        ended_at: rec.time[1].format('HH:mm:ss')
+                    });
+                }
+            }
+        },
+        updateData(upd) {
+            if (upd) {
+                if (this.updSlots) {
+                    axios.post('/api/edit_slot',
+                        this.updSlots
+                    );
+                }
+
+                if (this.updWorkers) {
+                    axios.post('/api/save_worker',
+                        this.updWorkers
+                    );
+                }
+            }
+            this.$emit('close-modal', upd);
         }
     },
     updated() {
@@ -118,13 +135,14 @@ export default {
 }
 </script>
 <template>
-    <Modal v-model:open="$props.open" cancelText="Закрыть" title="Редактировать график" 
-        @ok="updateData" @cancel="updateData(false)" style="width:98vw;">
+    <Modal v-model:open="$props.open" cancelText="Закрыть" title="Редактировать график" @ok="updateData(true)"
+        @cancel="updateData(false)" style="width:98vw;">
         <Switch checked-children="Редактирование" un-checked-children="Просмотр" v-model:checked="edit" />
-        <br/>
-        <br/>
+        <br />
+        <br />
         <div class="table-container">
-            <Table :dataSource="workers" :columns="lines" :pagination="{pageSize: 6}" small>
+            <Table :dataSource="workers" :columns="lines" :pagination="{ pageSize: 6 }" small :scroll="{ x: 2000 }"
+                style="overflow:scroll;scrollbar-color: unset;">
                 <template #bodyCell="{ column, record, text }">
                     <template v-if="column.dataIndex != 'title' &&
                         record[column.dataIndex]">
@@ -134,8 +152,8 @@ export default {
                         </template>
                         <template v-else>
                             <TimeRangePicker v-model:value="record[column.dataIndex]['time']"
-                                @change="(ev) => { console.log(ev); }" format="HH:mm" :showTime="true"
-                                :allowClear="true" type="time" :showDate="false" :size="'small'"/>
+                                @change="(ev) => { addUpdate(record[column.dataIndex]); }" format="HH:mm"
+                                :showTime="true" :allowClear="true" type="time" :showDate="false" :size="'small'" />
                         </template>
                     </template>
                     <template v-else>

@@ -3,8 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Lines;
+use App\Models\Slots;
 use Illuminate\Http\Request;
-use Illuminate\Queue\Worker;
 use Shuchkin\SimpleXLSX;
 
 class TableController extends Controller
@@ -41,8 +41,9 @@ class TableController extends Controller
             $this->processWorkers();
         }
 
-    }
+        return 0;
 
+    }
     private function processProducts()
     {
         $currentLine = null;
@@ -53,9 +54,10 @@ class TableController extends Controller
                 $row[3] != null &&
                 $row[4] != null
             ) {
+                var_dump(array_search(trim(strtolower($row[1])), self::$skipPhrases));
                 if ($row[0] == null) {
                     // Строка линии
-                    if (!array_search(trim(strtolower($row[1])), self::$skipPhrases)) {
+                    if (array_search(trim(strtolower($row[1])), self::$skipPhrases) === false) {
                         $currentLine = LinesController::add(
                             trim($row[1]),
                             trim($row[2]),
@@ -67,7 +69,7 @@ class TableController extends Controller
                     }
                 } else {
                     // Строка продукта
-                    if (!array_search(trim(strtolower($row[1])), self::$skipPhrases)) {
+                    if (array_search(trim(strtolower($row[1])), self::$skipPhrases) === false) {
                         ProductsController::add(
                             trim($row[0]),
                             $currentLine,
@@ -85,7 +87,6 @@ class TableController extends Controller
             }
         }
     }
-
     private function processWorkers()
     {
         $lines = json_decode(LinesController::getList(['line_id', 'title']), true);
@@ -93,25 +94,41 @@ class TableController extends Controller
         for ($i = 0; $i < count($lineCells); $i += 2) {
             if (!empty($lineCells[$i]) && ($index = array_search($lineCells[$i], array_column($lines, 'title'))) !== false) {
                 $lines[$index]["cells"] = [$i, $i + 1];
-                print_r($lines[$index]);
-            } else {
-                print_r($i);
             }
         }
         var_dump($lines);
+        // die();
         foreach (array_slice($this->file['workers'], 3) as $row) {
             if ($row[1] == null)
                 continue;
             $worker_id = WorkersController::add($row[0], $row[1], $row[2], $row[3]);
-            for ($m = 0; $m < count(array_slice($row, 4)); $m += 2) {
-                if ($index = array_search([$m, $m + 1], array_column($lines, 'cells'))) {
+            $row = array_slice($row, 4);
+            for ($m = 0; $m < count($row); $m += 2) {
+                if (($index = array_search([$m, $m + 1], array_column($lines, 'cells'))) !== false) {
                     if ($row[$m] == null)
                         continue;
-                    var_dump($worker_id);
-                    var_dump($m);
+                    print_r("index: " . $index . PHP_EOL);
+                    print_r($m . ' ' . $m+1 . PHP_EOL);
+                    print_r("line: " . $lines[$index]['title'] . PHP_EOL);
+                    print_r("row: " . $row[$m] . ' ' . $row[$m + 1] . PHP_EOL . PHP_EOL);
                     SlotsController::add($lines[$index]['line_id'], $worker_id, $row[$m], $row[$m + 1]);
                 }
             }
+        }
+    }
+    public function getFile(Request $request) {
+        $data  = $request->post();
+        $columns = [
+            ['<b><i>Наряд за</i></b>', '', date('d.m.Y H.i.s', time())]];
+    
+        $slots = Slots::where(['worker_id' => $data['worker_id']])->get();
+
+        $lines = Lines::all(['line_id', 'title']);
+        
+        foreach ($lines as $line) {
+            /**
+             * @todo Поменять модели на контроллеры и дописать отчётность
+             */
         }
     }
 }

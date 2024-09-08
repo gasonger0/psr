@@ -1,78 +1,23 @@
 <script setup>
-import { BackTop, Card, FloatButton, Input, Switch, TimeRangePicker, Button } from 'ant-design-vue';
-import { ref } from 'vue';
+import { BackTop, Card, FloatButton, Input, Switch, TimeRangePicker, Button, FloatButtonGroup, Tooltip } from 'ant-design-vue';
+import { ref, reactive } from 'vue';
 import axios from 'axios';
 import Loading from './loading.vue';
 import dayjs from 'dayjs';
-import { PlusCircleOutlined } from '@ant-design/icons-vue';
+import { LoginOutlined, PlusCircleOutlined, UserAddOutlined, UserDeleteOutlined } from '@ant-design/icons-vue';
 </script>
 <script>
 export default {
     data() {
         return {
-            lines: [
-                {
-                    id: 1,
-                    title: 'Линия №1',
-                    started_at: new Date(),
-                    updated_at: new Date()
-                },
-                {
-                    id: 2,
-                    title: 'Линия №2',
-                    started_at: new Date(),
-                    updated_at: new Date()
-                },
-                {
-                    id: 3,
-                    title: 'Линия №3',
-                    started_at: new Date(),
-                    updated_at: new Date()
-                },
-            ],
-            workers: [
-                {
-                    id: 1,
-                    name: 'Комаров И.Н.',
-                    company: 'ООО',
-                    break_start: '12:00',
-                    break_end: '12:30'
-                },
-                {
-                    id: 3,
-                    name: 'Пупупу',
-                    company: 'Треш',
-                }
-            ],
-            products: [
-                {
-                    id: 1,
-                    title: 'Зефир',
-                    line_id: 1,
-                    started_at: new Date(),
-                    ended_at: new Date(),
-                    people_count: 2
-                }
-            ],
-            slots: [
-                {
-                    id: 1,
-                    worker_id: 1,
-                    line_id: 1,
-                    started_at: '8:00',
-                    ended_at: '10:00'
-                },
-                {
-                    id: 2,
-                    worker_id: 1,
-                    line_id: 2,
-                    started_at: '10:00',
-                    ended_at: '17:00'
-                }
-            ],
+            lines: reactive([]),
+            workers: reactive([]),
+            products: reactive([]),
+            slots: reactive([]),
             isLoading: ref(true),
             document: document,
-            listenerSet: false
+            listenerSet: false,
+            active: null
         }
     },
     methods: {
@@ -95,10 +40,24 @@ export default {
                                 worker.on_break = true;
                             }
                         })
+
+                        console.log(this.workers);
                         this.isLoading = false;
                         resolve(true);
                     });
             })
+        },
+        deleteWorker(record) {
+            this.isLoading = true;
+            axios.post('/api/delete_slot', {worker_id: record.worker_id})
+                .then(response => {
+                    this.isLoading = false;
+                    this.workers.splice(this.workers.indexOf(this.workers.find(worker)), 1);
+                    this.$emit('notify', 'success', 'Сотрудник ' + record.title + ' убран со смены');
+                });
+        },
+        saveWorker(record) {
+
         },
         async getSlots() {
             return new Promise((resolve, reject) => {
@@ -108,16 +67,6 @@ export default {
                         resolve(true);
                     });
             });
-        },
-        changeLine(line_id, worker_id) {
-
-            // Остановить предыдущую смену этого работника (изменить время)
-            // Создать новый слот
-            // axios.post('/api/add_slot') {
-            //     JSON.stringify({
-
-            //     })
-            // }
         },
         calcCount() {
             this.lines = this.lines.map((line) => {
@@ -178,10 +127,38 @@ export default {
             }, 100);
             return;
         },
-        saveLine() {
-
+        saveLine(record) {
+            let fd = new FormData();
+            if (record['line_id'] != -1) {
+                fd.append('line_id', record['line_id']);
+            }
+            fd.append('workers_count', record.workers_count);
+            fd.append('started_at', record.time[0].format('HH:mm:ss'));
+            fd.append('ended_at', record.time[1].format('HH:mm:ss'))
+            console.log(fd);
+            axios.post('/api/save_line', fd)
+                .then((response) => {
+                    console.log(response);
+                })
+                .catch((err) => {
+                    console.log(err);
+                })
+        },
+        changeLine(line_id, worker_id) {
+            // Остановить предыдущую смену этого работника (изменить время)
+            // Создать новый слот
+            let fd = new FormData();
+            let worker = this.workers.find(el => el.worker_id == worker_id);
+            console.log(worker);
+            fd.append('new_line_id', line_id);
+            fd.append('worker_id', worker_id);
+            fd.append('old_line_id', worker.current_line_id);
+            axios.post('/api/change_slot', fd).then((response) => {
+                this.lines.find((el) => el.line_id == line_id).count_current += 1;
+                // worker.current_line_id = Number(line_id);
+                // this.calcCount();
+            });
         }
-
         /*-------------------- LINES END --------------------*/
     },
     async created() {
@@ -200,11 +177,14 @@ export default {
             draggable.forEach(line => {
                 line.addEventListener(`dragstart`, (ev) => {
                     ev.target.classList.add(`selected`);
+                    this.active = ev.target;
+                    console.log(ev.target)
                 })
 
                 line.addEventListener(`dragend`, (ev) => {
-                    console.log(ev);
-                    if (ev.target.classList.contains('selected')) {
+                    console.log(ev.target);
+                    console.log(this.active);
+                    if (ev.target.classList.contains('selected') && ev.target == this.active) {
                         // console.log(this.workers.find(el => el.worker_id == ev.target.dataset.id));
                         // let worker = this.workers.find(el => el.worker_id == ev.target.dataset.id);
                         // if (worker) {
@@ -212,8 +192,7 @@ export default {
                         // }
                         ev.target.classList.remove(`selected`);
                         this.changeLine(ev.target.closest('.line').dataset.id, ev.target.dataset.id);
-                        // this.getWorkers();
-                        this.$emit('data-recieved', this.$data);
+                        //this.$emit('data-recieved', this.$data);
                     }
                 });
 
@@ -221,8 +200,6 @@ export default {
                     ev.preventDefault();
                     const activeElement = document.querySelector('.selected');
                     const currentElement = ev.target;
-                    // ev.target.classList.contains('draggable-card') ? ev.target :
-                    // ev.target.closest('.draggable-card');
                     const isMoveable = activeElement !== currentElement;
 
                     if (!isMoveable) {
@@ -254,7 +231,7 @@ export default {
             });
         }
         this.listenerSet = true;
-        this.document.querySelector('.lines-container').scrollTo({left: 0});
+        this.document.querySelector('.lines-container').scrollTo({ left: 0 });
     }
 }
 </script>
@@ -263,18 +240,19 @@ export default {
         <div class="line" v-for="line in lines" :data-id="line.line_id">
             <Card :bordered="false" class="head">
                 <template #title>
-                    <div class="line_title" :data-id="line.line_id">
+                    <!-- <Input v-show="line.edit && line.line_id == -1" :data-id="line.line_id" class="line_title" v-model:value="line.title" /> -->
+                    <div class="line_title" :data-id="line.line_id" v-show="!line.edit && line.line_id != -1">
                         <b>{{ line.title }}</b>
                     </div>
                     <Switch v-model:checked="line.edit" checked-children="Редактирование" un-checked-children="Просмотр"
-                        class="title-switch" @change="(c, e) => {c ? saveLine(line) : return;}"/>
+                        class="title-switch" @change="(c, e) => { !c ? saveLine(line) : '' }" />
                 </template>
                 <template v-if="line.edit">
                     <div style="width:100%; max-width:400px;">
                         <span
                             style="display: flex; justify-content: space-between; margin-bottom:10px;align-items: center;">
                             <span style="height:fit-content;">Необходимо:&nbsp;&nbsp;</span>
-                            <Input v-model:value="line.workers_count" />
+                            <Input v-model:value="line.workers_count" type="number" />
                         </span>
                         <TimeRangePicker v-model:value="line.time" format="HH:mm" :showTime="true" :allowClear="true"
                             type="time" :showDate="false"
@@ -283,7 +261,7 @@ export default {
                 </template>
                 <template v-else>
                     <div class="line_sub-title">
-                        <span :style="line.count_current < line.workers_count ? 'color:red;' : ''">Необходимо
+                        <span :style="line.count_current < line.workers_count ? 'color:#ff4d4f;' : ''">Необходимо
                             работников: {{ line.workers_count ? line.workers_count : 'без ограничений'
                             }}</span>
                         <br>
@@ -294,29 +272,49 @@ export default {
             <section class="line_items">
                 <Card :title="v.title" draggable="true" class="draggable-card"
                     v-for="(v, k) in workers.filter(el => el.current_line_id == line.line_id)"
-                    :style="v.on_break ? 'opacity: 0.6' : ''" :data-id="v.worker_id" @mouseover="el.showDelete = true"
-                    @mouseleave="el.showDelete = false">
+                    :style="v.on_break ? 'opacity: 0.6' : ''" :data-id="v.worker_id"
+                    @focus="() => { v.showDelete = true }" @mouseleave="() => { v.showDelete = false }">
                     <template #extra>
                         <span style="color: #1677ff;text-decoration: underline;">
                             {{ v.company }}
                         </span>
                     </template>
-                    <span v-show="v.break_started_at && v.break_ended_at">
-                        Перерыв на обед: {{ v.break_started_at + ' - ' + v.break_ended_at }}
-                    </span>
-                    <Button type="primary" danger ghost v-show="showDelete">Убрать со смены</Button>
+                    <div style="display:flex; justify-content: space-between;align-items: center;">
+                        <span v-show="v.break_started_at && v.break_ended_at" style="height: fit-content;">
+                            Обед: {{ v.break_started_at.substr(0, 5) + ' - ' + v.break_ended_at.substr(0, 5) }}
+                        </span>
+                        <Tooltip title="Убрать со смены">
+                            <UserDeleteOutlined style="color:#ff4d4f;padding:5px;border: 2px solid #ff4d4f;font-size:15px;border-radius:20px;" @click="deleteWorker(v)"/>
+                        </Tooltip>
+                    </div>
                 </Card>
             </section>
         </div>
     </div>
     <Loading :open="isLoading" />
-    <FloatButton type="primary" @click="addLineFront">
+    <FloatButtonGroup trigger="hover" type="primary">
         <template #tooltip>
-            <div>Добавить линию</div>
+            <div>Добавить..</div>
         </template>
         <template #icon>
             <PlusCircleOutlined />
         </template>
-    </FloatButton>
-    <BackTop />
+        <FloatButton type="default" @click="addLineFront">
+            <template #tooltip>
+                <div>Добавить линию</div>
+            </template>
+            <template #icon>
+                <LoginOutlined />
+            </template>
+        </FloatButton>
+        <FloatButton type="default" @click="addLineFront">
+            <template #tooltip>
+                <div>Добавить сотрудника</div>
+            </template>
+            <template #icon>
+                <UserAddOutlined />
+            </template>
+        </FloatButton>
+        <BackTop />
+    </FloatButtonGroup>
 </template>
