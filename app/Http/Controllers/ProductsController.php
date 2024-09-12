@@ -14,7 +14,7 @@ class ProductsController extends Controller
 
         $product = new Products();
 
-        // $product->shift = $shift;
+        $product->shift = $shift;
         $product->title = $title;
         $product->line_id = $line_id;
         $product->workers_count = $workers_count;
@@ -22,7 +22,6 @@ class ProductsController extends Controller
         $product->ended_at = $ended_at;
 
         $product->save();
-
         return;
     }
 

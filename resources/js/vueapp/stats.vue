@@ -1,5 +1,5 @@
 <script setup>
-import { Table, Switch, Modal, TimeRangePicker } from 'ant-design-vue';
+import { Table, Switch, Modal, TimeRangePicker, Button } from 'ant-design-vue';
 import { ref } from 'vue';
 import dayjs from 'dayjs';
 import axios from 'axios';
@@ -142,7 +142,7 @@ export default {
         <br />
         <div class="table-container">
             <Table :dataSource="workers" :columns="lines" :pagination="{ pageSize: 6 }" small :scroll="{ x: 2000 }"
-                style="overflow:scroll;scrollbar-color: unset;">
+                style="scrollbar-color: unset;">
                 <template #bodyCell="{ column, record, text }">
                     <template v-if="column.dataIndex != 'title' &&
                         record[column.dataIndex]">
@@ -156,6 +156,9 @@ export default {
                                 :showTime="true" :allowClear="true" type="time" :showDate="false" :size="'small'" />
                         </template>
                     </template>
+                    <!-- <template v-else-if="!record[column.dataIndex] && edit">
+                        <Button type="dashed" @click="addSlotFront">+</Button>
+                    </template> -->
                     <template v-else>
                         {{ record[column.dataIndex] }}
                     </template>

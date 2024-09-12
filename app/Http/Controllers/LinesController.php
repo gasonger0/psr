@@ -3,12 +3,16 @@
 namespace App\Http\Controllers;
 
 use App\Models\Lines;
+use DB;
 use Illuminate\Http\Request;
+use Carbon\Carbon;
 
 class LinesController extends Controller
 {
     static public function getList($columns = ['*']) {
-        return Lines::all($columns)->toJson();
+        // return Lines::all($columns)->toJson();
+    //    Lines::query('')
+       return json_encode(DB::select('select *, (select shift from kf.products p WHERE (p.line_id=l.line_id) AND (NOW() >= p.started_at) AND (now() <= p.ended_at) LIMIT 1) shift from kf.lines l;'));
     }
 
     static public function add($title = null, $workers_count = null, $started_at = null, $ended_at = null, $color = null) {

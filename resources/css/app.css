@@ -38,6 +38,9 @@ body {
 .line_items {
     min-height: 10vh;
 }
+.line_items .ant-card-body {
+    padding: 10px 24px;
+}
 
 .title-switch {
     margin: 10px 0;

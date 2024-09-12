@@ -25,6 +25,9 @@ export default {
                     console.log(response);
                     this.$emit('notify', 'success', "Файл успешно загружен. Обновите страницу, чтобы оперировать актуальными данными");
                 }
+            }).catch((err) => {
+                console.log(err);
+                this.$emit('notify', 'warning', res);
             })
             console.log(file);
             return false;

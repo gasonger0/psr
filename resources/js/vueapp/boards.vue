@@ -1,12 +1,12 @@
 <script setup>
-import { BackTop, Card, FloatButton, Input, Switch, TimeRangePicker, FloatButtonGroup, Tooltip } from 'ant-design-vue';
+import { BackTop, Card, FloatButton, Input, Switch, TimeRangePicker, FloatButtonGroup, Tooltip, TimePicker, Modal, Popover, Select } from 'ant-design-vue';
 import { ref, reactive } from 'vue';
 import axios from 'axios';
 import Loading from './loading.vue';
 import dayjs from 'dayjs';
 import { ColorPicker } from 'vue-color-kit';
 import 'vue-color-kit/dist/vue-color-kit.css'
-import { ForwardOutlined, LoginOutlined, PlusCircleOutlined, StopOutlined, UserAddOutlined, UserDeleteOutlined } from '@ant-design/icons-vue';
+import { ForwardOutlined, LoginOutlined, PlusCircleOutlined, StopOutlined, UserAddOutlined, UserDeleteOutlined, UserSwitchOutlined } from '@ant-design/icons-vue';
 </script>
 <script>
 export default {
@@ -35,7 +35,6 @@ export default {
                             (String(curTime.getMinutes()).length == 1 ? '0' + String(curTime.getMinutes()) : String(curTime.getMinutes()))
                             + ':' +
                             (String(curTime.getSeconds()).length == 1 ? '0' + String(curTime.getSeconds()) : String(curTime.getSeconds()));
-                        console.log(timeString);
                         this.slots.forEach(slot => {
                             if (slot.started_at < timeString && timeString < slot.ended_at) {
                                 console.log(slot.started_at);
@@ -44,6 +43,7 @@ export default {
                                 let worker = this.workers.find(worker => worker.worker_id == slot.worker_id);
                                 worker.current_line_id = slot.line_id;
                                 worker.current_slot = slot;
+                                slot.popover = ref(false);
                             }
                         });
                         this.workers.forEach((worker) => {
@@ -52,7 +52,6 @@ export default {
                             }
                         })
 
-                        console.log(this.workers);
                         this.isLoading = false;
                         resolve(true);
                     });
@@ -67,7 +66,6 @@ export default {
                     this.$emit('notify', 'success', 'Сотрудник ' + record.title + ' убран со смены');
                 });
         },
-
         async getSlots() {
             return new Promise((resolve, reject) => {
                 axios.get('/api/get_slots')
@@ -80,6 +78,7 @@ export default {
         calcCount() {
             this.lines = this.lines.map((line) => {
                 line.count_current = this.workers.filter((wrkr) => wrkr.current_line_id == line.line_id).length;
+
                 return line;
             });
 
@@ -127,7 +126,21 @@ export default {
                             el.edit = false;
                             el.color = ref(el.color);
                             el.showDelete = ref(false);
-                            el.time = ref([dayjs(el.started_at, 'hh:mm:ss'), dayjs(el.ended_at, 'HH:mm:ss')]);
+                            // el.time = ref([dayjs(el.started_at, 'hh:mm:ss'), dayjs(el.ended_at, 'HH:mm:ss')]);
+                            el.time = ref(dayjs(el.started_at, 'hh:mm:ss'));
+                            let curTime = new Date();
+
+                            let timeString =
+                                (String(curTime.getHours()).length == 1 ? '0' + String(curTime.getHours()) : String(curTime.getHours()))
+                                + ':' +
+                                (String(curTime.getMinutes()).length == 1 ? '0' + String(curTime.getMinutes()) : String(curTime.getMinutes()))
+                                + ':' +
+                                (String(curTime.getSeconds()).length == 1 ? '0' + String(curTime.getSeconds()) : String(curTime.getSeconds()));
+                            if (timeString > el.ended_at) {
+                                el.done = true;
+                            } else {
+                                el.done = false;
+                            }
                             return el;
                         })
                         resolve(true);
@@ -137,7 +150,8 @@ export default {
         addLineFront() {
             this.lines.push({
                 edit: true,
-                time: ref([dayjs(), dayjs()]),
+                // time: ref([dayjs(), dayjs()]),
+                time: ref(dayjs()),
                 title: 'Новая линия',
                 workers_count: 0,
                 line_id: -1
@@ -157,8 +171,9 @@ export default {
             }
             fd.append('workers_count', record.workers_count);
             fd.append('color', record.color);
-            fd.append('started_at', record.time[0].format('HH:mm:ss'));
-            fd.append('ended_at', record.time[1].format('HH:mm:ss'))
+            fd.append('started_at', record.time.format('HH:mm:ss'));
+            // fd.append('started_at', record.time[0].format('HH:mm:ss'));
+            // fd.append('ended_at', record.time[1].format('HH:mm:ss'))
             console.log(fd);
             axios.post('/api/save_line', fd)
                 .then((response) => {
@@ -268,6 +283,7 @@ export default {
                     <div class="line_title" :data-id="line.line_id" v-show="!line.edit">
                         <b>{{ line.title }}</b>
                     </div>
+                    <span style="color: white; font-weight:401;">Смена: {{ line.shift }}</span>
                     <Input v-show="line.edit" :data-id="line.line_id" class="line_title" v-model:value="line.title"
                         style="display: block;color:black;" />
 
@@ -299,9 +315,13 @@ export default {
                             <span style="height:fit-content;">Необходимо:&nbsp;&nbsp;</span>
                             <Input v-model:value="line.workers_count" type="number" />
                         </span>
-                        <TimeRangePicker v-model:value="line.time" format="HH:mm" :showTime="true" :allowClear="true"
-                            type="time" :showDate="false"
-                            style="display: flex; justify-content: space-between; align-items: center;" />
+                        <span style="display: flex; justify-content: space-between; align-items: center;">
+                            <span>Работает с:</span>
+                            <TimePicker v-model:value="line.time" format="HH:mm" :showTime="true" :allowClear="true"
+                                type="time" :showDate="false" style="width:fit-content;" />
+                        </span>
+                        <!-- <TimeRangePicker 
+                             /> -->
                     </div>
                 </template>
                 <template v-else>
@@ -326,22 +346,35 @@ export default {
                     </template>
                     <div style="display:flex; justify-content: space-between;align-items: center;">
                         <svg width="20px" height="20px" viewBox="0 0 24 24" fill="none"
-                                xmlns="http://www.w3.org/2000/svg" v-show="v.on_break">
-                                <g id="Environment / Coffee">
-                                    <path id="Vector"
-                                        d="M4 20H10.9433M10.9433 20H11.0567M10.9433 20C10.9622 20.0002 10.9811 20.0002 11 20.0002C11.0189 20.0002 11.0378 20.0002 11.0567 20M10.9433 20C7.1034 19.9695 4 16.8468 4 12.9998V8.92285C4 8.41305 4.41305 8 4.92285 8H17.0767C17.5865 8 18 8.41305 18 8.92285V9M11.0567 20H18M11.0567 20C14.8966 19.9695 18 16.8468 18 12.9998M18 9H19.5C20.8807 9 22 10.1193 22 11.5C22 12.8807 20.8807 14 19.5 14H18V12.9998M18 9V12.9998M15 3L14 5M12 3L11 5M9 3L8 5"
-                                        stroke="#000000" stroke-width="2" stroke-linecap="round"
-                                        stroke-linejoin="round" />
-                                </g>
+                            xmlns="http://www.w3.org/2000/svg" v-show="v.on_break">
+                            <g id="Environment / Coffee">
+                                <path id="Vector"
+                                    d="M4 20H10.9433M10.9433 20H11.0567M10.9433 20C10.9622 20.0002 10.9811 20.0002 11 20.0002C11.0189 20.0002 11.0378 20.0002 11.0567 20M10.9433 20C7.1034 19.9695 4 16.8468 4 12.9998V8.92285C4 8.41305 4.41305 8 4.92285 8H17.0767C17.5865 8 18 8.41305 18 8.92285V9M11.0567 20H18M11.0567 20C14.8966 19.9695 18 16.8468 18 12.9998M18 9H19.5C20.8807 9 22 10.1193 22 11.5C22 12.8807 20.8807 14 19.5 14H18V12.9998M18 9V12.9998M15 3L14 5M12 3L11 5M9 3L8 5"
+                                    stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                            </g>
                         </svg>
                         <span v-show="v.break_started_at && v.break_ended_at" style="height: fit-content;">
                             Обед: {{ v.break_started_at.substr(0, 5) + ' - ' + v.break_ended_at.substr(0, 5) }}
                         </span>
-                        <Tooltip title="Убрать со смены">
-                            <UserDeleteOutlined
-                                style="color:#ff4d4f;padding:5px;border: 2px solid #ff4d4f;font-size:15px;border-radius:20px;"
-                                @click="deleteWorker(v)" />
-                        </Tooltip>
+                        <div style="display: flex; gap:5px;">
+                            <Tooltip title="Убрать со смены">
+                                <UserDeleteOutlined
+                                    style="color:#ff4d4f;padding:5px;border: 2px solid #ff4d4f;font-size:25px;border-radius:20px;"
+                                    @click="deleteWorker(v)" />
+                            </Tooltip>
+                            <Popover v-model:open="v.popover" trigger="click" placement="right">
+                                <template #content>
+                                    <Select
+                                        style="width:20vw;"
+                                        :options="workers.map(el => { return { key: el.worker_id, label: el.title, value: el.title } })"
+                                        :showSearch="true"></Select>
+                                </template>
+                                <Tooltip title="Заменить">
+                                    <UserSwitchOutlined
+                                        style="color:#f48c05;padding:5px;border: 2px solid #f48c05;font-size:25px;border-radius:20px;" />
+                                </Tooltip>
+                            </Popover>
+                        </div>
                     </div>
                 </Card>
             </section>
@@ -363,7 +396,7 @@ export default {
                 <LoginOutlined />
             </template>
         </FloatButton>
-        <FloatButton type="default" @click="addLineFront">
+        <FloatButton type="default" @click="addWorkerFront">
             <template #tooltip>
                 <div>Добавить сотрудника</div>
             </template>

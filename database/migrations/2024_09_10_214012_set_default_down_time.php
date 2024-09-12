@@ -11,12 +11,12 @@ return new class extends Migration {
     public function up(): void
     {
         Schema::table('slots', function (Blueprint $table) {
-            // $table->dropColumn('down_time');
+            $table->dropColumn('down_time');
             $table->time('down_time')->nullable()->default('00:00:00');
         });
         Schema::table('lines', function (Blueprint $table) {
-            // $table->dropColumn('down_time');
-            // $table->dropColumn('down_from');
+            $table->dropColumn('down_time');
+            $table->dropColumn('down_from');
             $table->time('down_time')->nullable()->default('00:00:00');
             $table->time('down_from')->nullable();
         });
