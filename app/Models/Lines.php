@@ -10,7 +10,8 @@ class Lines extends Model
     protected $table = 'lines';
     protected $primaryKey = 'line_id';
     public $incrementing = true;
-    protected $dateFormat = 'U';
+    // protected $dateFormat = 'U';
+    public $fillable = ['started_at', 'ended_at'];
 
     public function setCreatedAtAttribute($value)
     {
@@ -20,5 +21,14 @@ class Lines extends Model
     public function setUpdatedAtAttribute($value)
     {
         $this->attributes['updated_at'] = Carbon::parse($value)->format('Y-m-d H:i:s');
+    }
+    public function addDowntime(int $minutes)
+    {
+        $c1 = Carbon::instance(new \DateTime($this->down_time, new \DateTimeZone('Europe/Moscow')));
+        $c1->addMinutes($minutes);
+        var_dump($c1);
+        return $this->update([
+            'down_time' => $c1
+        ]);
     }
 }

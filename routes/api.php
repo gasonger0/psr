@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Route;
  ******/
 Route::get( '/get_lines',   [LinesController::class,    'getList'   ]); 
 Route::post('/save_line',   [LinesController::class,    'save'      ]);
+Route::post('/down_line',   [LinesController::class,    'down'      ]);
 
 /*********
  * WORKERS

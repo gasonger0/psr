@@ -10,7 +10,9 @@ class Products extends Model
     protected $table = 'products';
     protected $primaryKey = 'product_id';
     public $incrementing = true;
-    protected $dateFormat = 'U';
+    // protected $dateFormat = 'U';
+    public $fillable = ['started_at', 'ended_at'];
+
 
     public function setCreatedAtAttribute($value)
     {
@@ -22,7 +24,7 @@ class Products extends Model
         $this->attributes['updated_at'] = Carbon::parse($value)->format('Y-m-d H:i:s');
     }
 
-    public function incrementSeconds(int $minutes)
+    public function addMinutes(int $minutes)
     {
         $c1 = Carbon::instance(new \DateTime($this->started_at));
         $c1->addMinutes($minutes);

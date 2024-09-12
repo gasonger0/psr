@@ -28,9 +28,9 @@ class ProductsController extends Controller
 
     static public function afterLineUpdate($line_id, $timeshift)
     {
-        $slots = Products::where('line_id', $line_id)->get();
+        $slots = Products::where('line_id', '=', $line_id)->get();
         foreach ($slots as $slot) {
-            $slot->incrementSeconds($timeshift);
+            $slot->addMinutes($timeshift);
         }
     }
 

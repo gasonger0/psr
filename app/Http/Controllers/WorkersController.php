@@ -22,7 +22,7 @@ class WorkersController extends Controller
         $worker->break_ended_at = $b_end;
 
         $worker->save();
-        return $worker->id;
+        return $worker->worker_id;
     }
 
     static public function save(Request $request) {
@@ -38,6 +38,11 @@ class WorkersController extends Controller
         }
         return 0;
     }
+
+    // static public function updateBaseTime($worker_id, $time) {
+    //     $s = Workers::find($worker_id);
+    //     $s->addMinutes($time);
+    // }
 
     static public function dropData() {
         return Workers::truncate();

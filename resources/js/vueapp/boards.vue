@@ -1,10 +1,12 @@
 <script setup>
-import { BackTop, Card, FloatButton, Input, Switch, TimeRangePicker, Button, FloatButtonGroup, Tooltip } from 'ant-design-vue';
+import { BackTop, Card, FloatButton, Input, Switch, TimeRangePicker, FloatButtonGroup, Tooltip } from 'ant-design-vue';
 import { ref, reactive } from 'vue';
 import axios from 'axios';
 import Loading from './loading.vue';
 import dayjs from 'dayjs';
-import { LoginOutlined, PlusCircleOutlined, UserAddOutlined, UserDeleteOutlined } from '@ant-design/icons-vue';
+import { ColorPicker } from 'vue-color-kit';
+import 'vue-color-kit/dist/vue-color-kit.css'
+import { ForwardOutlined, LoginOutlined, PlusCircleOutlined, StopOutlined, UserAddOutlined, UserDeleteOutlined } from '@ant-design/icons-vue';
 </script>
 <script>
 export default {
@@ -17,7 +19,7 @@ export default {
             isLoading: ref(true),
             document: document,
             listenerSet: false,
-            active: null
+            active: null,
         }
     },
     methods: {
@@ -27,16 +29,25 @@ export default {
                     .then(response => {
                         this.workers = response.data;
                         let curTime = new Date();
-                        let timeString = curTime.getHours() + ':' + curTime.getMinutes() + ':' + curTime.getSeconds();
+                        let timeString =
+                            (String(curTime.getHours()).length == 1 ? '0' + String(curTime.getHours()) : String(curTime.getHours()))
+                            + ':' +
+                            (String(curTime.getMinutes()).length == 1 ? '0' + String(curTime.getMinutes()) : String(curTime.getMinutes()))
+                            + ':' +
+                            (String(curTime.getSeconds()).length == 1 ? '0' + String(curTime.getSeconds()) : String(curTime.getSeconds()));
+                        console.log(timeString);
                         this.slots.forEach(slot => {
                             if (slot.started_at < timeString && timeString < slot.ended_at) {
+                                console.log(slot.started_at);
+                                console.log(slot.ended_at);
+                                console.log(timeString);
                                 let worker = this.workers.find(worker => worker.worker_id == slot.worker_id);
                                 worker.current_line_id = slot.line_id;
                                 worker.current_slot = slot;
                             }
                         });
                         this.workers.forEach((worker) => {
-                            if (worker.break_started_at < timeString < worker.break_ended_at) {
+                            if ((worker.break_started_at <= timeString) && (timeString <= worker.break_ended_at)) {
                                 worker.on_break = true;
                             }
                         })
@@ -49,16 +60,14 @@ export default {
         },
         deleteWorker(record) {
             this.isLoading = true;
-            axios.post('/api/delete_slot', {worker_id: record.worker_id})
+            axios.post('/api/delete_slot', { worker_id: record.worker_id })
                 .then(response => {
                     this.isLoading = false;
-                    this.workers.splice(this.workers.indexOf(this.workers.find(worker)), 1);
+                    this.workers.splice(this.workers.indexOf(this.workers.find(el => el.worker_id == record.worker_id)), 1);
                     this.$emit('notify', 'success', 'Сотрудник ' + record.title + ' убран со смены');
                 });
         },
-        saveWorker(record) {
 
-        },
         async getSlots() {
             return new Promise((resolve, reject) => {
                 axios.get('/api/get_slots')
@@ -93,6 +102,19 @@ export default {
                 currentElement.nextElementSibling;
             return nextElement;
         },
+        sendStop(line) {
+            axios.post('/api/down_line', 'id=' + line.line_id).then(response => {
+                let f = this.lines.find(el => el.line_id == line.line_id);
+
+                if (!f.down_from) {
+                    this.lines[this.lines.indexOf(f)].down_from = new Date();
+                } else {
+                    this.lines[this.lines.indexOf(f)].down_from = null;
+                }
+                console.log(this.lines.indexOf(f))
+                console.log(this.lines);
+            });
+        },
 
         /*------------------- LINES START -------------------*/
         async getLines() {
@@ -103,6 +125,7 @@ export default {
                         this.lines = response.data;
                         this.lines.map((el) => {
                             el.edit = false;
+                            el.color = ref(el.color);
                             el.showDelete = ref(false);
                             el.time = ref([dayjs(el.started_at, 'hh:mm:ss'), dayjs(el.ended_at, 'HH:mm:ss')]);
                             return el;
@@ -133,6 +156,7 @@ export default {
                 fd.append('line_id', record['line_id']);
             }
             fd.append('workers_count', record.workers_count);
+            fd.append('color', record.color);
             fd.append('started_at', record.time[0].format('HH:mm:ss'));
             fd.append('ended_at', record.time[1].format('HH:mm:ss'))
             console.log(fd);
@@ -238,14 +262,35 @@ export default {
 <template>
     <div class="lines-container">
         <div class="line" v-for="line in lines" :data-id="line.line_id">
-            <Card :bordered="false" class="head">
+            <Card :bordered="false" class="head"
+                :headStyle="{ 'background-color': (line.color ? line.color : '#1677ff') }">
                 <template #title>
-                    <!-- <Input v-show="line.edit && line.line_id == -1" :data-id="line.line_id" class="line_title" v-model:value="line.title" /> -->
-                    <div class="line_title" :data-id="line.line_id" v-show="!line.edit && line.line_id != -1">
+                    <div class="line_title" :data-id="line.line_id" v-show="!line.edit">
                         <b>{{ line.title }}</b>
                     </div>
-                    <Switch v-model:checked="line.edit" checked-children="Редактирование" un-checked-children="Просмотр"
-                        class="title-switch" @change="(c, e) => { !c ? saveLine(line) : '' }" />
+                    <Input v-show="line.edit" :data-id="line.line_id" class="line_title" v-model:value="line.title"
+                        style="display: block;color:black;" />
+
+                    <div style="display: flex;justify-content: space-between;align-items: center;">
+                        <Switch v-model:checked="line.edit" checked-children="Редактирование"
+                            un-checked-children="Просмотр" class="title-switch"
+                            @change="(c, e) => { !c ? saveLine(line) : '' }" />
+                        <Tooltip v-show="line.edit">
+                            <template #title>
+                                <ColorPicker theme="light" :color="line.color"
+                                    @changeColor="(ev) => { line.color = ev.hex; console.log(line); }" />
+                            </template>
+                            <div style="width: 30px; height: 30px;border-radius: 5px; border: 2px solid white"
+                                :style="'background-color:' + line.color" v-show="line.edit">
+                            </div>
+                        </Tooltip>
+                        <Tooltip :title="line.down_from ? 'Возобновить работу' : 'Остановить работу'">
+                            <ForwardOutlined @click="sendStop(line)" v-if="line.down_from"
+                                style="height:min-content;color:#82ff82;font-size:22px;" />
+                            <StopOutlined @click="sendStop(line)" v-else
+                                style="height:min-content;color:#ff4d4f;font-size:22px;" />
+                        </Tooltip>
+                    </div>
                 </template>
                 <template v-if="line.edit">
                     <div style="width:100%; max-width:400px;">
@@ -280,11 +325,22 @@ export default {
                         </span>
                     </template>
                     <div style="display:flex; justify-content: space-between;align-items: center;">
+                        <svg width="20px" height="20px" viewBox="0 0 24 24" fill="none"
+                                xmlns="http://www.w3.org/2000/svg" v-show="v.on_break">
+                                <g id="Environment / Coffee">
+                                    <path id="Vector"
+                                        d="M4 20H10.9433M10.9433 20H11.0567M10.9433 20C10.9622 20.0002 10.9811 20.0002 11 20.0002C11.0189 20.0002 11.0378 20.0002 11.0567 20M10.9433 20C7.1034 19.9695 4 16.8468 4 12.9998V8.92285C4 8.41305 4.41305 8 4.92285 8H17.0767C17.5865 8 18 8.41305 18 8.92285V9M11.0567 20H18M11.0567 20C14.8966 19.9695 18 16.8468 18 12.9998M18 9H19.5C20.8807 9 22 10.1193 22 11.5C22 12.8807 20.8807 14 19.5 14H18V12.9998M18 9V12.9998M15 3L14 5M12 3L11 5M9 3L8 5"
+                                        stroke="#000000" stroke-width="2" stroke-linecap="round"
+                                        stroke-linejoin="round" />
+                                </g>
+                        </svg>
                         <span v-show="v.break_started_at && v.break_ended_at" style="height: fit-content;">
                             Обед: {{ v.break_started_at.substr(0, 5) + ' - ' + v.break_ended_at.substr(0, 5) }}
                         </span>
                         <Tooltip title="Убрать со смены">
-                            <UserDeleteOutlined style="color:#ff4d4f;padding:5px;border: 2px solid #ff4d4f;font-size:15px;border-radius:20px;" @click="deleteWorker(v)"/>
+                            <UserDeleteOutlined
+                                style="color:#ff4d4f;padding:5px;border: 2px solid #ff4d4f;font-size:15px;border-radius:20px;"
+                                @click="deleteWorker(v)" />
                         </Tooltip>
                     </div>
                 </Card>

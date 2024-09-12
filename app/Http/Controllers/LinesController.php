@@ -11,7 +11,7 @@ class LinesController extends Controller
         return Lines::all($columns)->toJson();
     }
 
-    static public function add($title = null, $workers_count = null, $started_at = null, $ended_at = null) {
+    static public function add($title = null, $workers_count = null, $started_at = null, $ended_at = null, $color = null) {
         if (empty($title)) return;
 
         $line = new Lines;
@@ -20,6 +20,7 @@ class LinesController extends Controller
         $line->workers_count    = $workers_count;
         $line->started_at       = $started_at;
         $line->ended_at         = $ended_at;
+        $line->color            = $color;
 
         $line->save();
         return $line->line_id;
@@ -31,7 +32,8 @@ class LinesController extends Controller
                 $request->post('title'),
                 $request->post('workers_count'),
                 $request->post('started_at'),
-                $request->post('ended_at')
+                $request->post('ended_at'),
+                $request->post('color')
             );
             if ($id) {
                 return json_encode([
@@ -52,6 +54,7 @@ class LinesController extends Controller
             $line->workers_count = $request->post('workers_count');
             $line->started_at = strval($request->post('started_at'));
             $line->ended_at = strval($request->post('ended_at'));
+            $line->color = $request->post('color');
 
             $line->save();
 
@@ -69,6 +72,20 @@ class LinesController extends Controller
         }
     }
 
+    static public function down(Request $request) {
+        $line = Lines::find($request->post('id'));
+        $downFrom = $line->down_from;
+        if ($downFrom != null) {
+            $diff = (new \DateTime($downFrom))->diff(new \DateTime());
+            $line->down_time = $line->down_time + $diff->h * 60 + $diff->i;
+            $line->down_from = null;
+            $line->save();
+            SlotsController::down($line->id, $downFrom);
+        } else {
+            $line->down_from = now('Europe/Moscow');
+            $line->save();
+        }
+    }
     static public function dropData() {
         return Lines::truncate();
     }

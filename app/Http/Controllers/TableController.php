@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\Lines;
 use App\Models\Slots;
+use App\Models\Workers;
 use Illuminate\Http\Request;
 use Shuchkin\SimpleXLSX;
+use Shuchkin\SimpleXLSXGen;
 
 class TableController extends Controller
 {
@@ -54,7 +56,6 @@ class TableController extends Controller
                 $row[3] != null &&
                 $row[4] != null
             ) {
-                var_dump(array_search(trim(strtolower($row[1])), self::$skipPhrases));
                 if ($row[0] == null) {
                     // Строка линии
                     if (array_search(trim(strtolower($row[1])), self::$skipPhrases) === false) {
@@ -96,39 +97,88 @@ class TableController extends Controller
                 $lines[$index]["cells"] = [$i, $i + 1];
             }
         }
-        var_dump($lines);
-        // die();
         foreach (array_slice($this->file['workers'], 3) as $row) {
             if ($row[1] == null)
                 continue;
             $worker_id = WorkersController::add($row[0], $row[1], $row[2], $row[3]);
             $row = array_slice($row, 4);
+            // $time = 0;      // time in minutes
             for ($m = 0; $m < count($row); $m += 2) {
                 if (($index = array_search([$m, $m + 1], array_column($lines, 'cells'))) !== false) {
                     if ($row[$m] == null)
                         continue;
-                    print_r("index: " . $index . PHP_EOL);
-                    print_r($m . ' ' . $m+1 . PHP_EOL);
-                    print_r("line: " . $lines[$index]['title'] . PHP_EOL);
-                    print_r("row: " . $row[$m] . ' ' . $row[$m + 1] . PHP_EOL . PHP_EOL);
                     SlotsController::add($lines[$index]['line_id'], $worker_id, $row[$m], $row[$m + 1]);
+                    // $bufdiff = (new \DateTime($row[$m]))->diff(new \DateTime($row[$m+1]));
+                    //$time += $bufdiff->h * 60 + $bufdiff->i;
+                    // WorkersController::updateBaseTime($worker_id, $time);
+                    // $time = 0;
                 }
             }
         }
     }
     public function getFile(Request $request) {
         $data  = $request->post();
-        $columns = [
-            ['<b><i>Наряд за</i></b>', '', date('d.m.Y H.i.s', time())]];
-    
-        $slots = Slots::where(['worker_id' => $data['worker_id']])->get();
-
-        $lines = Lines::all(['line_id', 'title']);
-        
+        /**
+         * {0 : {
+         *  title: '1',
+         *  worker_id: '1',
+         *  break: '',
+         *  slots: [...]
+         * }}
+         */
+        $lines = Lines::all();
         foreach ($lines as $line) {
-            /**
-             * @todo Поменять модели на контроллеры и дописать отчётность
-             */
+            $line['slots'] = Slots::where('line_id', '=', $line['line_id'])->get();
         }
+
+        $columns = [
+            ['<b><i>Наряд за</i></b>', '', date('d.m.Y H.i.s', time())],
+            [''],
+            [
+                'Список рабочих', 
+                'Отработано часов по плану', 
+                'Отработано часов по факту', 
+                'в т.ч. Простои', 
+                'Итого часов', 
+                'КТУ', 
+                'Итого часов с КТУ', 
+                'Примечание'
+                ]
+        ];
+        foreach($lines as $line) {
+           if ($line['slots'] && count($line['slots']) > 0) {
+                $columns[] = ['<style bgcolor="' . ($line['color'] ? $line['color'] : '#1677ff') .'">' . $line['title'] . '</style>'];
+                foreach ($line['slots'] as $slot) {
+                    $worker = Workers::find($slot['worker_id']); 
+                    $workTime = self::setFloat(self::getWorkTime($slot['started_at'], $slot['ended_at']));
+                    $ktu = $data[array_search($slot['worker_id'], array_column($data, 'worker_id'))]['ktu'];
+                    $columns[] = [
+                        $worker['title'],
+                        self::setFloat($slot['time_planned'] / 60),
+                        $workTime,
+                        self::setFloat($slot['down_time'] / 60),
+                        $workTime + self::setFloat(($slot['down_time'] / 60)),
+                        $ktu,
+                        $ktu * ($workTime + self::setFloat($slot['down_time'] / 60))
+                    ];
+                }
+           }
+        }
+        $xlsx = SimpleXLSXGen::fromArray( $columns );
+        $name = time() . '.xlsx';
+        $xlsx->saveAs($name);
+        return $name;
+        // return $xlsx->download();
+    }
+
+    static private function getWorkTime($start, $end) {
+        $start = new \DateTime($start);
+        $end = new \DateTime($end);
+        $diff = $start->diff($end);
+        return $diff->h + ($diff->i / 60);
+    }
+
+    static private function setFloat(float $num) {
+        return number_format((float) $num, 2, '.', '');
     }
 }

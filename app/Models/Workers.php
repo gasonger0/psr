@@ -8,10 +8,10 @@ use Illuminate\Database\Eloquent\Model;
 class Workers extends Model
 {
     protected $table = 'workers';
-    protected $primary_key = 'worker_id';
+    protected $primaryKey = 'worker_id';
     public $incrementing = true;
-    protected $dateFormat = 'U';
-    
+    // protected $dateFormat = 'U';
+    // protected $fillable = ['time_planned'];
     public function setCreatedAtAttribute($value)
     {
         $this->attributes['created_at'] = Carbon::parse($value)->format('Y-m-d H:i:s');
@@ -21,4 +21,12 @@ class Workers extends Model
     {
         $this->attributes['updated_at'] = Carbon::parse($value)->format('Y-m-d H:i:s');
     }
+
+    // public function addMinutes(int $minutes) {
+    //     $c1 = Carbon::instance(new \DateTime($this->time_planned));
+    //     $c1->addMinutes($minutes);
+    //     return $this->update([
+    //         'time_planned' => $c1
+    //     ]);
+    // }
 }
