@@ -108,6 +108,21 @@ class SlotsController extends Controller
         }
     }
 
+    public function replace(Request $request) {
+        $data = $request->post();
+        $oldSlot = Slots::find($data['slot_id']);
+        $oldEnd = $oldSlot->ended_at;
+        $oldSlot->ended_at = now('Europe/Moscow')->format('H:i:s');
+        $oldSlot->save();
+
+        return SlotsController::add(
+            $oldSlot->line_id,
+            $data['new_worker_id'],
+            now('Europe/Moscow')->format('H:i:s'),
+            $oldEnd
+        );
+    }
+
     static public function dropData()
     {
         return Slots::truncate();

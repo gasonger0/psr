@@ -1,5 +1,5 @@
 <script setup>
-import { BackTop, Card, FloatButton, Input, Switch, TimeRangePicker, FloatButtonGroup, Tooltip, TimePicker, Modal, Popover, Select } from 'ant-design-vue';
+import { BackTop, Card, FloatButton, Input, Switch, TimeRangePicker, FloatButtonGroup, Tooltip, TimePicker, Modal, Popover, Select, notification } from 'ant-design-vue';
 import { ref, reactive } from 'vue';
 import axios from 'axios';
 import Loading from './loading.vue';
@@ -20,6 +20,7 @@ export default {
             document: document,
             listenerSet: false,
             active: null,
+            replacer: ref(null)
         }
     },
     methods: {
@@ -28,34 +29,37 @@ export default {
                 axios.get('/api/get_workers')
                     .then(response => {
                         this.workers = response.data;
-                        let curTime = new Date();
-                        let timeString =
-                            (String(curTime.getHours()).length == 1 ? '0' + String(curTime.getHours()) : String(curTime.getHours()))
-                            + ':' +
-                            (String(curTime.getMinutes()).length == 1 ? '0' + String(curTime.getMinutes()) : String(curTime.getMinutes()))
-                            + ':' +
-                            (String(curTime.getSeconds()).length == 1 ? '0' + String(curTime.getSeconds()) : String(curTime.getSeconds()));
-                        this.slots.forEach(slot => {
-                            if (slot.started_at < timeString && timeString < slot.ended_at) {
-                                console.log(slot.started_at);
-                                console.log(slot.ended_at);
-                                console.log(timeString);
-                                let worker = this.workers.find(worker => worker.worker_id == slot.worker_id);
-                                worker.current_line_id = slot.line_id;
-                                worker.current_slot = slot;
-                                slot.popover = ref(false);
-                            }
-                        });
-                        this.workers.forEach((worker) => {
-                            if ((worker.break_started_at <= timeString) && (timeString <= worker.break_ended_at)) {
-                                worker.on_break = true;
-                            }
-                        })
-
-                        this.isLoading = false;
                         resolve(true);
                     });
             })
+        },
+        async processData() {
+            return new Promise((resolve, reject) => {
+                let curTime = new Date();
+                let timeString =
+                    (String(curTime.getHours()).length == 1 ? '0' + String(curTime.getHours()) : String(curTime.getHours()))
+                    + ':' +
+                    (String(curTime.getMinutes()).length == 1 ? '0' + String(curTime.getMinutes()) : String(curTime.getMinutes()))
+                    + ':' +
+                    (String(curTime.getSeconds()).length == 1 ? '0' + String(curTime.getSeconds()) : String(curTime.getSeconds()));
+                this.slots.forEach(slot => {
+                    if (slot.started_at < timeString && timeString < slot.ended_at) {
+                        let worker = this.workers.find(worker => worker.worker_id == slot.worker_id);
+                        worker.current_line_id = slot.line_id;
+                        worker.current_slot = slot.slot_id;
+                        slot.popover = ref(false);
+                    }
+                });
+                this.workers.forEach((worker) => {
+                    if ((worker.break_started_at <= timeString) && (timeString <= worker.break_ended_at)) {
+                        worker.on_break = true;
+                    }
+                })
+
+                this.isLoading = false;
+                console.log('data');
+                resolve(true);
+            });
         },
         deleteWorker(record) {
             this.isLoading = true;
@@ -64,7 +68,51 @@ export default {
                     this.isLoading = false;
                     this.workers.splice(this.workers.indexOf(this.workers.find(el => el.worker_id == record.worker_id)), 1);
                     this.$emit('notify', 'success', 'Сотрудник ' + record.title + ' убран со смены');
+
                 });
+        },
+        changeWorker(newWorker, oldWorker) {
+            console.log(newWorker);
+            console.log(oldWorker);
+            if (this.workers.find(el => el.worker_id == newWorker.key).current_slot) {
+                const notify = notification["warning"]({
+                    description: 'Этот работник уже занят на другой линии'
+                });
+                oldWorker.popover = false;
+                this.replacer = null;
+                return;
+            }
+            if (newWorker.key == oldWorker.worker_id) {
+                const notify = notification["warning"]({
+                    description: 'Это тот же самый работник'
+                });
+                oldWorker.popover = false;
+                this.replacer = null;
+                return;
+            }
+
+            let fd = new FormData();
+            fd.append('old_worker_id', oldWorker.worker_id);
+            fd.append('slot_id', oldWorker.current_slot);
+            fd.append('new_worker_id', newWorker.key);
+
+            axios.post('/api/replace_worker',
+                fd
+            ).then(async (r) => {
+                const notify = notification["success"]({
+                    description: 'Работник заменён. Рабочая смена старого работника окончилась сейчас, а смена нового будет рассчитана от текущего момента до окончания смены.'
+                });
+                oldWorker.popover = false;
+                this.isLoading = true;
+                oldWorker.current_slot = null;
+                oldWorker.current_line_id = null
+                await this.getSlots();
+                await this.processData();
+                this.calcCount();
+                this.isLoading = false;
+                this.replacer = null;
+
+            })
         },
         async getSlots() {
             return new Promise((resolve, reject) => {
@@ -150,8 +198,8 @@ export default {
         addLineFront() {
             this.lines.push({
                 edit: true,
-                // time: ref([dayjs(), dayjs()]),
-                time: ref(dayjs()),
+                time: ref([dayjs(), dayjs()]),
+                // time: ref(dayjs()),
                 title: 'Новая линия',
                 workers_count: 0,
                 line_id: -1
@@ -166,14 +214,18 @@ export default {
         },
         saveLine(record) {
             let fd = new FormData();
+            fd.append('line_id', record['line_id']);
+
             if (record['line_id'] != -1) {
-                fd.append('line_id', record['line_id']);
+                fd.append('started_at', record.time.format('HH:mm:ss'));
+            } else {
+                fd.append('started_at', record.time[0].format('HH:mm:ss'));
+                fd.append('ended_at', record.time[1].format('HH:mm:ss'));
             }
             fd.append('workers_count', record.workers_count);
             fd.append('color', record.color);
-            fd.append('started_at', record.time.format('HH:mm:ss'));
-            // fd.append('started_at', record.time[0].format('HH:mm:ss'));
-            // fd.append('ended_at', record.time[1].format('HH:mm:ss'))
+            fd.append('title', record.title);
+
             console.log(fd);
             axios.post('/api/save_line', fd)
                 .then((response) => {
@@ -204,6 +256,7 @@ export default {
         await this.getLines();
         await this.getSlots();
         await this.getWorkers();
+        await this.processData();
 
         this.calcCount();
 
@@ -315,13 +368,14 @@ export default {
                             <span style="height:fit-content;">Необходимо:&nbsp;&nbsp;</span>
                             <Input v-model:value="line.workers_count" type="number" />
                         </span>
-                        <span style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="display: flex; justify-content: space-between; align-items: center;"
+                            v-if="line.line_id != -1">
                             <span>Работает с:</span>
                             <TimePicker v-model:value="line.time" format="HH:mm" :showTime="true" :allowClear="true"
                                 type="time" :showDate="false" style="width:fit-content;" />
                         </span>
-                        <!-- <TimeRangePicker 
-                             /> -->
+                        <TimeRangePicker v-else v-model:value="line.time" format="HH:mm" :showTime="true"
+                            :allowClear="true" type="time" :showDate="false" style="width:fit-content;" />
                     </div>
                 </template>
                 <template v-else>
@@ -364,10 +418,9 @@ export default {
                             </Tooltip>
                             <Popover v-model:open="v.popover" trigger="click" placement="right">
                                 <template #content>
-                                    <Select
-                                        style="width:20vw;"
+                                    <Select style="width:20vw;" v-model:value="replacer"
                                         :options="workers.map(el => { return { key: el.worker_id, label: el.title, value: el.title } })"
-                                        :showSearch="true"></Select>
+                                        :showSearch="true" @select="(n, ev) => changeWorker(ev, v)"></Select>
                                 </template>
                                 <Tooltip title="Заменить">
                                     <UserSwitchOutlined

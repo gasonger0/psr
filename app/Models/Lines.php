@@ -31,4 +31,12 @@ class Lines extends Model
             'down_time' => $c1
         ]);
     }
+
+    public function shiftEnd(int $minutes) {
+        $c1 = Carbon::instance(new \DateTime($this->ended_at, new \DateTimeZone(('Europe/Moscow'))));
+        $c1->addMinutes($minutes);
+        return $this->update([
+            'ended_at' => $c1
+        ]);
+    } 
 }
