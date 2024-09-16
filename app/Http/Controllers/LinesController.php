@@ -17,7 +17,8 @@ class LinesController extends Controller
         //     'select l.*, (select p.shift from products p WHERE (p.line_id=l.line_id) AND (NOW() BETWEEN p.started_at AND p.ended_at) LIMIT 1) shift from lines l;'
         // )->get()->toArray());
         return json_encode(DB::select(
-            'SELECT l.*, (SELECT shift FROM products p WHERE p.line_id = l.line_id AND NOW() BETWEEN p.started_at AND p.ended_at LIMIT 1) AS shift FROM `lines` l;'
+            // 'SELECT l.*, (SELECT shift FROM products p WHERE p.line_id = l.line_id AND NOW() BETWEEN p.started_at AND p.ended_at LIMIT 1) AS shift FROM `lines` l;'
+            'SELECT l.*, (SELECT shift FROM products p WHERE p.line_id = l.line_id LIMIT 1) AS shift FROM `lines` l;'
         ));
     }
 
@@ -96,7 +97,7 @@ class LinesController extends Controller
             $line->down_time = $line->down_time + $diff->h * 60 + $diff->i;
             $line->down_from = null;
             $line->save();
-            SlotsController::down($line->id, $downFrom);
+            SlotsController::down($line->line_id, $downFrom);
         } else {
             $line->down_from = now('Europe/Moscow');
             $line->save();

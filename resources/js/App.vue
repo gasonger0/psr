@@ -43,7 +43,7 @@ export default {
             this.openStats = false;
             this.openResult = false;
             if (ev) {
-                this.boardKey +=1;
+                this.boardKey += 1;
             }
         },
         getData(ev) {

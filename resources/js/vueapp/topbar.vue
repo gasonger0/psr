@@ -8,7 +8,8 @@ import axios from 'axios';
 export default {
     data() {
         return {
-            uploadedFile: ref(null)
+            uploadedFile: ref(null),
+            date: (new Date()).toLocaleDateString() 
         }
     },
     methods: {
@@ -39,19 +40,25 @@ export default {
 </script>
 <template>
     <div class="top-container">
-        <Upload :v-model:file-list="uploadedFile" name="file" :before-upload="(ev) => processXlsx(ev)">
-            <Button type="primary" style="background-color: green;">
-                <UploadOutlined />
-                Новый график
+        <div>
+            <Upload :v-model:file-list="uploadedFile" name="file" :before-upload="(ev) => processXlsx(ev)">
+                <Button type="primary" style="background-color: green;">
+                    <UploadOutlined />
+                    Новый график
+                </Button>
+            </Upload>
+            <Button type="default" @click="$emit('showResult')">
+                <BarChartOutlined />
+                Отчёт
             </Button>
-        </Upload>
-        <Button type="default" @click="$emit('showResult')">
-            <BarChartOutlined />
-            Отчёт
-        </Button>
-        <Button type="primary" @click="$emit('showGraph')">
-            <EditOutlined />
-            Редактировать график
-        </Button>
+            <Button type="primary" @click="$emit('showGraph')">
+                <EditOutlined />
+                Редактировать график
+            </Button>
+        </div>
+        <div>
+            <span style="height:fit-content;font-size: 18px;font-weight: 600;">{{ date }}</span>
+            <img src="./logo.png" alt="" style="height:32px;">
+        </div>
     </div>
 </template>

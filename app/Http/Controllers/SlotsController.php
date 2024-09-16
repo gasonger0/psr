@@ -95,16 +95,19 @@ class SlotsController extends Controller
 
     static public function down($lineId, $downFrom) {
         $slots = Slots::where('line_id', '=', $lineId)->where('started_at', '<', $downFrom)->get();
+        var_dump($slots, $downFrom, $lineId);
         foreach ($slots as $slot) {
             if ($slot->ended_at < now('Europe/Moscow')) {
                 // Если простой кончился после окончания слота, т.е. линия стояла до конца рабочей смены
                 $diff = (new \DateTime(now('Europe/Moscow')))->diff(new \DateTime($slot->ended_at));
                 $slot->down_time = $slot->down_time + ($diff->h * 60 + $diff->i);
-            } else if ($slot->ended_at >= now('Europe/Moscow')) {
+            } else {
                 //Если простой кончился до окончания слота
                 $diff = (new \DateTime(now('Europe/Moscow')))->diff(new \DateTime($downFrom));
                 $slot->down_time = $slot->down_time + ($diff->h * 60 + $diff->i);
             }
+            var_dump($slot->down_time);
+            $slot->save();
         }
     }
 
