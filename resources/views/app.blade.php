@@ -4,7 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Производственная система</title>
-    @vite(['resources/js/app.js', 'resources/css/app.css'])
+    <script type="module" src="/build/assets/app-Cx89WB5J.js"></script>
+    <link rel="stylesheet" href="/build/assets/app-BdtveySQ.css">
+    <link rel="stylesheet" href="/build/assets/app-w0NttVeA.css">
+    <link rel="manifest" href="/build/manifest.json">
 </head>
 <body>
     <div id="app"></div>

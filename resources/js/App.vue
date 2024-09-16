@@ -55,8 +55,22 @@ export default {
 }
 </script>
 <template>
-    <Result :data="data" :open="openResult" @close-modal="closeModal"/>
-    <Stats :data="data" :open="openStats" @close-modal="closeModal"/>
-    <TopBar @showGraph="showGraph" @showResult="showResult" @notify="notify"/>
-    <Boards @data-recieved="getData" :key="boardKey" @notify="notify"/>
+    <Result 
+        :data="data" 
+        :open="openResult" 
+        @close-modal="closeModal" 
+        @notify="notify"/>
+    <Stats 
+        :data="data" 
+        :open="openStats" 
+        @close-modal="closeModal" 
+        @notify="notify"/>
+    <TopBar 
+        @showGraph="showGraph" 
+        @showResult="showResult" 
+        @notify="notify"/>
+    <Boards 
+        :key="boardKey"
+        @data-recieved="getData"  
+        @notify="notify"/>
 </template>

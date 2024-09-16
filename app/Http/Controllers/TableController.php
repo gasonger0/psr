@@ -132,8 +132,8 @@ class TableController extends Controller
         }
 
         $columns = [
-            ['<b><i>Наряд за</i></b>', '', date('d.m.Y H.i.s', time())],
-            [''],
+            ['<b><i>Наряд за</i></b>', date('d.m.Y H.i.s', time()), '', '', '', '', '', ''],
+            array_fill(0, 8, ''),
             [
                 'Список рабочих', 
                 'Отработано часов по плану', 
@@ -147,7 +147,10 @@ class TableController extends Controller
         ];
         foreach($lines as $line) {
            if ($line['slots'] && count($line['slots']) > 0) {
-                $columns[] = ['<style bgcolor="' . ($line['color'] ? $line['color'] : '#1677ff') .'">' . $line['title'] . '</style>'];
+                $columns[] = [
+                    '<style bgcolor="' . ($line['color'] ? $line['color'] : '#1677ff') .'">' . $line['title'] . '</style>',
+                    '','','','','','',''];
+                $count = count($columns);
                 foreach ($line['slots'] as $slot) {
                     $worker = Workers::find($slot['worker_id']); 
                     $workTime = self::setFloat(self::getWorkTime($slot['started_at'], $slot['ended_at']));
@@ -162,6 +165,16 @@ class TableController extends Controller
                         $ktu * ($workTime + self::setFloat($slot['down_time'] / 60))
                     ];
                 }
+                $count1 = count($columns);
+                $columns[] = [
+                    '<style bgcolor="#FDE9D9">ИТОГО</style>',
+                    '<style bgcolor="#FDE9D9">' . self::summarize(array_column($columns, 1), $count, $count1) . '<style bgcolor="#FDE9D9">',
+                    '<style bgcolor="#FDE9D9">' . self::summarize(array_column($columns, 2), $count, $count1) . '<style bgcolor="#FDE9D9">',
+                    '<style bgcolor="#FDE9D9">' . self::summarize(array_column($columns, 3), $count, $count1) . '<style bgcolor="#FDE9D9">',
+                    '<style bgcolor="#FDE9D9">' . self::summarize(array_column($columns, 4), $count, $count1) . '<style bgcolor="#FDE9D9">',
+                    '',
+                    '<style bgcolor="#FDE9D9">' . self::summarize(array_column($columns, 6), $count, $count1) . '<style bgcolor="#FDE9D9">',
+                ];
            }
         }
         $xlsx = SimpleXLSXGen::fromArray( $columns );
@@ -180,5 +193,16 @@ class TableController extends Controller
 
     static private function setFloat(float $num) {
         return number_format((float) $num, 2, '.', '');
+    }
+    
+    static private function summarize(array $arr, int $start, int $end) {
+        if (count($arr) < $end) {
+            return 0;
+        }
+        $result = 0;
+        for ($i = $start; $i < $end; $i++) {
+            $result += $arr[$i];
+        }
+        return $result;
     }
 }

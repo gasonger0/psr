@@ -1,5 +1,5 @@
 <script setup>
-import { BackTop, Card, FloatButton, Input, Switch, TimeRangePicker, FloatButtonGroup, Tooltip, TimePicker, Modal, Popover, Select, notification } from 'ant-design-vue';
+import { BackTop, Card, FloatButton, Input, Switch, TimeRangePicker, FloatButtonGroup, Tooltip, TimePicker, Popover, Select, notification } from 'ant-design-vue';
 import { ref, reactive } from 'vue';
 import axios from 'axios';
 import Loading from './loading.vue';
@@ -30,6 +30,10 @@ export default {
                     .then(response => {
                         this.workers = response.data;
                         resolve(true);
+                    })
+                    .catch((err) => {
+                        this.$emit('notify', 'error', "Что-то пошло не так");
+                        reject(err);
                     });
             })
         },
@@ -68,7 +72,9 @@ export default {
                     this.isLoading = false;
                     this.workers.splice(this.workers.indexOf(this.workers.find(el => el.worker_id == record.worker_id)), 1);
                     this.$emit('notify', 'success', 'Сотрудник ' + record.title + ' убран со смены');
-
+                })
+                .catch((err) => {
+                    this.$emit('notify', 'error', "Что-то пошло не так");
                 });
         },
         changeWorker(newWorker, oldWorker) {
@@ -102,6 +108,8 @@ export default {
                 const notify = notification["success"]({
                     description: 'Работник заменён. Рабочая смена старого работника окончилась сейчас, а смена нового будет рассчитана от текущего момента до окончания смены.'
                 });
+                notify();
+
                 oldWorker.popover = false;
                 this.isLoading = true;
                 oldWorker.current_slot = null;
@@ -111,7 +119,8 @@ export default {
                 this.calcCount();
                 this.isLoading = false;
                 this.replacer = null;
-
+            }).catch((err) => {
+                this.$emit('notify', 'error', "Что-то пошло не так");
             })
         },
         async getSlots() {
@@ -120,6 +129,10 @@ export default {
                     .then(response => {
                         this.slots = response.data;
                         resolve(true);
+                    })
+                    .catch((err) => {
+                        this.$emit('notify', 'error', "Что-то пошло не так");
+                        reject(err);
                     });
             });
         },
@@ -150,17 +163,19 @@ export default {
             return nextElement;
         },
         sendStop(line) {
-            axios.post('/api/down_line', 'id=' + line.line_id).then(response => {
-                let f = this.lines.find(el => el.line_id == line.line_id);
+            axios.post('/api/down_line', 'id=' + line.line_id)
+                .then(response => {
+                    let f = this.lines.find(el => el.line_id == line.line_id);
 
-                if (!f.down_from) {
-                    this.lines[this.lines.indexOf(f)].down_from = new Date();
-                } else {
-                    this.lines[this.lines.indexOf(f)].down_from = null;
-                }
-                console.log(this.lines.indexOf(f))
-                console.log(this.lines);
-            });
+                    if (!f.down_from) {
+                        this.lines[this.lines.indexOf(f)].down_from = new Date();
+                    } else {
+                        this.lines[this.lines.indexOf(f)].down_from = null;
+                    }
+                    this.$emit('notify', 'success', 'Действие выполнено успешно')
+                }).catch((err) => {
+                    this.$emit('notify', 'error', "Что-то пошло не так");
+                });
         },
 
         /*------------------- LINES START -------------------*/
@@ -192,6 +207,10 @@ export default {
                             return el;
                         })
                         resolve(true);
+                    })
+                    .catch((err) => {
+                        this.$emit('notify', 'error', "Что-то пошло не так");
+                        reject(err);
                     });
             });
         },
@@ -199,7 +218,6 @@ export default {
             this.lines.push({
                 edit: true,
                 time: ref([dayjs(), dayjs()]),
-                // time: ref(dayjs()),
                 title: 'Новая линия',
                 workers_count: 0,
                 line_id: -1
@@ -244,11 +262,15 @@ export default {
             fd.append('new_line_id', line_id);
             fd.append('worker_id', worker_id);
             fd.append('old_line_id', worker.current_line_id);
-            axios.post('/api/change_slot', fd).then((response) => {
-                this.lines.find((el) => el.line_id == line_id).count_current += 1;
-                // worker.current_line_id = Number(line_id);
-                // this.calcCount();
-            });
+            axios.post('/api/change_slot', fd)
+                .then((response) => {
+                    this.lines.find((el) => el.line_id == line_id).count_current += 1;
+                    this.getSlots();
+                    this.processData();
+                })
+                .catch((err) => {
+                    this.$emit('notify', 'error', "Что-то пошло не так");
+                });
         }
         /*-------------------- LINES END --------------------*/
     },

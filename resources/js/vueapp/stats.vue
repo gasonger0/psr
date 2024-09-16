@@ -99,13 +99,17 @@ export default {
                 if (this.updSlots) {
                     axios.post('/api/edit_slot',
                         this.updSlots
-                    );
+                    ).catch((err) => {
+                        this.$emit('notify', 'error', "Что-то пошло не так");
+                    });
                 }
 
                 if (this.updWorkers) {
                     axios.post('/api/save_worker',
                         this.updWorkers
-                    );
+                    ).catch((err) => {
+                        this.$emit('notify', 'error', "Что-то пошло не так");
+                    });
                 }
             }
             this.$emit('close-modal', upd);
