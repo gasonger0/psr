@@ -5,6 +5,7 @@ import Stats from './vueapp/stats.vue';
 import { ref } from 'vue';
 import Result from './vueapp/result.vue';
 import { notification } from 'ant-design-vue';
+import Workers from './vueapp/workers.vue';
 </script>
 <script>
 export default {
@@ -17,6 +18,7 @@ export default {
             data: null,
             openStats: ref(false),
             openResult: ref(false),
+            openWorkers: ref(false),
             boardKey: ref(1),
             statsRef: null
         }
@@ -39,9 +41,14 @@ export default {
             this.openResult = true;
             return;
         },
+        showWorkers() {
+            this.openWorkers = true;
+            return;
+        },
         closeModal(ev) {
             this.openStats = false;
             this.openResult = false;
+            this.openWorkers = false;
             if (ev) {
                 this.boardKey += 1;
             }
@@ -65,9 +72,15 @@ export default {
         :open="openStats" 
         @close-modal="closeModal" 
         @notify="notify"/>
+    <Workers
+        :data="data"
+        :open="openWorkers"
+        @close-modal="closeModal"
+        @notify="notify"/>
     <TopBar 
         @showGraph="showGraph" 
-        @showResult="showResult" 
+        @showResult="showResult"
+        @showWorkers="showWorkers" 
         @notify="notify"/>
     <Boards 
         :key="boardKey"

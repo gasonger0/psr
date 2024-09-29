@@ -4,14 +4,17 @@ namespace App\Http\Controllers;
 
 use App\Models\Workers;
 use Illuminate\Http\Request;
+use App\Models\Slots;
 
 class WorkersController extends Controller
 {
-    public function getList() {
+    public function getList()
+    {
         return Workers::all()->toJson();
     }
 
-    static public function add($company = null, $title = null, $b_start = null, $b_end = null)  {
+    static public function add($company = null, $title = null, $b_start = null, $b_end = null)
+    {
         if (empty($title)) return;
 
         $worker = new Workers();
@@ -25,7 +28,8 @@ class WorkersController extends Controller
         return $worker->worker_id;
     }
 
-    static public function save(Request $request) {
+    static public function save(Request $request)
+    {
         $data = $request->post();
         if (empty($data)) return 0;
         foreach ($data as $r) {
@@ -39,12 +43,28 @@ class WorkersController extends Controller
         return 0;
     }
 
+    static public function change(Request $request)
+    {
+        foreach ($request->post() as $worker) {
+            if ($worker['slot_id']) {
+                $slot = Slots::find($worker['slot_id']);
+                $slot->line_id = $worker['line_id'];
+                $slot->save();
+            // } else {
+            //     SlotsController::add(
+                    
+            //     )
+            }
+        };
+    }
+
     // static public function updateBaseTime($worker_id, $time) {
     //     $s = Workers::find($worker_id);
     //     $s->addMinutes($time);
     // }
 
-    static public function dropData() {
+    static public function dropData()
+    {
         return Workers::truncate();
     }
 }

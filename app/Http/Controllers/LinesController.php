@@ -11,13 +11,7 @@ class LinesController extends Controller
 {
     static public function getList($columns = ['*'])
     {
-        // return Lines::all($columns)->toJson();
-        //    Lines::query('')
-        // return json_encode(DB::query()->select(
-        //     'select l.*, (select p.shift from products p WHERE (p.line_id=l.line_id) AND (NOW() BETWEEN p.started_at AND p.ended_at) LIMIT 1) shift from lines l;'
-        // )->get()->toArray());
         return json_encode(DB::select(
-            // 'SELECT l.*, (SELECT shift FROM products p WHERE p.line_id = l.line_id AND NOW() BETWEEN p.started_at AND p.ended_at LIMIT 1) AS shift FROM `lines` l;'
             'SELECT l.*, (SELECT shift FROM products p WHERE p.line_id = l.line_id LIMIT 1) AS shift FROM `lines` l;'
         ));
     }
@@ -70,7 +64,10 @@ class LinesController extends Controller
             $diff = $time->diff($tmie2);
 
             $line->workers_count = $request->post('workers_count');
-            $line->started_at = strval($request->post('started_at'));
+            if ($request->post('started_at')) {
+                $line->started_at = strval($request->post('started_at'));
+                $line->cancel_reason = $request->post('cancel_reason');
+            }
             // $line->ended_at = strval($request->post('ended_at'));
             $line->color = $request->post('color');
 

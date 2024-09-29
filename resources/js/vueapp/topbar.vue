@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue';
 import { Upload, Button } from 'ant-design-vue';
-import { BarChartOutlined, UploadOutlined, EditOutlined } from '@ant-design/icons-vue';
+import { BarChartOutlined, UploadOutlined, EditOutlined, TeamOutlined } from '@ant-design/icons-vue';
 import axios from 'axios';
 </script>
 <script>
@@ -54,6 +54,10 @@ export default {
             <Button type="primary" @click="$emit('showGraph')">
                 <EditOutlined />
                 Редактировать график
+            </Button>
+            <Button type="dashed" @click="$emit('showWorkers')">
+                <TeamOutlined />
+                Список работников
             </Button>
         </div>
         <div>

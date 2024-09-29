@@ -19,6 +19,7 @@ Route::post('/down_line',       [LinesController::class,    'down'      ]);
  ********/
 Route::get( '/get_workers',     [WorkersController::class,  'getList'   ]);
 Route::post('/save_worker',     [WorkersController::class,  'save'      ]);
+Route::post('/change_lines',    [WorkersController::class,  'change'    ]);
 
 /*******
  * SLOTS

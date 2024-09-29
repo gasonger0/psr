@@ -1,12 +1,12 @@
 <script setup>
-import { BackTop, Card, FloatButton, Input, Switch, TimeRangePicker, FloatButtonGroup, Tooltip, TimePicker, Popover, Select, notification } from 'ant-design-vue';
+import { BackTop, Card, FloatButton, Input, Switch, TimeRangePicker, FloatButtonGroup, Tooltip, TimePicker, Popover, Select, notification, SelectOption } from 'ant-design-vue';
 import { ref, reactive } from 'vue';
 import axios from 'axios';
 import Loading from './loading.vue';
 import dayjs from 'dayjs';
 import { ColorPicker } from 'vue-color-kit';
 import 'vue-color-kit/dist/vue-color-kit.css'
-import { ForwardOutlined, LoginOutlined, PlusCircleOutlined, StopOutlined, UserAddOutlined, UserDeleteOutlined, UserSwitchOutlined } from '@ant-design/icons-vue';
+import { ForwardOutlined, LoginOutlined, PlusCircleOutlined, StopOutlined, InfoCircleOutlined, UserDeleteOutlined, UserSwitchOutlined } from '@ant-design/icons-vue';
 </script>
 <script>
 export default {
@@ -20,7 +20,34 @@ export default {
             document: document,
             listenerSet: false,
             active: null,
-            replacer: ref(null)
+            replacer: ref(null),
+            cancel_reasons: [
+                {
+                    title: 'Ремонт',
+                    value: 1
+                }, {
+                    title: 'Неправильное планирование',
+                    value: 2
+                }, {
+                    title: 'Нехватка рабочих',
+                    value: 3
+                }, {
+                    title: 'Недостаточная квалификация рабочих',
+                    value: 4
+                }, {
+                    title: 'Отсутствие сырья',
+                    value: 5
+                }, {
+                    title: 'Опоздание рабочих',
+                    value: 6
+                }, {
+                    title: 'Корректировка предыдущих операций',
+                    value: 7
+                }, {
+                    title: 'Иное',
+                    value: 8
+                }
+            ]
         }
     },
     methods: {
@@ -49,7 +76,7 @@ export default {
                 this.slots.forEach(slot => {
                     if (slot.started_at < timeString && timeString < slot.ended_at) {
                         let worker = this.workers.find(worker => worker.worker_id == slot.worker_id);
-                        worker.current_line_id = slot.line_id;
+                        worker.current_line_id = slot ? slot.line_id : false;
                         worker.current_slot = slot.slot_id;
                         slot.popover = ref(false);
                     }
@@ -70,7 +97,7 @@ export default {
             axios.post('/api/delete_slot', { worker_id: record.worker_id })
                 .then(response => {
                     this.isLoading = false;
-                    this.workers.splice(this.workers.indexOf(this.workers.find(el => el.worker_id == record.worker_id)), 1);
+                    // this.workers.splice(this.workers.indexOf(this.workers.find(el => el.worker_id == record.worker_id)), 1);
                     this.$emit('notify', 'success', 'Сотрудник ' + record.title + ' убран со смены');
                 })
                 .catch((err) => {
@@ -243,6 +270,9 @@ export default {
             fd.append('workers_count', record.workers_count);
             fd.append('color', record.color);
             fd.append('title', record.title);
+            if (record.cancel_reason != null) {
+                fd.append('cancel_reason', record.cancel_reason);
+            }
 
             console.log(fd);
             axios.post('/api/save_line', fd)
@@ -375,12 +405,18 @@ export default {
                                 :style="'background-color:' + line.color" v-show="line.edit">
                             </div>
                         </Tooltip>
-                        <Tooltip :title="line.down_from ? 'Возобновить работу' : 'Остановить работу'">
-                            <ForwardOutlined @click="sendStop(line)" v-if="line.down_from"
-                                style="height:min-content;color:#82ff82;font-size:22px;" />
-                            <StopOutlined @click="sendStop(line)" v-else
-                                style="height:min-content;color:#ff4d4f;font-size:22px;" />
-                        </Tooltip>
+                        <div>
+                            <Tooltip v-if="line.cancel_reason != null && !line.edit"
+                                :title="'Время работы было изменено по причине: ' + cancel_reasons.find((el) => el.value == line.cancel_reason).title">
+                                <InfoCircleOutlined style="color:#f48c05;font-size:24px;margin-right:12px;" />
+                            </Tooltip>
+                            <Tooltip :title="line.down_from ? 'Возобновить работу' : 'Остановить работу'">
+                                <ForwardOutlined @click="sendStop(line)" v-if="line.down_from"
+                                    style="height:min-content;color:#82ff82;font-size:22px;" />
+                                <StopOutlined @click="sendStop(line)" v-else
+                                    style="height:min-content;color:#ff4d4f;font-size:22px;" />
+                            </Tooltip>
+                        </div>
                     </div>
                 </template>
                 <template v-if="line.edit">
@@ -398,6 +434,12 @@ export default {
                         </span>
                         <TimeRangePicker v-else v-model:value="line.time" format="HH:mm" :showTime="true"
                             :allowClear="true" type="time" :showDate="false" style="width:fit-content;" />
+                        <Select v-model:value="line.cancel_reason" placeholder="Причина переноса старта"
+                            style="margin-top: 10px;">
+                            <SelectOption v-for="i in cancel_reasons" v-model:value="i.value">
+                                {{ i.title }}
+                            </SelectOption>
+                        </Select>
                     </div>
                 </template>
                 <template v-else>
@@ -471,14 +513,14 @@ export default {
                 <LoginOutlined />
             </template>
         </FloatButton>
-        <FloatButton type="default" @click="addWorkerFront">
+        <!-- <FloatButton type="default" @click="addWorkerFront">
             <template #tooltip>
                 <div>Добавить сотрудника</div>
             </template>
             <template #icon>
                 <UserAddOutlined />
             </template>
-        </FloatButton>
+        </FloatButton> -->
         <BackTop />
     </FloatButtonGroup>
 </template>
