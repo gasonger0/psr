@@ -1,16 +1,23 @@
 {
   "resources/css/app.css": {
-    "file": "assets/app-BdtveySQ.css",
+    "file": "assets/app-Bg5eK3yW.css",
     "src": "resources/css/app.css",
     "isEntry": true
   },
   "resources/js/app.js": {
-    "file": "assets/app-Cx89WB5J.js",
+    "file": "assets/app-CBTnf3RU.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true,
     "css": [
       "assets/app-w0NttVeA.css"
+    ],
+    "assets": [
+      "assets/logo-DtxCYrgC.png"
     ]
+  },
+  "resources/js/vueapp/logo.png": {
+    "file": "assets/logo-DtxCYrgC.png",
+    "src": "resources/js/vueapp/logo.png"
   }
 }

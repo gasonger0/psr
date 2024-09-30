@@ -126,8 +126,8 @@ export default {
                 let sl = this.slots.filter(el => { return (el.worker_id == worker && el.slot_id != slot_id)});
                 if (sl.length > 0) {
                     return sl.filter(slot => 
-                            (time0.isBefore(this.ft(slot.started_at)) && time1.isBefore(this.ft(slot.ended_at))) ||
-                            (time0.isAfter(this.ft(slot.started_at)) && time1.isAfter(this.ft(slot.ended_at))) 
+                            (time0.isBefore(this.ft(slot.started_at)) && time1.isBefore(this.ft(slot.started_at))) ||
+                            (time0.isAfter(this.ft(slot.ended_at)) && time1.isAfter(this.ft(slot.ended_at))) 
                     ).length == sl.length;
                 } else {
                     return true;
