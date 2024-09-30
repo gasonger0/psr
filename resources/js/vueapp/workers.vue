@@ -51,7 +51,8 @@ export default {
                                 <span v-else style="color: red;">Не на линии</span>
                             </div>
                             <Select v-model:value="item.current_line_id" style="width:250px;"
-                                @change="(value) => { writeChanges(value, item.worker_id, item.current_slot) }">
+                                @change="(value) => { writeChanges(value, item.worker_id, item.current_slot) }"
+                                v-if="item.current_line_id">
                                 <SelectOption v-model:value="line.line_id" v-model:key="line.line_id"
                                     v-for="line in $props.data.lines">{{
                                         line.title }}</SelectOption>

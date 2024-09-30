@@ -71,6 +71,12 @@ export default {
         addUpdate(rec) {
             let item = null;
             if (rec.slot_id) {
+                let i = this.checkTime(rec.slot_id, rec.time[0], rec.time[1]);
+                if (!i) {
+                    this.$emit('notify', 'warning', 'В это время работник находится на другой линии. Скорректируйте график работника или работу линии.')
+                }
+            }
+            if (rec.slot_id) {
                 item = this.updSlots.find(el => el.slot_id == rec.slot_id);
             } else if (rec.worker_id) {
                 item = this.updWorkers.find(el => el.worker_id == rec.worker_id);
@@ -113,6 +119,27 @@ export default {
                 }
             }
             this.$emit('close-modal', upd);
+        },
+        checkTime(slot_id, time0, time1) {
+            let worker = this.slots.find(el => el.slot_id == slot_id).worker_id;
+            if (worker) {
+                let sl = this.slots.filter(el => { return (el.worker_id == worker && el.slot_id != slot_id)});
+                if (sl.length > 0) {
+                    return sl.filter(slot => 
+                            (time0.isBefore(this.ft(slot.started_at)) && time1.isBefore(this.ft(slot.ended_at))) ||
+                            (time0.isAfter(this.ft(slot.started_at)) && time1.isAfter(this.ft(slot.ended_at))) 
+                    ).length == sl.length;
+                } else {
+                    return true;
+                }
+            }
+        },
+        ft(timeString) {
+            let a = new Date();
+            let spl = timeString.split(":");
+            a.setHours(spl[0]);
+            a.setMinutes(spl[1]);
+            return a.toISOString();
         }
     },
     updated() {
@@ -126,7 +153,6 @@ export default {
         }
     },
     mounted() {
-        console.log(this.$props.data);
         if (this.$props.data) {
             this.slots = this.$props.data.slots.slice();
             this.lines = this.$props.data.lines.slice();
