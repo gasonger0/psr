@@ -1,5 +1,5 @@
 <script setup>
-import { BackTop, Card, FloatButton, Input, Switch, TimeRangePicker, FloatButtonGroup, Tooltip, TimePicker, Popover, Select, notification, SelectOption } from 'ant-design-vue';
+import { BackTop, Card, FloatButton, Input, Switch, TimeRangePicker, FloatButtonGroup, Tooltip, Button, Popover, Select, notification, SelectOption } from 'ant-design-vue';
 import { ref, reactive } from 'vue';
 import axios from 'axios';
 import Loading from './loading.vue';
@@ -21,6 +21,8 @@ export default {
             listenerSet: false,
             active: null,
             replacer: ref(null),
+            contKey: 1,
+            showList: false,
             cancel_reasons: [
                 {
                     title: 'Ремонт',
@@ -216,8 +218,8 @@ export default {
                             el.edit = false;
                             el.color = ref(el.color);
                             el.showDelete = ref(false);
-                            // el.time = ref([dayjs(el.started_at, 'hh:mm:ss'), dayjs(el.ended_at, 'HH:mm:ss')]);
-                            el.time = ref(dayjs(el.started_at, 'hh:mm:ss'));
+                            el.time = ref([dayjs(el.started_at, 'hh:mm:ss'), dayjs(el.ended_at, 'HH:mm:ss')]);
+                            //el.time = ref(dayjs(el.started_at, 'hh:mm:ss'));
                             let curTime = new Date();
 
                             let timeString =
@@ -261,12 +263,12 @@ export default {
             let fd = new FormData();
             fd.append('line_id', record['line_id']);
 
-            if (record['line_id'] != -1) {
-                fd.append('started_at', record.time.format('HH:mm:ss'));
-            } else {
-                fd.append('started_at', record.time[0].format('HH:mm:ss'));
-                fd.append('ended_at', record.time[1].format('HH:mm:ss'));
-            }
+            // if (record['line_id'] != -1) {
+            //     fd.append('started_at', record.time.format('HH:mm:ss'));
+            // } else {
+            fd.append('started_at', record.time[0].format('HH:mm:ss'));
+            fd.append('ended_at', record.time[1].format('HH:mm:ss'));
+            // }
             fd.append('workers_count', record.workers_count);
             fd.append('color', record.color);
             fd.append('title', record.title);
@@ -297,6 +299,11 @@ export default {
                     this.lines.find((el) => el.line_id == line_id).count_current += 1;
                     this.getSlots();
                     this.processData();
+                    this.$emit('data-recieved', this.$data);
+
+                    // this.contKey += 1;
+                    // this.listenerSet = false;
+                    // this.updated();
                 })
                 .catch((err) => {
                     this.$emit('notify', 'error', "Что-то пошло не так");
@@ -380,7 +387,40 @@ export default {
 }
 </script>
 <template>
-    <div class="lines-container">
+    <div style="height: fit-content; margin-left: 1vw;">
+        <Button type="dashed" @click="() => showList = !showList">{{ !showList ? 'Показать список рабочих' : 'Скрыть' }}</Button>
+    </div>
+    <div class="lines-container" :key="contKey">
+        <div class="line" :data-id="-1" v-show="showList">
+            <Card :bordered="false" class="head" title="Не задействованы" :headStyle="{ 'background-color': 'white' }">
+                <br>
+            </Card>
+            <section class="line_items">
+                <Card :title="v.title" draggable="true" class="draggable-card"
+                    v-for="(v, k) in workers.filter(el => el.current_line_id == null)"
+                    :style="v.on_break ? 'opacity: 0.6' : ''" :data-id="v.worker_id"
+                    @focus="() => { v.showDelete = true }" @mouseleave="() => { v.showDelete = false }">
+                    <template #extra>
+                        <span style="color: #1677ff;text-decoration: underline;">
+                            {{ v.company }}
+                        </span>
+                    </template>
+                    <span v-show="v.break_started_at && v.break_ended_at" style="height: fit-content;">
+                        Обед: {{ v.break_started_at.substr(0, 5) + ' - ' + v.break_ended_at.substr(0, 5) }}
+                    </span>
+                    <!-- <div style="display:flex; justify-content: space-between;align-items: center;">
+                        <svg width="20px" height="20px" viewBox="0 0 24 24" fill="none"
+                            xmlns="http://www.w3.org/2000/svg" v-show="v.on_break">
+                            <g id="Environment / Coffee">
+                                <path id="Vector"
+                                    d="M4 20H10.9433M10.9433 20H11.0567M10.9433 20C10.9622 20.0002 10.9811 20.0002 11 20.0002C11.0189 20.0002 11.0378 20.0002 11.0567 20M10.9433 20C7.1034 19.9695 4 16.8468 4 12.9998V8.92285C4 8.41305 4.41305 8 4.92285 8H17.0767C17.5865 8 18 8.41305 18 8.92285V9M11.0567 20H18M11.0567 20C14.8966 19.9695 18 16.8468 18 12.9998M18 9H19.5C20.8807 9 22 10.1193 22 11.5C22 12.8807 20.8807 14 19.5 14H18V12.9998M18 9V12.9998M15 3L14 5M12 3L11 5M9 3L8 5"
+                                    stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                            </g>
+                        </svg>
+                    </div> -->
+                </Card>
+            </section>
+        </div>
         <div class="line" v-for="line in lines" :data-id="line.line_id">
             <Card :bordered="false" class="head"
                 :headStyle="{ 'background-color': (line.color ? line.color : '#1677ff') }">
@@ -426,16 +466,17 @@ export default {
                             <span style="height:fit-content;">Необходимо:&nbsp;&nbsp;</span>
                             <Input v-model:value="line.workers_count" type="number" />
                         </span>
-                        <span style="display: flex; justify-content: space-between; align-items: center;"
+                        <!-- <span style="display: flex; justify-content: space-between; align-items: center;"
                             v-if="line.line_id != -1">
                             <span>Работает с:</span>
                             <TimePicker v-model:value="line.time" format="HH:mm" :showTime="true" :allowClear="true"
                                 type="time" :showDate="false" style="width:fit-content;" />
-                        </span>
-                        <TimeRangePicker v-else v-model:value="line.time" format="HH:mm" :showTime="true"
-                            :allowClear="true" type="time" :showDate="false" style="width:fit-content;" />
+                        </span> -->
+                        <span>Время работы:</span><br />
+                        <TimeRangePicker v-model:value="line.time" format="HH:mm" :showTime="true" :allowClear="true"
+                            type="time" :showDate="false" style="width:fit-content;" />
                         <Select v-model:value="line.cancel_reason" placeholder="Причина переноса старта"
-                            style="margin-top: 10px;">
+                            style="margin-top: 10px; width: 100%;">
                             <SelectOption v-for="i in cancel_reasons" v-model:value="i.value">
                                 {{ i.title }}
                             </SelectOption>

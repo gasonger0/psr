@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Lines;
 use App\Models\Slots;
+use DateTime;
 use Illuminate\Http\Request;
 
 class SlotsController extends Controller
@@ -28,7 +30,6 @@ class SlotsController extends Controller
         $slot->save();
 
         return $slot->slot_id;
-
     }
 
     static public function change(Request $request)
@@ -38,13 +39,25 @@ class SlotsController extends Controller
             '=',
             $request->post('worker_id')
         )->where(
-                'line_id',
-                '=',
-                $request->post('old_line_id')
-            )->first();
+            'line_id',
+            '=',
+            $request->post('old_line_id')
+        )->first();
 
-        if (!$oldSlot)
-            return -1;
+        if (!$oldSlot) {
+            $line = Lines::find($request->post('new_line_id'));
+            if (!$line) {
+                return -1;
+            }
+
+            SlotsController::add(
+                $line->line_id,
+                $request->worker_id,
+                now('Europe/Moscow')->format('H:i:s'),
+                $line->ended_at
+            );
+            return;
+        }
         $endTime = null;
 
         $endTime = $oldSlot->ended_at;
@@ -80,20 +93,30 @@ class SlotsController extends Controller
         return 0;
     }
 
-    static public function delete(Request $request) {
+    static public function delete(Request $request)
+    {
         if (!($id = $request->post('worker_id'))) return;
         Slots::where('worker_id', '=', $id)->delete();
         return;
     }
 
-    static public function afterLineUpdate(int $line_id, int $timeshift) {
-        $slots = Slots::where('line_id', '=', $line_id)->get();
+    static public function afterLineUpdate($line_id, $newStart, $oldStart, $newEnd, $oldEnd)
+    {
+        $slots = Slots::where('line_id', '=', $line_id)->where('started_at', '=', $oldStart)->get();
         foreach ($slots as $slot) {
-            $slot->addMinutes($timeshift);
+            $slot->started_at = $newStart;
+            $slot->save();
+        }
+
+        $slots = Slots::where('line_id', '=', $line_id)->where('ended_at', '=', $oldEnd)->get();
+        foreach ($slots as $slot) {
+            $slot->ended_at = $newEnd;
+            $slot->save();
         }
     }
 
-    static public function down($lineId, $downFrom) {
+    static public function down($lineId, $downFrom)
+    {
         $slots = Slots::where('line_id', '=', $lineId)->where('started_at', '<', $downFrom)->get();
         var_dump($slots, $downFrom, $lineId);
         foreach ($slots as $slot) {
@@ -111,7 +134,8 @@ class SlotsController extends Controller
         }
     }
 
-    public function replace(Request $request) {
+    public function replace(Request $request)
+    {
         $data = $request->post();
         $oldSlot = Slots::find($data['slot_id']);
         $oldEnd = $oldSlot->ended_at;

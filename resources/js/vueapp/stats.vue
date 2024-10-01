@@ -143,14 +143,14 @@ export default {
         }
     },
     updated() {
-        if (this.$props.data && !this.slots) {
+        // if (this.$props.data && !this.slots) {
             this.slots = this.$props.data.slots.slice();
             this.lines = this.$props.data.lines.slice();
             this.workers = this.$props.data.workers.slice();
 
             this.processRows();
             this.processColumns();
-        }
+        // }
     },
     mounted() {
         if (this.$props.data) {

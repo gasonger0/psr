@@ -25,11 +25,18 @@ class ProductsController extends Controller
         return;
     }
 
-    static public function afterLineUpdate($line_id, $timeshift)
+    static public function afterLineUpdate($line_id, $newStart, $oldStart, $newEnd, $oldEnd)
     {
-        $slots = Products::where('line_id', '=', $line_id)->get();
+        $slots = Products::where('line_id', '=', $line_id)->where('started_at', '=', $oldStart)->get();
         foreach ($slots as $slot) {
-            $slot->addMinutes($timeshift);
+            $slot->started_at = $newStart;
+            $slot->save();
+        }
+
+        $slots = Products::where('line_id', '=', $line_id)->where('ended_At', '=', $oldEnd)->get();
+        foreach ($slots as $slot) {
+            $slot->ended_at = $newEnd;
+            $slot->save();
         }
     }
 

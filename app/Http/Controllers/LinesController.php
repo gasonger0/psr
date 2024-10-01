@@ -58,26 +58,34 @@ class LinesController extends Controller
         $line = Lines::find($request->post('line_id'));
 
         if ($line) {
-            $oldStart = strVal($line->started_at);
-            $time = new \DateTime($oldStart);
-            $tmie2 = new \DateTime($request->post('started_at'));
-            $diff = $time->diff($tmie2);
+            // $time = new \DateTime($oldStart);
+            // $tmie2 = new \DateTime($request->post('started_at'));
+            // $diff = $time->diff($tmie2);
 
+            $start = $line->started_at;
+            $end = $line->ended_at;
             $line->workers_count = $request->post('workers_count');
             if ($request->post('started_at')) {
                 $line->started_at = strval($request->post('started_at'));
+                $line->ended_at = strval($request->post('ended_at'));
                 $line->cancel_reason = $request->post('cancel_reason');
             }
             // $line->ended_at = strval($request->post('ended_at'));
             $line->color = $request->post('color');
 
             $line->save();
-            $line->shiftEnd($diff->i + $diff->h * 60);
+            // $line->shiftEnd($diff->i + $diff->h * 60);
 
             if ($request->post('started_at')) {
-                $total = $diff->i + $diff->h * 60;
-                SlotsController::afterLineUpdate($request->post('line_id'), $total);
-                ProductsController::afterLineUpdate($request->post('line_id'), $total);
+                // $total = $diff->i + $diff->h * 60;
+                $start = $line->started_at;
+                SlotsController::afterLineUpdate(
+                    $request->post('line_id'), 
+                    $request->post('started_at'), 
+                    $start, 
+                    $request->post('ended_at'), 
+                    $end);
+                ProductsController::afterLineUpdate($request->post('line_id'), $request->post('started_at'), $start, $request->post('ended_at'), $end);
             }
             return json_encode([
                 "success" => true
@@ -101,9 +109,7 @@ class LinesController extends Controller
         }
     }
 
-    static function calcTimeShift($from, $to) {
-        
-    }
+    static function calcTimeShift($from, $to) {}
     static public function dropData()
     {
         return Lines::truncate();
