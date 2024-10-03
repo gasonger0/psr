@@ -55,9 +55,9 @@ export default {
                 <EditOutlined />
                 Редактировать график
             </Button>
-            <Button type="dashed" @click="$emit('showWorkers')">
+            <Button type="dashed" @click="$emit('showLogs')">
                 <TeamOutlined />
-                Список работников
+                Журнал
             </Button>
         </div>
         <div>

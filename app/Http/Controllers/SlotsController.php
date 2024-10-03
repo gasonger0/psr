@@ -56,7 +56,7 @@ class SlotsController extends Controller
                 now('Europe/Moscow')->format('H:i:s'),
                 $line->ended_at
             );
-            return;
+            return 0;
         }
         $endTime = null;
 
@@ -96,7 +96,16 @@ class SlotsController extends Controller
     static public function delete(Request $request)
     {
         if (!($id = $request->post('worker_id'))) return;
-        Slots::where('worker_id', '=', $id)->delete();
+        
+        if  ($request->post('delete')){
+            Slots::where('worker_id', '=', $id)->delete();
+        }else {
+            $worker = Slots::find($request->post('slot_id'));
+            if ($worker) {
+                $worker->ended_at = now('Europe/Moscow')->format('H:i:s');
+                $worker->save();
+            }
+        }
         return;
     }
 

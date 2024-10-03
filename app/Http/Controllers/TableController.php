@@ -6,7 +6,6 @@ use App\Models\Lines;
 use App\Models\Slots;
 use App\Models\Workers;
 use Illuminate\Http\Request;
-use Illuminate\Queue\Worker;
 use Shuchkin\SimpleXLSX;
 use Shuchkin\SimpleXLSXGen;
 

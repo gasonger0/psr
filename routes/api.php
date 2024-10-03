@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\LinesController;
+use App\Http\Controllers\LogsController;
 use App\Http\Controllers\SlotsController;
 use App\Http\Controllers\TableController;
 use App\Http\Controllers\WorkersController;
@@ -36,3 +37,9 @@ Route::post('/replace_worker',  [SlotsController::class,    'replace'   ]);
 
 Route::post('/load_xlsx',       [TableController::class,    'loadFile'   ]);
 Route::post('/get_xlsx' ,       [TableController::class,    'getFile'    ]);
+
+/******
+ * LOGS
+ *****/
+Route::get('/get_logs',         [LogsController::class,     'getAll'     ]);
+Route::post('/add_log',         [LogsController::class,     'add'        ]);

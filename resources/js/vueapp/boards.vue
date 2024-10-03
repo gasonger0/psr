@@ -1,5 +1,5 @@
 <script setup>
-import { BackTop, Card, FloatButton, Input, Switch, TimeRangePicker, FloatButtonGroup, Tooltip, Button, Popover, Select, notification, SelectOption } from 'ant-design-vue';
+import { BackTop, Card, FloatButton, Input, Switch, TimeRangePicker, FloatButtonGroup, Tooltip, Button, Popover, Select, notification, SelectOption, Popconfirm } from 'ant-design-vue';
 import { ref, reactive } from 'vue';
 import axios from 'axios';
 import Loading from './loading.vue';
@@ -94,12 +94,12 @@ export default {
                 resolve(true);
             });
         },
-        deleteWorker(record) {
+        deleteWorker(record, del) {
             this.isLoading = true;
-            axios.post('/api/delete_slot', { worker_id: record.worker_id })
+            axios.post('/api/delete_slot', { worker_id: record.worker_id, slot_id: record.current_slot, delete: del })
                 .then(response => {
                     this.isLoading = false;
-                    // this.workers.splice(this.workers.indexOf(this.workers.find(el => el.worker_id == record.worker_id)), 1);
+                    this.workers.splice(this.workers.indexOf(this.workers.find(el => el.worker_id == record.worker_id)), 1);
                     this.$emit('notify', 'success', 'Сотрудник ' + record.title + ' убран со смены');
                 })
                 .catch((err) => {
@@ -191,11 +191,20 @@ export default {
                 currentElement.nextElementSibling;
             return nextElement;
         },
-        sendStop(line) {
+        sendStop(line, option) {
             axios.post('/api/down_line', 'id=' + line.line_id)
                 .then(response => {
                     let f = this.lines.find(el => el.line_id == line.line_id);
-
+                    if (!f.down_from) {
+                        axios.post('/api/add_log', {
+                            action: 'Остановка линии ' + f.title,
+                            extra: 'Причина: ' + this.cancel_reasons[option - 1].title
+                        });
+                    } else {
+                        axios.post('/api/add_log', {
+                            action: 'Возобновление работы линии ' + f.title
+                        });
+                    }
                     if (!f.down_from) {
                         this.lines[this.lines.indexOf(f)].down_from = new Date();
                     } else {
@@ -295,21 +304,92 @@ export default {
             fd.append('worker_id', worker_id);
             fd.append('old_line_id', worker.current_line_id);
             axios.post('/api/change_slot', fd)
-                .then((response) => {
+                .then(async (response) => {
                     this.lines.find((el) => el.line_id == line_id).count_current += 1;
                     this.getSlots();
                     this.processData();
                     this.$emit('data-recieved', this.$data);
 
                     // this.contKey += 1;
-                    // this.listenerSet = false;
-                    // this.updated();
+                    this.$nextTick();
+                    this.listenerSet = false;
+                    this.initFunc();
                 })
                 .catch((err) => {
+                    console.log(err);
                     this.$emit('notify', 'error', "Что-то пошло не так");
                 });
-        }
+        },
         /*-------------------- LINES END --------------------*/
+        initFunc() {
+            if (!this.listenerSet) {
+                let draggable = this.document.querySelectorAll('.line_items');
+
+                draggable.forEach(line => {
+                    line.addEventListener(`dragstart`, (ev) => {
+                        ev.target.classList.add(`selected`);
+                        this.document.querySelectorAll('.done-line').forEach(el => {
+                            el.classList.toggle('hidden');
+                        })
+                        this.active = ev.target;
+                        console.log(ev.target)
+                    })
+
+                    line.addEventListener(`dragend`, (ev) => {
+                        this.document.querySelectorAll('.done-line').forEach(el => {
+                            el.classList.toggle('hidden');
+                        })
+                        if (ev.target.classList.contains('selected') && ev.target == this.active) {
+                            // console.log(this.workers.find(el => el.worker_id == ev.target.dataset.id));
+                            // let worker = this.workers.find(el => el.worker_id == ev.target.dataset.id);
+                            // if (worker) {
+                            //     worker.current_line_id = Number(ev.target.closest('.line').dataset.id);
+                            // }
+                            ev.target.classList.remove(`selected`);
+                            this.changeLine(ev.target.closest('.line').dataset.id, ev.target.dataset.id);
+                            this.listenerSet = false;
+                            this.initFunc();
+                            //this.$emit('data-recieved', this.$data);
+                        }
+                    });
+
+                    line.addEventListener('dragover', (ev) => {
+                        ev.preventDefault();
+                        const activeElement = document.querySelector('.selected');
+                        const currentElement = ev.target;
+                        const isMoveable = activeElement !== currentElement;
+
+                        if (!isMoveable) {
+                            return;
+                        }
+
+                        const nextElement = this.getNextElement(ev.clientY, currentElement);
+                        // Проверяем, нужно ли менять элементы местами
+                        if (
+                            nextElement &&
+                            activeElement === nextElement.previousElementSibling ||
+                            activeElement === nextElement
+                        ) {
+                            // Если нет, выходим из функции, чтобы избежать лишних изменений в DOM
+                            return;
+                        }
+
+                        const lastElement = line.lastElementChild;
+                        if (nextElement == null) {
+                            line.append(activeElement);
+                        } else {
+                            if (nextElement.parentElement != line) {
+                                line.append(activeElement);
+                            } else {
+                                line.insertBefore(activeElement, nextElement);
+                            }
+                        }
+                    })
+                });
+            }
+            this.listenerSet = true;
+            this.document.querySelector('.lines-container').scrollTo({ left: 0 });
+        }
     },
     async created() {
         await this.getLines();
@@ -321,76 +401,18 @@ export default {
 
         this.$emit('data-recieved', this.$data);
     },
+
     updated() {
-        if (!this.listenerSet) {
-            let draggable = this.document.querySelectorAll('.line_items');
-
-            draggable.forEach(line => {
-                line.addEventListener(`dragstart`, (ev) => {
-                    ev.target.classList.add(`selected`);
-                    this.active = ev.target;
-                    console.log(ev.target)
-                })
-
-                line.addEventListener(`dragend`, (ev) => {
-                    console.log(ev.target);
-                    console.log(this.active);
-                    if (ev.target.classList.contains('selected') && ev.target == this.active) {
-                        // console.log(this.workers.find(el => el.worker_id == ev.target.dataset.id));
-                        // let worker = this.workers.find(el => el.worker_id == ev.target.dataset.id);
-                        // if (worker) {
-                        //     worker.current_line_id = Number(ev.target.closest('.line').dataset.id);
-                        // }
-                        ev.target.classList.remove(`selected`);
-                        this.changeLine(ev.target.closest('.line').dataset.id, ev.target.dataset.id);
-                        //this.$emit('data-recieved', this.$data);
-                    }
-                });
-
-                line.addEventListener('dragover', (ev) => {
-                    ev.preventDefault();
-                    const activeElement = document.querySelector('.selected');
-                    const currentElement = ev.target;
-                    const isMoveable = activeElement !== currentElement;
-
-                    if (!isMoveable) {
-                        return;
-                    }
-
-                    const nextElement = this.getNextElement(ev.clientY, currentElement);
-                    // Проверяем, нужно ли менять элементы местами
-                    if (
-                        nextElement &&
-                        activeElement === nextElement.previousElementSibling ||
-                        activeElement === nextElement
-                    ) {
-                        // Если нет, выходим из функции, чтобы избежать лишних изменений в DOM
-                        return;
-                    }
-
-                    const lastElement = line.lastElementChild;
-                    if (nextElement == null) {
-                        line.append(activeElement);
-                    } else {
-                        if (nextElement.parentElement != line) {
-                            line.append(activeElement);
-                        } else {
-                            line.insertBefore(activeElement, nextElement);
-                        }
-                    }
-                })
-            });
-        }
-        this.listenerSet = true;
-        this.document.querySelector('.lines-container').scrollTo({ left: 0 });
+        this.initFunc();
     }
 }
 </script>
 <template>
     <div style="height: fit-content; margin-left: 1vw;">
-        <Button type="dashed" @click="() => showList = !showList">{{ !showList ? 'Показать список рабочих' : 'Скрыть' }}</Button>
+        <Button type="dashed" @click="() => showList = !showList">{{ !showList ? 'Показать список рабочих' : 'Скрыть'
+            }}</Button>
     </div>
-    <div class="lines-container" :key="contKey">
+    <div class="lines-container" :key="contKey" ref="linesContainer">
         <div class="line" :data-id="-1" v-show="showList">
             <Card :bordered="false" class="head" title="Не задействованы" :headStyle="{ 'background-color': 'white' }">
                 <br>
@@ -408,20 +430,10 @@ export default {
                     <span v-show="v.break_started_at && v.break_ended_at" style="height: fit-content;">
                         Обед: {{ v.break_started_at.substr(0, 5) + ' - ' + v.break_ended_at.substr(0, 5) }}
                     </span>
-                    <!-- <div style="display:flex; justify-content: space-between;align-items: center;">
-                        <svg width="20px" height="20px" viewBox="0 0 24 24" fill="none"
-                            xmlns="http://www.w3.org/2000/svg" v-show="v.on_break">
-                            <g id="Environment / Coffee">
-                                <path id="Vector"
-                                    d="M4 20H10.9433M10.9433 20H11.0567M10.9433 20C10.9622 20.0002 10.9811 20.0002 11 20.0002C11.0189 20.0002 11.0378 20.0002 11.0567 20M10.9433 20C7.1034 19.9695 4 16.8468 4 12.9998V8.92285C4 8.41305 4.41305 8 4.92285 8H17.0767C17.5865 8 18 8.41305 18 8.92285V9M11.0567 20H18M11.0567 20C14.8966 19.9695 18 16.8468 18 12.9998M18 9H19.5C20.8807 9 22 10.1193 22 11.5C22 12.8807 20.8807 14 19.5 14H18V12.9998M18 9V12.9998M15 3L14 5M12 3L11 5M9 3L8 5"
-                                    stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                            </g>
-                        </svg>
-                    </div> -->
                 </Card>
             </section>
         </div>
-        <div class="line" v-for="line in lines" :data-id="line.line_id">
+        <div class="line" v-for="line in lines" :data-id="line.line_id" :class="line.done ? 'done-line' : ''">
             <Card :bordered="false" class="head"
                 :headStyle="{ 'background-color': (line.color ? line.color : '#1677ff') }">
                 <template #title>
@@ -453,8 +465,19 @@ export default {
                             <Tooltip :title="line.down_from ? 'Возобновить работу' : 'Остановить работу'">
                                 <ForwardOutlined @click="sendStop(line)" v-if="line.down_from"
                                     style="height:min-content;color:#82ff82;font-size:22px;" />
-                                <StopOutlined @click="sendStop(line)" v-else
-                                    style="height:min-content;color:#ff4d4f;font-size:22px;" />
+                                <Popconfirm v-else :showCancel="false" id="popover" placement="right">
+                                    <template #title>
+                                        <Select placeholder="Причина остановки" style="margin-top: 10px; width: 100%;"
+                                            @change="(value, option) => sendStop(line, value)">
+                                            <SelectOption v-for="i in cancel_reasons" v-model:value="i.value">
+                                                <Tooltip :title="i.title">
+                                                    {{ i.title }}
+                                                </Tooltip>
+                                            </SelectOption>
+                                        </Select>
+                                    </template>
+                                    <StopOutlined style="height:min-content;color:#ff4d4f;font-size:22px;" />
+                                </Popconfirm>
                             </Tooltip>
                         </div>
                     </div>
@@ -517,9 +540,12 @@ export default {
                         </span>
                         <div style="display: flex; gap:5px;">
                             <Tooltip title="Убрать со смены">
-                                <UserDeleteOutlined
-                                    style="color:#ff4d4f;padding:5px;border: 2px solid #ff4d4f;font-size:25px;border-radius:20px;"
-                                    @click="deleteWorker(v)" />
+                                <Popconfirm title="Укажите причину" ok-text="Смена работника закончена досрочно"
+                                    cancel-text="Работник не вышел на смену" @confirm="deleteWorker(v, false)"
+                                    @cancel="deleteWorker(v, true)">
+                                    <UserDeleteOutlined
+                                        style="color:#ff4d4f;padding:5px;border: 2px solid #ff4d4f;font-size:25px;border-radius:20px;" />
+                                </Popconfirm>
                             </Tooltip>
                             <Popover v-model:open="v.popover" trigger="click" placement="right">
                                 <template #content>

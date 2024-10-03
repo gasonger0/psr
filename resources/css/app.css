@@ -114,6 +114,18 @@ body {
 .ant-card {
     box-shadow: #7b7b7b 0px 0px 5px !important;
 }
+.done-line {
+    opacity: 0.4;
+    transition: opacity 1s;
+}
+
+.done-line.hidden {
+    opacity: 0;
+}
+
+#popover {
+    width: 250px;
+}
 /* TEST */
 /* div.line:nth-child(1) > div:nth-child(1) > div:nth-child(1) {
     background-color: red;
