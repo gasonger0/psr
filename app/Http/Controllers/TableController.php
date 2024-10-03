@@ -6,6 +6,7 @@ use App\Models\Lines;
 use App\Models\Slots;
 use App\Models\Workers;
 use Illuminate\Http\Request;
+use Illuminate\Queue\Worker;
 use Shuchkin\SimpleXLSX;
 use Shuchkin\SimpleXLSXGen;
 
@@ -14,10 +15,6 @@ class TableController extends Controller
     private $file = [];
 
     private static $skipPhrases = ['подготовительное время', 'заключительное время'];
-
-    private $lines = [];
-    private $products_ids = [];
-    private $msg = '';
 
     public function loadFile(Request $request)
     {
@@ -118,14 +115,7 @@ class TableController extends Controller
     }
     public function getFile(Request $request) {
         $data  = $request->post();
-        /**
-         * {0 : {
-         *  title: '1',
-         *  worker_id: '1',
-         *  break: '',
-         *  slots: [...]
-         * }}
-         */
+
         $lines = Lines::all();
         foreach ($lines as $line) {
             $line['slots'] = Slots::where('line_id', '=', $line['line_id'])->get();
@@ -177,11 +167,39 @@ class TableController extends Controller
                 ];
            }
         }
+        $columns[] = [''];
+        $columns[] = ['КОМПАНИИ'];
+
+        $companies = Workers::select('company')->distinct()->get();
+        foreach($companies as $company) {
+            $workers = array_column(
+                Workers::where('company', '=', $company->company)->get(['title'])->toArray(),
+                'title'
+            );
+
+            $arr = array_filter($columns, function($el) use ($workers){
+                if (array_search($el[0], $workers) !== false) {
+                    return $el;
+                }
+            });
+
+            $columns[] = [
+                $company->company,
+                array_sum(array_column($arr, 1)),
+                array_sum(array_column($arr, 2)),
+                array_sum(array_column($arr, 3)),
+                array_sum(array_column($arr, 4)),
+                array_sum(array_column($arr, 5)),
+                array_sum(array_column($arr, 6))
+            ];
+        }
+
+
         $xlsx = SimpleXLSXGen::fromArray( $columns );
         $name = time() . '.xlsx';
         $xlsx->saveAs($name);
         return $name;
-        // return $xlsx->download();
+        return $xlsx->download();
     }
 
     static private function getWorkTime($start, $end) {
