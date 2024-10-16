@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\LinesController;
 use App\Http\Controllers\LogsController;
+use App\Http\Controllers\ProductsCategoriesController;
+use App\Http\Controllers\ProductsDictionaryController;
 use App\Http\Controllers\SlotsController;
 use App\Http\Controllers\TableController;
 use App\Http\Controllers\WorkersController;
@@ -30,6 +32,17 @@ Route::post('/change_slot',     [SlotsController::class,    'change'    ]);
 Route::post('/edit_slot',       [SlotsController::class,    'edit'      ]);
 Route::post('/delete_slot',     [SlotsController::class,    'delete'    ]);
 Route::post('/replace_worker',  [SlotsController::class,    'replace'   ]);
+
+/*********************
+ * PRODUCTS_DICTIONARY
+ ********************/
+Route::get('/get_products',     [ProductsDictionaryController::class, 'getList']);
+
+
+/*********************
+ * PRODUCTS_CATEGORIES
+ ********************/
+Route::get('/get_categories',       [ProductsCategoriesController::class, 'getTree']);
 
 /******
  * XLSX
