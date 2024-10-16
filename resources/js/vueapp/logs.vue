@@ -1,5 +1,5 @@
 <script setup>
-import { Modal, Table } from 'ant-design-vue';
+import { Button, Modal, Table } from 'ant-design-vue';
 import axios from 'axios';
 import { ref } from 'vue';
 import dayjs from 'dayjs';
@@ -57,6 +57,13 @@ export default {
     <Modal v-model:open="$props.open" @cancel="close(false)"
         :closable="true" style="width:50vw;" :footer="false">
         <div class="table-container">
+            <div class="top-container">
+                <div>
+                    <Button>Простои</Button>
+                    <Button>Отчёты</Button>
+                    <Button>Загрузка остатков</Button>
+                </div>
+            </div>
             <Table :columns="columns" :dataSource="logs">
             </Table>
         </div>
