@@ -32,6 +32,7 @@ class ProductsCategoriesController extends Controller
         foreach ($branches as $branch) {
             $tree[] = [
                 'category_id'   => $branch['category_id'],
+                'key'           => $branch['category_id'],
                 'title'         => $branch['title'],
                 'children'      => $this->fillTree($data, 
                 array_filter($data, function($br) use ($branch) {

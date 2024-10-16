@@ -27,7 +27,7 @@ return new class extends Migration
         Schema::create('products_plan', function(Blueprint $table) {
             $table->id('plan_product_id')->primary()->autoIncrement();
             $table->integer('product_id');
-            $table->integer('libe_id');
+            $table->integer('line_id');
             $table->time('started_at');
             $table->time('ended_at');
             $table->dateTime('created_at')->default(now());

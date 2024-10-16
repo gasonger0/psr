@@ -17,6 +17,7 @@ body {
     flex-direction: row;
     justify-content: space-between;
     gap: 15px;
+    overflow: auto;
 }
 .top-container div {
     display: flex;
@@ -125,6 +126,16 @@ body {
 
 #popover {
     width: 250px;
+}
+
+.ant-list-item a {
+    color: #1677ff;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.ant-list-item a:hover {
+    text-decoration:underline;
 }
 /* TEST */
 /* div.line:nth-child(1) > div:nth-child(1) > div:nth-child(1) {

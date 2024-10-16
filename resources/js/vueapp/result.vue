@@ -47,7 +47,7 @@ export default {
                     })
                     .catch((err) => {
                         console.log(err);
-                        this.$emit('notify', 'error', "Что-то пошло не так");
+                        this.$emit('notify', 'error', "Что-то пошло не так: " + err.code);
                     });
                 this.$emit('close-modal');
             } else {

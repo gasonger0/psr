@@ -106,7 +106,7 @@ export default {
                     axios.post('/api/edit_slot',
                         this.updSlots
                     ).catch((err) => {
-                        this.$emit('notify', 'error', "Что-то пошло не так");
+                        this.$emit('notify', 'error', "Что-то пошло не так: " + err.code);
                     });
                 }
 
@@ -114,7 +114,7 @@ export default {
                     axios.post('/api/save_worker',
                         this.updWorkers
                     ).catch((err) => {
-                        this.$emit('notify', 'error', "Что-то пошло не так");
+                        this.$emit('notify', 'error', "Что-то пошло не так: " + err.code);
                     });
                 }
             }

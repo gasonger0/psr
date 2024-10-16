@@ -59,6 +59,7 @@ export default {
             return;
         },
         closeModal(ev) {
+            console.log(ev);
             this.openStats = false;
             this.openResult = false;
             this.openLogs = false;
@@ -93,6 +94,7 @@ export default {
         @notify="notify"/>
     <ProductsDict
         :open="openProductsDict"
+        :data="data"
         @close-modal="closeModal"
         @notify="notify"/>
     <ProductsPlan

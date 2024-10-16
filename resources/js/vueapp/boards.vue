@@ -61,7 +61,7 @@ export default {
                         resolve(true);
                     })
                     .catch((err) => {
-                        this.$emit('notify', 'error', "Что-то пошло не так");
+                        this.$emit('notify', 'error', "Что-то пошло не так: " + err.code);
                         reject(err);
                     });
             })
@@ -103,7 +103,7 @@ export default {
                     this.$emit('notify', 'success', 'Сотрудник ' + record.title + ' убран со смены');
                 })
                 .catch((err) => {
-                    this.$emit('notify', 'error', "Что-то пошло не так");
+                    this.$emit('notify', 'error', "Что-то пошло не так: " + err.code);
                 });
         },
         changeWorker(newWorker, oldWorker) {
@@ -149,7 +149,7 @@ export default {
                 this.isLoading = false;
                 this.replacer = null;
             }).catch((err) => {
-                this.$emit('notify', 'error', "Что-то пошло не так");
+                this.$emit('notify', 'error', "Что-то пошло не так: " + err.code);
             })
         },
         async getSlots() {
@@ -160,7 +160,7 @@ export default {
                         resolve(true);
                     })
                     .catch((err) => {
-                        this.$emit('notify', 'error', "Что-то пошло не так");
+                        this.$emit('notify', 'error', "Что-то пошло не так: " + err.code);
                         reject(err);
                     });
             });
@@ -212,7 +212,7 @@ export default {
                     }
                     this.$emit('notify', 'success', 'Действие выполнено успешно')
                 }).catch((err) => {
-                    this.$emit('notify', 'error', "Что-то пошло не так");
+                    this.$emit('notify', 'error', "Что-то пошло не так: " + err.code);
                 });
         },
 
@@ -247,7 +247,7 @@ export default {
                         resolve(true);
                     })
                     .catch((err) => {
-                        this.$emit('notify', 'error', "Что-то пошло не так");
+                        this.$emit('notify', 'error', "Что-то пошло не так: " + err.code);
                         reject(err);
                     });
             });
@@ -317,7 +317,7 @@ export default {
                 })
                 .catch((err) => {
                     console.log(err);
-                    this.$emit('notify', 'error', "Что-то пошло не так");
+                    this.$emit('notify', 'error', "Что-то пошло не так: " + err.code);
                 });
         },
         /*-------------------- LINES END --------------------*/
