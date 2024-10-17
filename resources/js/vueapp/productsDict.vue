@@ -21,6 +21,7 @@ export default {
             products: reactive([]),
             categories: reactive([]),
             slots: reactive([]),
+            loading: ref(false),
             columns: [{
                 title: 'Линия',
                 dataIndex: 'line_id'
@@ -60,12 +61,16 @@ export default {
             });
         },
         getProducts(key) {
+            this.loading = true;
+            this.slots = reactive([]);
+            this.products = reactive([]);
             axios.post('/api/get_products',
                 'category_id=' + key[0])
                 .then((response) => {
                     if (response.data) {
                         console.log(response.data);
                         this.products = response.data;
+                        this.loading = false;
                     }
                 })
                 .catch((err) => {
@@ -74,10 +79,12 @@ export default {
                 });
         },
         getProductSlots(product_id) {
+            this.loading = true;
             axios.post('/api/get_product_slots', 'product_id=' + product_id)
                 .then((response) => {
                     if (response.data) {
                         this.slots = response.data;
+                        this.loading = false;
                     }
                 })
                 .catch((err) => {
@@ -110,10 +117,14 @@ export default {
             <div style="width:20%">
                 <List :data-source="products" v-if="products.length != 0">
                     <template #renderItem="{ item }">
-                        <ListItem @click="getProductSlots(item.product_id)"><a href="#">{{ item.title }}</a></ListItem>
-                        <Divider type="vertical" />
+                        <ListItem @click="getProductSlots(item.product_id)">
+                            <a href="#">{{ item.title }}</a>
+                        </ListItem>
                     </template>
                 </List>
+                <template v-else-if="loading">
+                    <Skeleton active />
+                </template>
                 <Empty description="Нет данных" v-else style="max-width:100%;" />
             </div>
             <Divider type="vertical" style="height:unset;" />
@@ -122,12 +133,15 @@ export default {
                     <Empty description="Нет данных" style="max-width:100%;" />
                 </template>
                 <template #bodyCell="{ record, column, text }">
-                    <template v-if="editing">
+                    <template v-if="loading">
+                        <Skeleton active />
+                    </template>
+                    <template v-else-if="editing">
                         <template v-if="['people_count', 'duration', 'perfomance'].find(el => el == column.dataIndex)">
                             <InputNumber v-model:value="record[column.dataIndex]" /> {{ measures[column.dataIndex] }}
                         </template>
                         <template v-else>
-                            <Select v-model:value="record[column.dataIndex]" style="max-width: 250px;">
+                            <Select v-model:value="record[column.dataIndex]" style="width: 100%;">
                                 <SelectOption v-for="i in $props.data.lines" :key="i.line_id" :value="i.line_id">
                                     {{ i.title }}
                                 </SelectOption>
@@ -142,7 +156,8 @@ export default {
                     <TableSummary v-if="editing">
                         <TableSummaryRow>
                             <TableSummaryCell :col-span="4" style="padding:0;">
-                                <Button type="primary" style="width: 100%;border-top-left-radius: 0; border-top-right-radius: 0;">+</Button>
+                                <Button type="primary"
+                                    style="width: 100%;border-top-left-radius: 0; border-top-right-radius: 0;">+</Button>
                             </TableSummaryCell>
                         </TableSummaryRow>
                     </TableSummary>
