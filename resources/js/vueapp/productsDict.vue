@@ -24,7 +24,8 @@ export default {
             loading: ref(false),
             columns: [{
                 title: 'Линия',
-                dataIndex: 'line_id'
+                dataIndex: 'line_id',
+                width: '40%'
             }, {
                 title: 'Количество струдников',
                 dataIndex: 'people_count'
@@ -80,17 +81,20 @@ export default {
         },
         getProductSlots(product_id) {
             this.loading = true;
-            axios.post('/api/get_product_slots', 'product_id=' + product_id)
-                .then((response) => {
-                    if (response.data) {
-                        this.slots = response.data;
-                        this.loading = false;
-                    }
-                })
-                .catch((err) => {
-                    console.log(err);
-                    this.$emit('notify', 'error', 'Что-то пошло не так: ' + err.code);
-                });
+            this.slots = reactive([{}]);
+            setTimeout(() => {
+                axios.post('/api/get_product_slots', 'product_id=' + product_id)
+                    .then((response) => {
+                        if (response.data) {
+                            this.slots = response.data;
+                            this.loading = false;
+                        }
+                    })
+                    .catch((err) => {
+                        console.log(err);
+                        this.$emit('notify', 'error', 'Что-то пошло не так: ' + err.code);
+                    });
+            }, 500);
         },
         exit(save) {
             this.$emit('close-modal');

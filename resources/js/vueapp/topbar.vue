@@ -1,6 +1,6 @@
 <script setup>
 import { ref } from 'vue';
-import { Upload, Button } from 'ant-design-vue';
+import { Upload, Button, Switch } from 'ant-design-vue';
 import { BarChartOutlined, UploadOutlined, EditOutlined, TeamOutlined, AppstoreOutlined } from '@ant-design/icons-vue';
 import axios from 'axios';
 </script>
@@ -9,7 +9,8 @@ export default {
     data() {
         return {
             uploadedFile: ref(null),
-            date: (new Date()).toLocaleDateString() 
+            date: (new Date()).toLocaleDateString(),
+            boardMode: ref(false)
         }
     },
     methods: {
@@ -33,6 +34,10 @@ export default {
             console.log(file);
             return false;
         },
+        changeBoard(prod) {
+            console.log(prod);
+            this.$emit('change-board');
+        }
     },
     mounted() {
     }
@@ -41,6 +46,7 @@ export default {
 <template>
     <div class="top-container">
         <div>
+            <Switch checked-children="Продукция" un-checked-children="Работники" v-model:checked="boardMode" @change="changeBoard"/>
             <Upload :v-model:file-list="uploadedFile" name="file" :before-upload="(ev) => processXlsx(ev)">
                 <Button type="primary" style="background-color: green;">
                     <UploadOutlined />
@@ -56,12 +62,8 @@ export default {
                 Редактировать график
             </Button>
             <Button type="primary" @click="$emit('showProductsDict')">
-                <AppstoreOutlined/>
+                <AppstoreOutlined />
                 Реестр продукции
-            </Button>
-            <Button type="primary" @click="$emit('showProductsPlan')">
-                <EditOutlined/>
-                План продукции
             </Button>
             <Button type="dashed" @click="$emit('showLogs')">
                 <TeamOutlined />

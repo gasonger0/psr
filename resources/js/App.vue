@@ -24,7 +24,8 @@ export default {
             openProductsDict: ref(false),
             openProductsPlan: ref(false),
             boardKey: ref(1),
-            statsRef: null
+            statsRef: null,
+            boardType: ref(true)
         }
     },
     methods: {
@@ -54,9 +55,8 @@ export default {
             this.openProductsDict = true;
             return;
         },
-        showProductsPlan() {
-            this.openProductsPlan = true;
-            return;
+        changeBoard(){
+            this.boardType = !this.boardType;
         },
         closeModal(ev) {
             console.log(ev);
@@ -64,7 +64,6 @@ export default {
             this.openResult = false;
             this.openLogs = false;
             this.openProductsDict = false;
-            this.openProductsPlan = false;
             if (ev) {
                 this.boardKey += 1;
             }
@@ -97,19 +96,20 @@ export default {
         :data="data"
         @close-modal="closeModal"
         @notify="notify"/>
-    <ProductsPlan
-        :open="openProductsPlan"
-        @close-modal="closeModal"
-        @notify="notify"/>
     <TopBar 
         @showGraph="showGraph" 
         @showResult="showResult"
         @showLogs="showLogs" 
         @showProductsDict="showProductsDict"
-        @showProductsPlan="showProductsPlan"
+        @change-board="changeBoard"
         @notify="notify"/>
     <Boards 
+        v-if="boardType"
         :key="boardKey"
         @data-recieved="getData"  
+        @notify="notify"/>
+    <ProductsPlan
+        v-if="!boardType"
+        @close-modal="closeModal"
         @notify="notify"/>
 </template>
