@@ -110,6 +110,7 @@ export default {
         @notify="notify"/>
     <ProductsPlan
         v-if="!boardType"
+        :data="data"
         @close-modal="closeModal"
         @notify="notify"/>
 </template>

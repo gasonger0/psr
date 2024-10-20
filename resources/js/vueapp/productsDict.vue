@@ -30,9 +30,6 @@ export default {
                 title: 'Количество струдников',
                 dataIndex: 'people_count'
             }, {
-                title: 'Длительность смены',
-                dataIndex: 'duration'
-            }, {
                 title: 'Единиц в час',
                 dataIndex: 'perfomance'
             }],

@@ -9,7 +9,7 @@ class ProductsSlotsController extends Controller
 {
     public function getList(Request $request) {
         if (!($id = $request->post('product_id'))) {
-            return [];
+            return ProductsSlots::orderBy('order', 'DESC')->get()->toJson();
         } else {
             return ProductsSlots::where('product_id', '=', $id)->orderBy('order', 'DESC')->get()->toJson();
         }

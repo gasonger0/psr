@@ -4,6 +4,7 @@ use App\Http\Controllers\LinesController;
 use App\Http\Controllers\LogsController;
 use App\Http\Controllers\ProductsCategoriesController;
 use App\Http\Controllers\ProductsDictionaryController;
+use App\Http\Controllers\ProductsOrderController;
 use App\Http\Controllers\ProductsPlanController;
 use App\Http\Controllers\ProductsSlotsController;
 use App\Http\Controllers\SlotsController;
@@ -49,12 +50,17 @@ Route::get('/get_categories',       [ProductsCategoriesController::class,   'get
 /****************
  * PRODUCTS_PLANS
  ***************/
-Route::post('/get_product_plans',   [ProductsPlanController::class,        'getList']);
+Route::get('/get_product_plans',   [ProductsPlanController::class,        'getList']);
 
 /****************
  * PRODUCTS_SLOTS
  ***************/
 Route::post('/get_product_slots',   [ProductsSlotsController::class,        'getList']);
+
+/*****************
+ * PRODUCTS_ORDERS
+ ****************/
+Route::get('/get_product_orders',   [ProductsOrderController::class,        'getList']);
 
 /******
  * XLSX
