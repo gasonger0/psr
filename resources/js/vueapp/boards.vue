@@ -311,7 +311,7 @@ export default {
                     this.$emit('data-recieved', this.$data);
 
                     // this.contKey += 1;
-                    this.$nextTick();
+                    this.$forceUpdate();
                     this.listenerSet = false;
                     this.initFunc();
                 })
@@ -421,6 +421,7 @@ export default {
                 <Card :title="v.title" draggable="true" class="draggable-card"
                     v-for="(v, k) in workers.filter(el => el.current_line_id == null)"
                     :style="v.on_break ? 'opacity: 0.6' : ''" :data-id="v.worker_id"
+                    :key="v.worker_id"
                     @focus="() => { v.showDelete = true }" @mouseleave="() => { v.showDelete = false }">
                     <template #extra>
                         <span style="color: #1677ff;text-decoration: underline;">
@@ -519,7 +520,8 @@ export default {
             <section class="line_items">
                 <Card :title="v.title" draggable="true" class="draggable-card"
                     v-for="(v, k) in workers.filter(el => el.current_line_id == line.line_id)"
-                    :style="v.on_break ? 'opacity: 0.6' : ''" :data-id="v.worker_id"
+                    :key="v.worker_id"
+                    :style="v.on_break ? 'opacity: 0.6' : ''" :data-id="v.worker_id" 
                     @focus="() => { v.showDelete = true }" @mouseleave="() => { v.showDelete = false }">
                     <template #extra>
                         <span style="color: #1677ff;text-decoration: underline;">

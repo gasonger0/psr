@@ -14,15 +14,18 @@ return new class extends Migration
         Schema::create('products_dictionary', function(Blueprint $table) {
             $table->id('product_id')->primary()->autoIncrement();
             $table->string('title');
+            $table->dateTime('updated_at')->default(now());
+            $table->dateTime('created_at')->default(now());
         });
         Schema::create('products_slots', function(Blueprint $table) {
             $table->id('product_slot_id')->primary()->autoIncrement();
             $table->integer('product_id');
             $table->integer('line_id');
             $table->integer('people_count');
-            $table->integer('duration');
             $table->float('perfomance');
             $table->integer('order');
+            $table->dateTime('updated_at')->default(now());
+            $table->dateTime('created_at')->default(now());
         });
         Schema::create('products_plan', function(Blueprint $table) {
             $table->id('plan_product_id')->primary()->autoIncrement();

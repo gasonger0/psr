@@ -22,6 +22,8 @@ export default {
             categories: reactive([]),
             slots: reactive([]),
             loading: ref(false),
+            activeProduct: ref(-1),
+            activeCategory: ref(-1),
             columns: [{
                 title: 'Линия',
                 dataIndex: 'line_id',
@@ -35,7 +37,6 @@ export default {
             }],
             measures: {
                 people_count: ' человек',
-                duration: ' ч',
                 perfomance: ' кг/ч'
             }
         }
@@ -59,6 +60,7 @@ export default {
             });
         },
         getProducts(key) {
+            this.activeCategory = key[0];
             this.loading = true;
             this.slots = reactive([]);
             this.products = reactive([]);
@@ -77,7 +79,11 @@ export default {
                 });
         },
         getProductSlots(product_id) {
+            if (product_id == -1) {
+                this.addProducts();
+            }
             this.loading = true;
+            this.activeProduct = product_id;
             this.slots = reactive([{}]);
             setTimeout(() => {
                 axios.post('/api/get_product_slots', 'product_id=' + product_id)
@@ -94,7 +100,41 @@ export default {
             }, 500);
         },
         exit(save) {
-            this.$emit('close-modal');
+            if (save) {
+                this.addProducts();
+                this.addProductSlot();
+            } else {
+                this.$emit('close-modal');
+            }
+        },
+        addProductFront() {
+            this.products.push({
+                product_id: -1,
+                title: null,
+                category_id: this.activeCategory
+            });
+        },
+        addProducts() {
+            axios.post('/api/add_products', this.products)
+                .then(response => {
+                    // this.getProducts();
+                    // this.getProductSlots();
+                });
+        },
+        addSlotFront() {
+            this.slots.push({
+                product_slot_id: -1,
+                product_id: this.activeProduct,
+                line_id: null,
+                people_count: 0,
+                perfomance: 0,
+                order: this.slots.length + 1
+            });
+        },
+        addProductSlot() {
+            axios.post('/api/add_product_slots',
+                this.slots
+            );
         }
     },
     async updated() {
@@ -118,9 +158,15 @@ export default {
             <div style="width:20%">
                 <List :data-source="products" v-if="products.length != 0">
                     <template #renderItem="{ item }">
-                        <ListItem @click="getProductSlots(item.product_id)">
+                        <ListItem @click="getProductSlots(item.product_id)" v-if="!editing">
                             <a href="#">{{ item.title }}</a>
                         </ListItem>
+                        <ListItem v-else @click="getProductSlots(item.product_id)">
+                            <Input v-model:value="item.title" />
+                        </ListItem>
+                    </template>
+                    <template #footer>
+                        <Button @click="addProductFront" type="primary" style="width:100%" v-if="editing">+</Button>
                     </template>
                 </List>
                 <template v-else-if="loading">
@@ -138,7 +184,7 @@ export default {
                         <Skeleton active />
                     </template>
                     <template v-else-if="editing">
-                        <template v-if="['people_count', 'duration', 'perfomance'].find(el => el == column.dataIndex)">
+                        <template v-if="['people_count', 'perfomance'].find(el => el == column.dataIndex)">
                             <InputNumber v-model:value="record[column.dataIndex]" /> {{ measures[column.dataIndex] }}
                         </template>
                         <template v-else>
@@ -157,7 +203,7 @@ export default {
                     <TableSummary v-if="editing">
                         <TableSummaryRow>
                             <TableSummaryCell :col-span="4" style="padding:0;">
-                                <Button type="primary"
+                                <Button type="primary" @click="addSlotFront"
                                     style="width: 100%;border-top-left-radius: 0; border-top-right-radius: 0;">+</Button>
                             </TableSummaryCell>
                         </TableSummaryRow>

@@ -123,19 +123,25 @@ export default {
                 line.addEventListener(`dragstart`, (ev) => {
                     ev.target.classList.add(`selected`);
 
+                    this.document.querySelectorAll('.line').forEach(el => {
+                        el.classList.add('hidden');
+                        console.log(el);
+                    });
 
-                    this.document.querySelectorAll('.done-line').forEach(el => {
-                        el.classList.toggle('hidden');
-                    })
                     this.active.html = ev.target;
                     this.active.started_at = dayjs();
-                    
-                    console.log(ev.target)
+                    let product = this.products.find(el => el.product_id == ev.target.dataset.id);
+                    if (product) {
+                        for (let i in product.slots) {
+                            this.document.querySelector('.line[data-id="' + product.slots[i].line_id + '"]').classList.toggle('hidden');
+                        }
+                    }
+                    console.log(product)
                 })
 
                 line.addEventListener(`dragend`, (ev) => {
-                    this.document.querySelectorAll('.done-line').forEach(el => {
-                        el.classList.toggle('hidden');
+                    this.document.querySelectorAll('.line').forEach(el => {
+                        el.classList.remove('hidden');
                     });
                     if (ev.target.classList.contains('selected') && ev.target == this.active.html) {
                         ev.target.classList.remove(`selected`);

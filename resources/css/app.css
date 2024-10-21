@@ -126,6 +126,9 @@ body {
 .hiding-data.hidden {
     display: none;
 }
+.line.hidden {
+    opacity: 0.1;
+}
 
 #popover {
     width: 250px;

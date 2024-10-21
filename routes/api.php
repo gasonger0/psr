@@ -38,39 +38,40 @@ Route::post('/replace_worker',      [SlotsController::class,                'rep
 /*********************
  * PRODUCTS_DICTIONARY
  ********************/
-Route::post('/get_products',        [ProductsDictionaryController::class,   'getList']);
-
+Route::post('/get_products',        [ProductsDictionaryController::class,   'getList'   ]);
+Route::post('/add_products',        [ProductsDictionaryController::class,   'addProduct']);
 
 /*********************
  * PRODUCTS_CATEGORIES
  ********************/
-Route::get('/get_categories',       [ProductsCategoriesController::class,   'getTree']);
+Route::get('/get_categories',       [ProductsCategoriesController::class,   'getTree'   ]);
 
 
 /****************
  * PRODUCTS_PLANS
  ***************/
-Route::get('/get_product_plans',   [ProductsPlanController::class,        'getList']);
+Route::get('/get_product_plans',   [ProductsPlanController::class,          'getList'   ]);
 
 /****************
  * PRODUCTS_SLOTS
  ***************/
-Route::post('/get_product_slots',   [ProductsSlotsController::class,        'getList']);
+Route::post('/get_product_slots',   [ProductsSlotsController::class,        'getList'   ]);
+Route::post('add_product_slots',    [ProductsSlotsController::class,        'addSlots'  ]);
 
 /*****************
  * PRODUCTS_ORDERS
  ****************/
-Route::get('/get_product_orders',   [ProductsOrderController::class,        'getList']);
+Route::get('/get_product_orders',   [ProductsOrderController::class,        'getList'   ]);
 
 /******
  * XLSX
  *****/
 
-Route::post('/load_xlsx',           [TableController::class,                'loadFile'   ]);
-Route::post('/get_xlsx' ,           [TableController::class,                'getFile'    ]);
+Route::post('/load_xlsx',           [TableController::class,                'loadFile'  ]);
+Route::post('/get_xlsx' ,           [TableController::class,                'getFile'   ]);
 
 /******
  * LOGS
  *****/
-Route::get('/get_logs',             [LogsController::class,                 'getAll'     ]);
-Route::post('/add_log',             [LogsController::class,                 'add'        ]);
+Route::get('/get_logs',             [LogsController::class,                 'getAll'    ]);
+Route::post('/add_log',             [LogsController::class,                 'add'       ]);
