@@ -19,6 +19,7 @@ body {
     gap: 15px;
     overflow: auto;
 }
+
 .top-container div {
     display: flex;
     flex-direction: row;
@@ -26,6 +27,7 @@ body {
     gap: 15px;
     align-items: center
 }
+
 .lines-container {
     display: flex;
     flex-direction: row;
@@ -45,6 +47,7 @@ body {
 .line_items {
     min-height: 10vh;
 }
+
 .line_items .ant-card-body {
     padding: 10px 24px;
 }
@@ -112,9 +115,11 @@ body {
 .line .head .ant-card-head {
     background-color: #1677ff;
 }
+
 .ant-card {
     box-shadow: #7b7b7b 0px 0px 5px !important;
 }
+
 .done-line {
     opacity: 0.4;
     transition: opacity 1s;
@@ -123,9 +128,11 @@ body {
 .done-line.hidden {
     opacity: 0;
 }
+
 .hiding-data.hidden {
     display: none;
 }
+
 .line.hidden {
     opacity: 0.1;
 }
@@ -141,8 +148,24 @@ body {
 }
 
 .ant-list-item a:hover {
-    text-decoration:underline;
+    text-decoration: underline;
 }
+
+.product_list-item {
+    padding: 5px;
+    border-radius: 5px;
+}
+
+.product_list-item.active {
+    background: #e6f4ff;
+}
+.product_list-item.active a {
+    font-weight: 600;
+}
+.product_list-item.active a:hover {
+    text-decoration: none;
+}
+
 /* TEST */
 /* div.line:nth-child(1) > div:nth-child(1) > div:nth-child(1) {
     background-color: red;

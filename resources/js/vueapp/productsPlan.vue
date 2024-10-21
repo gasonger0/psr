@@ -3,6 +3,7 @@ import { Card, Button, Divider, Modal, TimePicker } from 'ant-design-vue';
 import axios from 'axios';
 import { reactive, ref } from 'vue';
 import dayjs from 'dayjs';
+import Loading from './loading.vue';
 </script>
 <script>
 export default {
@@ -20,6 +21,7 @@ export default {
             listenerSet: ref(false),
             showList: ref(false),
             active: ref({}),
+            showLoader: ref(false),
             confirmPlanOpen: ref(false)
         }
     },
@@ -148,13 +150,13 @@ export default {
                         let line_id = ev.target.closest('.line').dataset.id;
                         this.active.line = this.lines.find(f => f.line_id == line_id);
                         let prod = this.products.find(i => i.product_id = ev.target.dataset.id);
-                        console.log(this.active);
                         this.active.perfomance = prod.slots.find(n => n.line_id == line_id).perfomance;
                         this.active.amount = prod.order_amount;
-
+                        this.active.title = prod.title;
                         this.active.time = (this.active.perfomance / this.active.amount).toFixed(2);
                         this.active.ended_at = this.active.started_at.add(this.active.time, 'hour');
-
+                        console.log(this.active);
+                        console.log(prod);
                         this.confirmPlanOpen = true;
                         // this.addPlan(ev.target.closest('.line').dataset.id, ev.target.dataset.id);
                         // this.changeLine(ev.target.closest('.line').dataset.id, ev.target.dataset.id);
@@ -207,30 +209,24 @@ export default {
             console.log(this.active);
         },
         addPlan() {
-
             this.listenerSet = false;
             this.initFunc();
         }
     },
     async created() {
+        this.showLoader = true;
         this.lines = this.$props.data.lines;
         await this.getProducts();
         await this.getProductPlan();
         await this.getProductSlots();
         await this.getOrders();
+        this.showLoader = false;
         console.log(this.lines);
         console.log(this.products);
     },
     updated() {
         this.initFunc();
     },
-    // async mounted() {
-    //     await this.getProducts();
-    //     await this.getProductPlan();
-    //     this.lines = this.$props.data.lines;
-    //     console.log(this.lines);
-    //     this.initFunc();
-    // }
 }
 </script>
 <template>
@@ -298,4 +294,5 @@ export default {
         <br>
         <span>Работа по данной продукции закончится в {{ active.ended_at.format('HH:mm') }}</span>
     </Modal>
+    <Loading :open="showLoader"/>
 </template>

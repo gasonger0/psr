@@ -101,8 +101,14 @@ export default {
         },
         exit(save) {
             if (save) {
-                this.addProducts();
-                this.addProductSlot();
+                if (this.products.find(el => el.product_id == -1)) {
+                    this.addProducts();
+                    this.getProducts(this.activeCategory);
+                } else {
+                    this.addProductSlot();
+                    this.getProductSlots(this.activeProduct);
+                }
+                this.editing = false;
             } else {
                 this.$emit('close-modal');
             }
@@ -113,12 +119,12 @@ export default {
                 title: null,
                 category_id: this.activeCategory
             });
+            this.slots = false;
         },
         addProducts() {
             axios.post('/api/add_products', this.products)
                 .then(response => {
-                    // this.getProducts();
-                    // this.getProductSlots();
+                    this.$emit('notify', 'success', 'Продукция добавлена');
                 });
         },
         addSlotFront() {
@@ -134,7 +140,9 @@ export default {
         addProductSlot() {
             axios.post('/api/add_product_slots',
                 this.slots
-            );
+            ).then((response) => {
+
+            });
         }
     },
     async updated() {
@@ -158,10 +166,10 @@ export default {
             <div style="width:20%">
                 <List :data-source="products" v-if="products.length != 0">
                     <template #renderItem="{ item }">
-                        <ListItem @click="getProductSlots(item.product_id)" v-if="!editing">
+                        <ListItem @click="getProductSlots(item.product_id)" v-if="!editing" class="product_list-item" :class="activeProduct == item.product_id ? 'active' : ''">
                             <a href="#">{{ item.title }}</a>
                         </ListItem>
-                        <ListItem v-else @click="getProductSlots(item.product_id)">
+                        <ListItem v-else class="product_list-item">
                             <Input v-model:value="item.title" />
                         </ListItem>
                     </template>
@@ -175,41 +183,44 @@ export default {
                 <Empty description="Нет данных" v-else style="max-width:100%;" />
             </div>
             <Divider type="vertical" style="height:unset;" />
-            <Table :columns="columns" style="min-width: 60%;" bordered :data-source="slots" :pagination="false">
-                <template #emptyText>
-                    <Empty description="Нет данных" style="max-width:100%;" />
-                </template>
-                <template #bodyCell="{ record, column, text }">
-                    <template v-if="loading">
-                        <Skeleton active />
+            <div style="min-width: 60%;">
+                <Table :columns="columns" bordered :data-source="slots" :pagination="false" v-show=slots>
+                    <template #emptyText>
+                        <Empty description="Нет данных" style="max-width:100%;" />
                     </template>
-                    <template v-else-if="editing">
-                        <template v-if="['people_count', 'perfomance'].find(el => el == column.dataIndex)">
-                            <InputNumber v-model:value="record[column.dataIndex]" /> {{ measures[column.dataIndex] }}
+                    <template #bodyCell="{ record, column, text }">
+                        <template v-if="loading">
+                            <Skeleton active />
                         </template>
-                        <template v-else>
-                            <Select v-model:value="record[column.dataIndex]" style="width: 100%;">
-                                <SelectOption v-for="i in $props.data.lines" :key="i.line_id" :value="i.line_id">
-                                    {{ i.title }}
-                                </SelectOption>
-                            </Select>
+                        <template v-else-if="editing">
+                            <template v-if="['people_count', 'perfomance'].find(el => el == column.dataIndex)">
+                                <InputNumber v-model:value="record[column.dataIndex]" /> {{ measures[column.dataIndex]
+                                }}
+                            </template>
+                            <template v-else>
+                                <Select v-model:value="record[column.dataIndex]" style="width: 100%;">
+                                    <SelectOption v-for="i in $props.data.lines" :key="i.line_id" :value="i.line_id">
+                                        {{ i.title }}
+                                    </SelectOption>
+                                </Select>
+                            </template>
+                        </template>
+                        <template v-else-if="column.dataIndex == 'line_id'">
+                            <span>{{ $props.data.lines.find(el => el.line_id == text).title }}</span>
                         </template>
                     </template>
-                    <template v-else-if="column.dataIndex == 'line_id'">
-                        <span>{{ $props.data.lines.find(el => el.line_id == text).title }}</span>
+                    <template #summary>
+                        <TableSummary v-if="editing">
+                            <TableSummaryRow>
+                                <TableSummaryCell :col-span="4" style="padding:0;">
+                                    <Button type="primary" @click="addSlotFront"
+                                        style="width: 100%;border-top-left-radius: 0; border-top-right-radius: 0;">+</Button>
+                                </TableSummaryCell>
+                            </TableSummaryRow>
+                        </TableSummary>
                     </template>
-                </template>
-                <template #summary>
-                    <TableSummary v-if="editing">
-                        <TableSummaryRow>
-                            <TableSummaryCell :col-span="4" style="padding:0;">
-                                <Button type="primary" @click="addSlotFront"
-                                    style="width: 100%;border-top-left-radius: 0; border-top-right-radius: 0;">+</Button>
-                            </TableSummaryCell>
-                        </TableSummaryRow>
-                    </TableSummary>
-                </template>
-            </Table>
+                </Table>
+            </div>
         </div>
         <template #footer>
             <Button type="primary" @click="exit(true)">Сохранить</Button>

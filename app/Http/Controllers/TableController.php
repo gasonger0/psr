@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Lines;
+use App\Models\Products_categories;
+use App\Models\ProductsDictionary;
 use App\Models\Slots;
 use App\Models\Workers;
 use Illuminate\Http\Request;
@@ -41,6 +43,49 @@ class TableController extends Controller
 
         return 0;
 
+    }
+    public function loadOrder(Request $request)
+    {
+        if (!$request->files) {
+            return 'Файл не предоставлен';
+        }
+
+        if ($xlsx = SimpleXLSX::parse($request->files->get('file')->getRealPath())) {
+            $res = [];
+            $cats = Products_categories::get(['title', 'category_id'])->toArray();
+            $curCat = '';
+            $rows = $xlsx->rows(0);
+            foreach ($rows as $row) {
+                $catMap = array_map(function($el) use($row) {
+                    if (empty($row[1])) {
+                        return NULL;
+                    }
+                    if (str_contains(strtoupper($row[1]), strtoupper($el['title']))) {
+                        return $el;
+                    }
+                }, $cats);
+                $catMap = array_filter($catMap, function($i) {return $i != NULL;});
+                if(!empty($catMap)){
+                    var_dump($row);
+                    var_dump($catMap);
+                } else if ($row[1] && !empty($row[3]) && intVal($row[3]) !== 0 && !strtotime($row[1])) {
+                    $res[] = [
+                        'title' => $row[1],
+                        'amount' => $row[3]
+                    ];
+                }
+            }
+
+            $products = ProductsDictionary::get(['product_id', 'title'])->toArray();
+            
+            // foreach ($res as $prod) {
+            //     if ($item = array_search($prod['title'], array_column($products, 'title'))) {
+            //         var_dump($item);
+            //     }
+            // }
+            return json_encode($res);
+        }
+        
     }
     private function processProducts()
     {
@@ -200,18 +245,15 @@ class TableController extends Controller
         return $name;
         return $xlsx->download();
     }
-
     static private function getWorkTime($start, $end) {
         $start = new \DateTime($start);
         $end = new \DateTime($end);
         $diff = $start->diff($end);
         return $diff->h + ($diff->i / 60);
     }
-
     static private function setFloat(float $num) {
         return number_format((float) $num, 2, '.', '');
     }
-    
     static private function summarize(array $arr, int $start, int $end) {
         if (count($arr) < $end) {
             return 0;

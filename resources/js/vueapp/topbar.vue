@@ -21,7 +21,6 @@ export default {
 
             this.$emit('notify', 'info', "Подождите, идёт обработка файла...");
 
-
             axios.post('/api/load_xlsx', fd).then((response) => {
                 if (response) {
                     console.log(response);
@@ -29,9 +28,25 @@ export default {
                 }
             }).catch((err) => {
                 console.log(err);
-                this.$emit('notify', 'warning', res);
+                this.$emit('notify', 'warning', err);
             })
             console.log(file);
+            return false;
+        },
+        processOrder(file) {
+            let fd = new FormData();
+            fd.append('file', file);
+            this.$emit('notify', 'info', "Подождите, идёт обработка файла...");
+
+            axios.post('/api/load_order', fd).then((response) => {
+                if (response) {
+                    console.log(response);
+                    this.$emit('notify', 'success', "Файл успешно загружен. Обновите страницу, чтобы оперировать актуальными данными");
+                }
+            }).catch((err) => {
+                console.log(err);
+                this.$emit('notify', 'warning', err);
+            });
             return false;
         },
         changeBoard(prod) {
@@ -46,11 +61,18 @@ export default {
 <template>
     <div class="top-container">
         <div>
-            <Switch checked-children="Продукция" un-checked-children="Работники" v-model:checked="boardMode" @change="changeBoard"/>
-            <Upload :v-model:file-list="uploadedFile" name="file" :before-upload="(ev) => processXlsx(ev)">
+            <Switch checked-children="Продукция" un-checked-children="Работники" v-model:checked="boardMode"
+                @change="changeBoard" />
+            <Upload v-model:file-list="uploadedFile" name="file" :before-upload="(ev) => processXlsx(ev)">
                 <Button type="primary" style="background-color: green;">
                     <UploadOutlined />
                     Новый график
+                </Button>
+            </Upload>
+            <Upload v-model:file-list="uploadedFile" name="file" :before-upload="(ev) => processOrder(ev)">
+                <Button type="primary" style="background-color: green;">
+                    <UploadOutlined />
+                    Выгрузить остатки
                 </Button>
             </Upload>
             <Button type="default" @click="$emit('showResult')">

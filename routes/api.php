@@ -68,6 +68,7 @@ Route::get('/get_product_orders',   [ProductsOrderController::class,        'get
  *****/
 
 Route::post('/load_xlsx',           [TableController::class,                'loadFile'  ]);
+Route::post('/load_order',          [TableController::class,                'loadOrder'  ]);
 Route::post('/get_xlsx' ,           [TableController::class,                'getFile'   ]);
 
 /******
