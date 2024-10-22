@@ -50,7 +50,8 @@ Route::get('/get_categories',       [ProductsCategoriesController::class,   'get
 /****************
  * PRODUCTS_PLANS
  ***************/
-Route::get('/get_product_plans',   [ProductsPlanController::class,          'getList'   ]);
+Route::get('/get_product_plans',    [ProductsPlanController::class,         'getList'   ]);
+Route::post('/add_product_plan',     [ProductsPlanController::class,         'addPlan'   ]);
 
 /****************
  * PRODUCTS_SLOTS

@@ -96,6 +96,7 @@ export default {
                             let prod = this.products.find((i) => i.product_id == el.product_id);
                             if (prod) {
                                 prod.order_amount = el.amount;
+                                console.log(prod);
                             }
                         })
                         resolve(true);
@@ -150,7 +151,8 @@ export default {
                         let line_id = ev.target.closest('.line').dataset.id;
                         this.active.line = this.lines.find(f => f.line_id == line_id);
                         let prod = this.products.find(i => i.product_id = ev.target.dataset.id);
-                        this.active.perfomance = prod.slots.find(n => n.line_id == line_id).perfomance;
+                        this.active.slot = prod.slots.find(n => n.line_id == line_id);
+                        this.active.perfomance = this.active.slot.perfomance
                         this.active.amount = prod.order_amount;
                         this.active.title = prod.title;
                         this.active.time = (this.active.perfomance / this.active.amount).toFixed(2);
@@ -209,6 +211,14 @@ export default {
             console.log(this.active);
         },
         addPlan() {
+            axios.post('/api/add_product_plan',
+                {
+                    started_at: this.active.started_at.format('HH:mm'),
+                    ended_at: this.active.ended_at.format('HH:mm'),
+                    slot_id: this.active.slot.product_slot_id
+                }
+            );
+            this.confirmPlanOpen = false;
             this.listenerSet = false;
             this.initFunc();
         }
