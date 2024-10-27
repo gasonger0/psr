@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Lines;
 use App\Models\Products_categories;
 use App\Models\ProductsDictionary;
+use App\Models\ProductsOrder;
 use App\Models\Slots;
 use App\Models\Workers;
 use Illuminate\Http\Request;
@@ -42,7 +43,6 @@ class TableController extends Controller
         }
 
         return 0;
-
     }
     public function loadOrder(Request $request)
     {
@@ -51,41 +51,56 @@ class TableController extends Controller
         }
 
         if ($xlsx = SimpleXLSX::parse($request->files->get('file')->getRealPath())) {
-            $res = [];
             $cats = Products_categories::get(['title', 'category_id'])->toArray();
-            $curCat = '';
+            $products = ProductsDictionary::get(['title', 'product_id', 'category_id'])->toArray();
+            foreach ($cats as &$cat) {
+                $cat['title'] = mb_strtoupper($cat['title']);
+            }
+            $curCat = null;
+            $unrecognized = [];
+            $amounts = [];
             $rows = $xlsx->rows(0);
-            foreach ($rows as $row) {
-                $catMap = array_map(function($el) use($row) {
-                    if (empty($row[1])) {
-                        return NULL;
+            foreach ($rows as $k => $row) {
+                $category_index = array_search(mb_strtoupper($row[1]), array_column($cats, 'title'));
+                if ($category_index !== false) {
+                    $curCat = $cats[$category_index];
+                    continue;
+                }
+                if ($curCat) {
+                    $product_index = array_search(
+                        $row[1],
+                        array_column($products,  'title')
+                        // array_filter($products,
+                        //     function ($i) use ($curCat) {
+                        //         if ($i['category_id'] == $curCat['category_id']) {
+                        //             return true;
+                        //         }
+                        //     }
+                        // )
+                    );
+                    if ($product_index !== false) {
+                        $amounts[] = [
+                            'product_id' => $products[$product_index]['product_id'],
+                            'amount'     => $row[3]
+                        ];
+                        continue;
                     }
-                    if (str_contains(strtoupper($row[1]), strtoupper($el['title']))) {
-                        return $el;
-                    }
-                }, $cats);
-                $catMap = array_filter($catMap, function($i) {return $i != NULL;});
-                if(!empty($catMap)){
-                    var_dump($row);
-                    var_dump($catMap);
-                } else if ($row[1] && !empty($row[3]) && intVal($row[3]) !== 0 && !strtotime($row[1])) {
-                    $res[] = [
-                        'title' => $row[1],
-                        'amount' => $row[3]
-                    ];
+                }
+                if ($curCat && !strtotime($row[1])) {
+                    $unrecognized[$k] = $row[1];
                 }
             }
-
-            $products = ProductsDictionary::get(['product_id', 'title'])->toArray();
-            
-            // foreach ($res as $prod) {
-            //     if ($item = array_search($prod['title'], array_column($products, 'title'))) {
-            //         var_dump($item);
-            //     }
-            // }
-            return json_encode($res);
+            foreach ($amounts as $amount) {
+                if ($val = $amount['amount']) {
+                    $am = ProductsOrder::where('product_id', '=', $amount['product_id'])->get();
+                    foreach ($am as $i) {
+                        $i->amount = $val;
+                        $i->save();
+                    }
+                }
+            }
+            return json_encode([$unrecognized, $amounts]);
         }
-        
     }
     private function processProducts()
     {
@@ -157,7 +172,8 @@ class TableController extends Controller
             }
         }
     }
-    public function getFile(Request $request) {
+    public function getFile(Request $request)
+    {
         $data  = $request->post();
 
         $lines = Lines::all();
@@ -169,24 +185,31 @@ class TableController extends Controller
             ['<b><i>Наряд за</i></b>', date('d.m.Y H.i.s', time()), '', '', '', '', '', ''],
             array_fill(0, 8, ''),
             [
-                'Список рабочих', 
-                'Отработано часов по плану', 
-                'Отработано часов по факту', 
-                'в т.ч. Простои', 
-                'Итого часов', 
-                'КТУ', 
-                'Итого часов с КТУ', 
+                'Список рабочих',
+                'Отработано часов по плану',
+                'Отработано часов по факту',
+                'в т.ч. Простои',
+                'Итого часов',
+                'КТУ',
+                'Итого часов с КТУ',
                 'Примечание'
-                ]
+            ]
         ];
-        foreach($lines as $line) {
-           if ($line['slots'] && count($line['slots']) > 0) {
+        foreach ($lines as $line) {
+            if ($line['slots'] && count($line['slots']) > 0) {
                 $columns[] = [
-                    '<style bgcolor="' . ($line['color'] ? $line['color'] : '#1677ff') .'">' . $line['title'] . '</style>',
-                    '','','','','','',''];
+                    '<style bgcolor="' . ($line['color'] ? $line['color'] : '#1677ff') . '">' . $line['title'] . '</style>',
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    ''
+                ];
                 $count = count($columns);
                 foreach ($line['slots'] as $slot) {
-                    $worker = Workers::find($slot['worker_id']); 
+                    $worker = Workers::find($slot['worker_id']);
                     $workTime = self::setFloat(self::getWorkTime($slot['started_at'], $slot['ended_at']));
                     $ktu = $data[array_search($slot['worker_id'], array_column($data, 'worker_id'))]['ktu'];
                     $columns[] = [
@@ -209,19 +232,19 @@ class TableController extends Controller
                     '',
                     '<style bgcolor="#FDE9D9">' . self::summarize(array_column($columns, 6), $count, $count1) . '<style bgcolor="#FDE9D9">',
                 ];
-           }
+            }
         }
         $columns[] = [''];
         $columns[] = ['КОМПАНИИ'];
 
         $companies = Workers::select('company')->distinct()->get();
-        foreach($companies as $company) {
+        foreach ($companies as $company) {
             $workers = array_column(
                 Workers::where('company', '=', $company->company)->get(['title'])->toArray(),
                 'title'
             );
 
-            $arr = array_filter($columns, function($el) use ($workers){
+            $arr = array_filter($columns, function ($el) use ($workers) {
                 if (array_search($el[0], $workers) !== false) {
                     return $el;
                 }
@@ -239,22 +262,25 @@ class TableController extends Controller
         }
 
 
-        $xlsx = SimpleXLSXGen::fromArray( $columns );
+        $xlsx = SimpleXLSXGen::fromArray($columns);
         $name = time() . '.xlsx';
         $xlsx->saveAs($name);
         return $name;
         return $xlsx->download();
     }
-    static private function getWorkTime($start, $end) {
+    static private function getWorkTime($start, $end)
+    {
         $start = new \DateTime($start);
         $end = new \DateTime($end);
         $diff = $start->diff($end);
         return $diff->h + ($diff->i / 60);
     }
-    static private function setFloat(float $num) {
+    static private function setFloat(float $num)
+    {
         return number_format((float) $num, 2, '.', '');
     }
-    static private function summarize(array $arr, int $start, int $end) {
+    static private function summarize(array $arr, int $start, int $end)
+    {
         if (count($arr) < $end) {
             return 0;
         }

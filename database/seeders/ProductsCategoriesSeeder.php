@@ -13,65 +13,65 @@ class ProductsCategoriesSeeder extends Seeder
     public function run(): void
     {  
         Products_categories::insert([
-            'title' => 'Зефир',
+            'title' => '1. Зефир',
         ]);
         Products_categories::insert([
-            'title' => 'Конфеты',
+            'title' => '2 Конфеты',
         ]);
         Products_categories::insert([
-            'title' => 'Зефир весовой',
+            'title' => '1.1 Зефир весовой',
             'parent' => 1
         ]);
         Products_categories::insert([
-            'title' => 'Зефир фасованный',
+            'title' => '1.2 Зефир фасованный',
             'parent' => 1
         ]);
         Products_categories::insert([
-            'title' => 'Конфеты весовые',
+            'title' => '2.1 Конфеты весовые',
             'parent' => 2
         ]);
         Products_categories::insert([
-            'title' => 'Зефир в шоколадной глазури вес',
+            'title' => '1.1.1 Зефир в шоколадной глазури вес',
             'parent' => 3
         ]);
         Products_categories::insert([
-            'title' => 'Зефир в йогуртовой глазури вес',
+            'title' => '1.1.2 Зефир в йогуртовой глазури вес',
             'parent' => 3
         ]);
         Products_categories::insert([
-            'title' => 'Зефир в сахарной пудре вес',
+            'title' => '1.1.3 Зефир в сахарной пудре вес',
             'parent' => 3
         ]);
         Products_categories::insert([
-            'title' => 'Зефир в шоколадной глазури вес',
+            'title' => '1.2.1 Зефир в шоколадной глазури фас',
             'parent' => 4
         ]);
         Products_categories::insert([
-            'title' => 'Зефир в йогуртовой глазури вес',
+            'title' => '1.2.2. Зефир в йогуртовой глаз, фас',
             'parent' => 4
         ]);
         Products_categories::insert([
-            'title' => 'Зефир в сахарной пудре вес',
+            'title' => '1.2.3 Зефир в сахарной пудре фасованный',
             'parent' => 4
         ]);
         Products_categories::insert([
-            'title' => 'Ника',
+            'title' => '1.2.9.2. Ника',
             'parent' => 4
         ]);
         Products_categories::insert([
-            'title' => 'Тверской кондитер',
+            'title' => '1.2.9.5.Тверской кондитер',
             'parent' => 4
         ]);
         Products_categories::insert([
-            'title' => 'Саше',
+            'title' => '2.1.1 Саше',
             'parent' => 5
         ]);
         Products_categories::insert([
-            'title' => 'Суфле весовое в завертке',
+            'title' => '2.1.2 Суфле весовое в завертке',
             'parent' => 5
         ]);
         Products_categories::insert([
-            'title' => 'Конфеты ликер.колл.',
+            'title' => '2.1.5 Конфеты ликер. колл.',
             'parent' => 5
         ]);
 

@@ -1,9 +1,10 @@
 <script setup>
-import { Card, Button, Divider, Modal, TimePicker } from 'ant-design-vue';
+import { Card, Button, Divider, Modal, TimePicker, Tooltip, Popconfirm } from 'ant-design-vue';
 import axios from 'axios';
 import { reactive, ref } from 'vue';
 import dayjs from 'dayjs';
 import Loading from './loading.vue';
+import { DeleteOutlined } from '@ant-design/icons-vue';
 </script>
 <script>
 export default {
@@ -22,7 +23,9 @@ export default {
             showList: ref(false),
             active: ref({}),
             showLoader: ref(false),
-            confirmPlanOpen: ref(false)
+            confirmPlanOpen: ref(false),
+            plans: reactive([]),
+            key: ref(1)
         }
     },
     methods: {
@@ -44,10 +47,9 @@ export default {
             return new Promise((resolve, reject) => {
                 axios.post('/api/get_product_slots')
                     .then((response) => {
-                        response.data.forEach(el => {
+                        this.productsSlots = response.data.forEach(el => {
                             let prod = this.products.find((i) => i.product_id == el.product_id);
                             if (prod) {
-                                console.log('prod');
                                 if (!prod.slots) {
                                     prod.slots = [];
                                 }
@@ -55,6 +57,9 @@ export default {
                                 if (f) {
                                     el.title = f.title;
                                 }
+                                let isActive = this.plans.find(i => i.slot_id == el.product_slot_id);
+                                console.log(el);
+                                el.isActive = isActive != null;
                                 prod.slots.push(el);
                             }
                         })
@@ -73,17 +78,14 @@ export default {
                             (String(curTime.getMinutes()).length == 1 ? '0' + String(curTime.getMinutes()) : String(curTime.getMinutes()))
                             + ':' +
                             (String(curTime.getSeconds()).length == 1 ? '0' + String(curTime.getSeconds()) : String(curTime.getSeconds()));
-                        console.log(response.data);
-                        response.data.forEach((el) => {
+                        this.plans = response.data;
+                        this.plans.forEach((el) => {
                             let prod = this.products.find((i) => i.product_id == el.product_id);
-                            if (prod) {
-                                prod.started_at = el.started_at;
-                                prod.ended_at = el.ended_at;
-                            }
-                            if (el.started_at < timeString && el.ended_at > timeString) {
-                                prod.current_line_id = el.line_id;
-                            }
-                        })
+                            el.title = prod.title;
+                            // if (el.started_at < timeString && el.ended_at > timeString) {
+                            //     prod.current_line_id = el.line_id;
+                            // }
+                        });
                         resolve(true);
                     })
             })
@@ -96,14 +98,12 @@ export default {
                             let prod = this.products.find((i) => i.product_id == el.product_id);
                             if (prod) {
                                 prod.order_amount = el.amount;
-                                console.log(prod);
                             }
                         })
                         resolve(true);
                     })
             })
         },
-        // addPlan(line_id, )
         getNextElement(cursorPosition, currentElement) {
             // Получаем объект с размерами и координатами
             const currentElementCoord = currentElement.getBoundingClientRect();
@@ -120,15 +120,12 @@ export default {
         initFunc() {
             // if (!this.listenerSet) {
             let draggable = this.document.querySelectorAll('.line_items.products');
-            console.log('draggable:');
-            console.log(draggable);
             draggable.forEach(line => {
                 line.addEventListener(`dragstart`, (ev) => {
                     ev.target.classList.add(`selected`);
 
                     this.document.querySelectorAll('.line').forEach(el => {
                         el.classList.add('hidden');
-                        console.log(el);
                     });
 
                     this.active.html = ev.target;
@@ -139,7 +136,6 @@ export default {
                             this.document.querySelector('.line[data-id="' + product.slots[i].line_id + '"]').classList.toggle('hidden');
                         }
                     }
-                    console.log(product)
                 })
 
                 line.addEventListener(`dragend`, (ev) => {
@@ -150,15 +146,17 @@ export default {
                         ev.target.classList.remove(`selected`);
                         let line_id = ev.target.closest('.line').dataset.id;
                         this.active.line = this.lines.find(f => f.line_id == line_id);
-                        let prod = this.products.find(i => i.product_id = ev.target.dataset.id);
+                        let prod = this.products.find(i => i.product_id == ev.target.dataset.id);
+                        console.log(prod);
+                        console.log(line_id);
+                        console.log(prod.slots);
                         this.active.slot = prod.slots.find(n => n.line_id == line_id);
                         this.active.perfomance = this.active.slot.perfomance
                         this.active.amount = prod.order_amount;
                         this.active.title = prod.title;
                         this.active.time = (this.active.perfomance / this.active.amount).toFixed(2);
                         this.active.ended_at = this.active.started_at.add(this.active.time, 'hour');
-                        console.log(this.active);
-                        console.log(prod);
+                        console.log(this.active.slot);
                         this.confirmPlanOpen = true;
                         // this.addPlan(ev.target.closest('.line').dataset.id, ev.target.dataset.id);
                         // this.changeLine(ev.target.closest('.line').dataset.id, ev.target.dataset.id);
@@ -204,11 +202,8 @@ export default {
             this.document.querySelector('.lines-container').scrollTo({ left: 0 });
         },
         changeTime(t, s) {
-            console.log(t);
-            console.log(s);
             this.active.started_at = t;
             this.active.ended_at = this.active.started_at.add(this.active.time, 'hour');
-            console.log(this.active);
         },
         addPlan() {
             axios.post('/api/add_product_plan',
@@ -217,10 +212,61 @@ export default {
                     ended_at: this.active.ended_at.format('HH:mm'),
                     slot_id: this.active.slot.product_slot_id
                 }
-            );
-            this.confirmPlanOpen = false;
-            this.listenerSet = false;
-            this.initFunc();
+            ).then(async () => {
+                this.confirmPlanOpen = false;
+                this.listenerSet = false;
+                this.showLoader = true;
+                this.key += 1;
+                await this.getProducts();
+                await this.getProductPlan();
+                await this.getProductSlots();
+                this.$forceUpdate();
+                this.initFunc();
+                this.showLoader = false;
+            });
+
+        },
+        deletePlan(id) {
+            console.log('ID: ' + id);
+            axios.post('/api/delete_product_plan',
+                {
+                    product_plan_id: id
+                }
+            ).then(async (response) => {
+                this.showLoader = true;
+                this.key += 1;
+                await this.getProducts();
+                await this.getProductPlan();
+                await this.getProductSlots();
+                this.listenerSet = false;
+                this.initFunc();
+                this.showLoader = false;
+            })
+        },
+        clearPlan() {
+            axios.delete('/api/clear_plan')
+                .then(() => {
+                    window.location.reload();
+                })
+        },
+        filterPlans(line_id) {
+            return this.plans.filter(el => el.line_id == line_id)
+                .sort((a, b) => {
+                    let i = a.started_at.split(':');
+                    let j = b.started_at.split(':');
+                    let k = new Date();
+                    let l = new Date();
+                    k.setHours(a[0], a[1], a[2]);
+                    l.setHours(b[0], b[1], b[2]);
+                    if (k == l) {
+                        return 0;
+                    }
+                    if (k < l) {
+                        return -1;
+                    } else {
+                        return 1;
+                    }
+                });
         }
     },
     async created() {
@@ -231,8 +277,6 @@ export default {
         await this.getProductSlots();
         await this.getOrders();
         this.showLoader = false;
-        console.log(this.lines);
-        console.log(this.products);
     },
     updated() {
         this.initFunc();
@@ -240,26 +284,31 @@ export default {
 }
 </script>
 <template>
-    <div style="height: fit-content; margin-left: 1vw;">
+    <div style="height: fit-content; margin-left: 1vw;display: flex; gap: 10px;" :key="key">
         <Button type="dashed" @click="() => showList = !showList">{{ !showList ? 'Показать список продукции' : 'Скрыть'
             }}</Button>
+        <Popconfirm title="Это действие удалит весь план продукции" okText="Да" cancelText="Отмена" @confirm="clearPlan">
+            <Button type="primary">Очистить план</Button>
+        </Popconfirm>
     </div>
-    <div class="lines-container">
+    <div class="lines-container" :key="key">
         <div class="line" :data-id="-1" v-show="showList">
             <Card :bordered="false" class="head" title="Продукция" :headStyle="{ 'background-color': 'white' }">
             </Card>
             <section class="line_items products">
-                <Card draggable="true" class="draggable-card" v-for="(v, k) in products" :data-id="v.product_id">
+                <Card draggable="true" class="draggable-card" v-for="(v, k) in products" :data-id="v.product_id"
+                    :key="v.product_id">
                     <template #title>
                         <span style="white-space: break-spaces;">{{ v.title }}</span>
                     </template>
                     <div class="hiding-data">
-                        <span>Нужно обеспечить: {{ v.order_amount }}</span>
+                        <span>Нужно обеспечить: <b>{{ v.order_amount }}</b></span>
                         <br>
                         <span>Этапы изготовления по линиям:</span>
                         <ol>
                             <li v-for="(i, j) in v.slots">
-                                {{ i.title }}
+                                <span :style="i.isActive ? 'background: #50bb50;padding: 5px; color: white;' : ''">{{
+                                    i.title }}</span>
                             </li>
                         </ol>
                     </div>
@@ -267,7 +316,8 @@ export default {
             </section>
         </div>
         <Divider type="vertical" v-show="showList" style="height: unset; width: 5px;" />
-        <div class="line" v-for="line in lines" :data-id="line.line_id" :class="line.done ? 'done-line' : ''">
+        <div class="line" v-for="line in lines" :data-id="line.line_id" :class="line.done ? 'done-line' : ''"
+            :key="line.line_id">
             <Card :bordered="false" class="head"
                 :headStyle="{ 'background-color': (line.color ? line.color : '#1677ff') }">
                 <template #title>
@@ -275,18 +325,23 @@ export default {
                         <b>{{ line.title }}</b>
                     </div>
                 </template>
-                <!-- <div class="line_sub-title">
-                </div> -->
+                <span>{{ line.started_at }} - {{ line.ended_at }}</span>
             </Card>
 
             <section class="line_items products">
-                <Card class="draggable-card" v-for="(v, k) in products.filter(el => el.current_line_id == line.line_id)"
-                    :data-id="v.product_plan_id" @focus="() => { v.showDelete = true }"
+                <Card class="draggable-card" v-for="(v, k) in filterPlans(line.line_id)" :data-id="v.plan_product_id"
+                    :key="v.plan_product_id" @focus="() => { v.showDelete = true }"
                     @mouseleave="() => { v.showDelete = false }">
                     <template #title>
-                        <span style="white-space: break-spaces;">{{ v.title }}</span>
+                        <div style="display:flex;align-items: center;justify-content: space-between;">
+                            <span>{{ v.started_at }} - {{ v.ended_at }}</span>
+                            <Tooltip title="УБрать из плана">
+                                <DeleteOutlined style="height:fit-content; color:#ff4d4f;"
+                                    @click="deletePlan(v.plan_product_id)" />
+                            </Tooltip>
+                        </div>
                     </template>
-                    <span>Время изготовления: {{ v.started_at }} - {{ v.ended_at }}</span>
+                    <span style="white-space: break-spaces;">{{ v.title }}</span>
                 </Card>
             </section>
         </div>
@@ -304,5 +359,5 @@ export default {
         <br>
         <span>Работа по данной продукции закончится в {{ active.ended_at.format('HH:mm') }}</span>
     </Modal>
-    <Loading :open="showLoader"/>
+    <Loading :open="showLoader" />
 </template>

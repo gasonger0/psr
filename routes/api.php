@@ -10,6 +10,7 @@ use App\Http\Controllers\ProductsSlotsController;
 use App\Http\Controllers\SlotsController;
 use App\Http\Controllers\TableController;
 use App\Http\Controllers\WorkersController;
+use App\Models\ProductsPlan;
 use Illuminate\Support\Facades\Route;
 
 /*******
@@ -51,7 +52,9 @@ Route::get('/get_categories',       [ProductsCategoriesController::class,   'get
  * PRODUCTS_PLANS
  ***************/
 Route::get('/get_product_plans',    [ProductsPlanController::class,         'getList'   ]);
-Route::post('/add_product_plan',     [ProductsPlanController::class,         'addPlan'   ]);
+Route::post('/add_product_plan',    [ProductsPlanController::class,         'addPlan'   ]);
+Route::post('/delete_product_plan', [ProductsPlanController::class,         'delPlan'   ]);
+Route::delete('/clear_plan',        [ProductsPlanController::class,         'clear'     ]);
 
 /****************
  * PRODUCTS_SLOTS

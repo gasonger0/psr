@@ -36,4 +36,5 @@ class ProductsDictionaryController extends Controller
             }
         }
     }
+    
 }

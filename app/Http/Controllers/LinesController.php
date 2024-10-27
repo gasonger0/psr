@@ -80,12 +80,15 @@ class LinesController extends Controller
                 // $total = $diff->i + $diff->h * 60;
                 $start = $line->started_at;
                 SlotsController::afterLineUpdate(
-                    $request->post('line_id'), 
-                    $request->post('started_at'), 
-                    $start, 
-                    $request->post('ended_at'), 
-                    $end);
-                ProductsController::afterLineUpdate($request->post('line_id'), $request->post('started_at'), $start, $request->post('ended_at'), $end);
+                    $request->post('line_id'),
+                    $request->post('started_at'),
+                    $start,
+                    $request->post('ended_at'),
+                    $end
+                );
+                // ProductsController::afterLineUpdate($request->post('line_id'), $request->post('started_at'), $start, $request->post('ended_at'), $end);
+                ProductsPlanController::afterLineUpdate($request->post('line_id'), $request->post('started_at'), $start, $request->post('ended_at'), $end);
+                
             }
             return json_encode([
                 "success" => true
@@ -109,7 +112,6 @@ class LinesController extends Controller
         }
     }
 
-    static function calcTimeShift($from, $to) {}
     static public function dropData()
     {
         return Lines::truncate();

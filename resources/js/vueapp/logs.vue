@@ -57,11 +57,11 @@ export default {
     <Modal v-model:open="$props.open" @cancel="close(false)"
         :closable="true" style="width:50vw;" :footer="false">
         <div class="table-container">
-                <div style="display: flex; gap: 10px;margin-bottom:10px;">
+                <!-- <div style="display: flex; gap: 10px;margin-bottom:10px;">
                     <Button>Простои</Button>
                     <Button>Отчёты</Button>
                     <Button>Загрузка остатков</Button>
-                </div>
+                </div> -->
 
             <Table :columns="columns" :dataSource="logs">
             </Table>

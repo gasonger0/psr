@@ -110,7 +110,7 @@ export default {
                 }
                 this.editing = false;
             } else {
-                this.$emit('close-modal');
+                this.$emit('close-modal', true);
             }
         },
         addProductFront() {

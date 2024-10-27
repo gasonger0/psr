@@ -18,7 +18,7 @@ export default {
             console.log(file);
             let fd = new FormData();
             fd.append('file', file);
-
+            
             this.$emit('notify', 'info', "Подождите, идёт обработка файла...");
 
             axios.post('/api/load_xlsx', fd).then((response) => {
@@ -63,13 +63,13 @@ export default {
         <div>
             <Switch checked-children="Продукция" un-checked-children="Работники" v-model:checked="boardMode"
                 @change="changeBoard" />
-            <Upload v-model:file-list="uploadedFile" name="file" :before-upload="(ev) => processXlsx(ev)">
+            <Upload v-model:file-list="uploadedFile" name="file" :before-upload="(ev) => processXlsx(ev)" :showUploadList=false>
                 <Button type="primary" style="background-color: green;">
                     <UploadOutlined />
                     Новый график
                 </Button>
             </Upload>
-            <Upload v-model:file-list="uploadedFile" name="file" :before-upload="(ev) => processOrder(ev)">
+            <Upload v-model:file-list="uploadedFile" name="file" :before-upload="(ev) => processOrder(ev)" :showUploadList="false">
                 <Button type="primary" style="background-color: green;">
                     <UploadOutlined />
                     Выгрузить остатки

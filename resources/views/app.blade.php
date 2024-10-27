@@ -5,11 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Производственная система</title>
     <link href="/favicoSokol.png" rel="icon">
-    <!-- <script type="module" src="/build/assets/app-PxP6cVaX.js"></script>
-    <link rel="stylesheet" href="/build/assets/app-CO47Jqwz.css">
+    <script type="module" src="/build/assets/app-Dib7NpK9.js"></script>
+    <link rel="stylesheet" href="/build/assets/app-DW6JkHJU.css">
     <link rel="stylesheet" href="/build/assets/app-w0NttVeA.css">
-    <link rel="manifest" href="/build/manifest.json"> -->
-    @vite(['resources/js/app.js', 'resources/css/app.css'])
+    <link rel="manifest" href="/build/manifest.json">
+    <!-- @vite(['resources/js/app.js', 'resources/css/app.css']) -->
 </head>
 <body>
     <div id="app"></div>

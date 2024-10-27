@@ -23,6 +23,7 @@ export default {
             openLogs: ref(false),
             openProductsDict: ref(false),
             openProductsPlan: ref(false),
+            prod: ref(1),
             boardKey: ref(1),
             statsRef: null,
             boardType: ref(true)
@@ -64,7 +65,11 @@ export default {
             this.openResult = false;
             this.openLogs = false;
             this.openProductsDict = false;
+            // if (ev) {
+            //     this.boardKey += 1;
+            // }
             if (ev) {
+                this.prodKey += 1;
                 this.boardKey += 1;
             }
         },
@@ -110,6 +115,7 @@ export default {
         @notify="notify"/>
     <ProductsPlan
         v-if="!boardType"
+        :key="prodKey"
         :data="data"
         @close-modal="closeModal"
         @notify="notify"/>

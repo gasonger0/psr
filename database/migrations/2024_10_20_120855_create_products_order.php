@@ -15,6 +15,8 @@ return new class extends Migration
             $table->id('order_id');
             $table->integer('product_id');
             $table->integer('amount');
+            $table->dateTime('created_at')->default(now());
+            $table->dateTime('updated_at')->default(now());
         });
     }
 
