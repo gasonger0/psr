@@ -1,5 +1,5 @@
 <script setup>
-import { Button, Divider, Empty, Input, InputNumber, Keyframes, List, ListItem, Modal, Select, SelectOption, Skeleton, Switch, Table, TableSummary, TableSummaryCell, TableSummaryRow, Tree } from 'ant-design-vue';
+import { Button, Divider, Empty, Input, InputNumber, Keyframes, List, ListItem, Modal, Select, SelectOption, Skeleton, Switch, Table, TableSummary, TableSummaryCell, TableSummaryRow, TabPane, Tabs, Tree } from 'ant-design-vue';
 import axios from 'axios';
 import { ref, reactive } from 'vue';
 
@@ -24,6 +24,11 @@ export default {
             loading: ref(false),
             activeProduct: ref(-1),
             activeCategory: ref(-1),
+            activeTab: ref('1'),
+            tabs: {
+                1: "Варка",
+                2: "Упаковка"
+            },
             columns: [{
                 title: 'Линия',
                 dataIndex: 'line_id',
@@ -90,6 +95,7 @@ export default {
                     .then((response) => {
                         if (response.data) {
                             this.slots = response.data;
+                            
                             this.loading = false;
                         }
                     })
@@ -127,14 +133,15 @@ export default {
                     this.$emit('notify', 'success', 'Продукция добавлена');
                 });
         },
-        addSlotFront() {
+        addSlotFront(k) {
             this.slots.push({
                 product_slot_id: -1,
                 product_id: this.activeProduct,
                 line_id: null,
                 people_count: 0,
                 perfomance: 0,
-                order: this.slots.length + 1
+                type_id: k,
+                order: this.slots.filter(el => {return el.type_id == k}).length + 1
             });
         },
         addProductSlot() {
@@ -166,7 +173,8 @@ export default {
             <div style="width:20%">
                 <List :data-source="products" v-if="products.length != 0">
                     <template #renderItem="{ item }">
-                        <ListItem @click="getProductSlots(item.product_id)" v-if="!editing" class="product_list-item" :class="activeProduct == item.product_id ? 'active' : ''">
+                        <ListItem @click="getProductSlots(item.product_id)" v-if="!editing" class="product_list-item"
+                            :class="activeProduct == item.product_id ? 'active' : ''">
                             <a href="#">{{ item.title }}</a>
                         </ListItem>
                         <ListItem v-else class="product_list-item">
@@ -180,46 +188,57 @@ export default {
                 <template v-else-if="loading">
                     <Skeleton active />
                 </template>
-                <Empty description="Нет данных" v-else style="max-width:100%;" />
+                <template v-else>
+                    <Empty description="Нет данных" style="max-width:100%;" />
+                    <Button @click="addProductFront" type="primary" style="width:100%" v-if="editing">+</Button>
+                </template>
             </div>
             <Divider type="vertical" style="height:unset;" />
             <div style="min-width: 60%;">
-                <Table :columns="columns" bordered :data-source="slots" :pagination="false" v-show=slots>
-                    <template #emptyText>
-                        <Empty description="Нет данных" style="max-width:100%;" />
-                    </template>
-                    <template #bodyCell="{ record, column, text }">
-                        <template v-if="loading">
-                            <Skeleton active />
-                        </template>
-                        <template v-else-if="editing">
-                            <template v-if="['people_count', 'perfomance'].find(el => el == column.dataIndex)">
-                                <InputNumber v-model:value="record[column.dataIndex]" /> {{ measures[column.dataIndex]
-                                }}
+                <Tabs v-model:activeKey="activeTab">
+                    <TabPane v-for="(v, k) in tabs" :key="k" :tab="v">
+                        <Table :columns="columns" bordered :data-source="slots.filter(el => { return el.type_id == k })"
+                            :pagination="false" v-show=slots>
+                            <template #emptyText>
+                                <Empty description="Нет данных" style="max-width:100%;" />
                             </template>
-                            <template v-else>
-                                <Select v-model:value="record[column.dataIndex]" style="width: 100%;">
-                                    <SelectOption v-for="i in $props.data.lines" :key="i.line_id" :value="i.line_id">
-                                        {{ i.title }}
-                                    </SelectOption>
-                                </Select>
+                            <template #bodyCell="{ record, column, text }">
+                                <template v-if="loading">
+                                    <Skeleton active />
+                                </template>
+                                <template v-else-if="editing">
+                                    <template v-if="['people_count', 'perfomance'].find(el => el == column.dataIndex)">
+                                        <InputNumber v-model:value="record[column.dataIndex]" /> {{
+                                            measures[column.dataIndex]
+                                        }}
+                                    </template>
+                                    <template v-else>
+                                        <Select v-model:value="record[column.dataIndex]" style="width: 100%;">
+                                            <SelectOption v-for="i in $props.data.lines" :key="i.line_id"
+                                                :value="i.line_id">
+                                                {{ i.title }}
+                                            </SelectOption>
+                                        </Select>
+                                    </template>
+                                </template>
+                                <template v-else-if="column.dataIndex == 'line_id'">
+                                    <span>{{ $props.data.lines.find(el => el.line_id == text).title }}</span>
+                                </template>
                             </template>
-                        </template>
-                        <template v-else-if="column.dataIndex == 'line_id'">
-                            <span>{{ $props.data.lines.find(el => el.line_id == text).title }}</span>
-                        </template>
-                    </template>
-                    <template #summary>
-                        <TableSummary v-if="editing">
-                            <TableSummaryRow>
-                                <TableSummaryCell :col-span="4" style="padding:0;">
-                                    <Button type="primary" @click="addSlotFront"
-                                        style="width: 100%;border-top-left-radius: 0; border-top-right-radius: 0;">+</Button>
-                                </TableSummaryCell>
-                            </TableSummaryRow>
-                        </TableSummary>
-                    </template>
-                </Table>
+                            <template #summary>
+                                <TableSummary v-if="editing">
+                                    <TableSummaryRow>
+                                        <TableSummaryCell :col-span="4" style="padding:0;">
+                                            <Button type="primary" @click="addSlotFront(k)"
+                                                style="width: 100%;border-top-left-radius: 0; border-top-right-radius: 0;">+</Button>
+                                        </TableSummaryCell>
+                                    </TableSummaryRow>
+                                </TableSummary>
+                            </template>
+                        </Table>
+                    </TabPane>
+                </Tabs>
+
             </div>
         </div>
         <template #footer>
