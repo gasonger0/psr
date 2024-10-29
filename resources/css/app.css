@@ -41,7 +41,8 @@ body {
 }
 
 .line {
-    flex: 1 0 255px;
+    flex: 1 0 270px;
+    max-width: 270px;
 }
 
 .line_items {
@@ -58,16 +59,12 @@ body {
 }
 
 .line_title {
-    /* background-color: bisque;
-    margin: 1% 0 3%; 
-    padding: 5%;
-    border-radius: 10px;
-    box-shadow: #967247 0px 0px 10px; */
     color: #fff;
     margin-top: 10px;
 }
 
 .line_title b {
+    white-space: break-spaces;
     font-weight: 600;
 }
 
@@ -135,6 +132,11 @@ body {
 
 .line.hidden {
     opacity: 0.1;
+}
+
+.line.hidden-hard {
+    opacity: 0;
+    width: 10px !important;
 }
 
 #popover {

@@ -237,7 +237,7 @@ export default {
                                 (String(curTime.getMinutes()).length == 1 ? '0' + String(curTime.getMinutes()) : String(curTime.getMinutes()))
                                 + ':' +
                                 (String(curTime.getSeconds()).length == 1 ? '0' + String(curTime.getSeconds()) : String(curTime.getSeconds()));
-                            if (timeString > el.ended_at) {
+                            if (timeString > el.ended_at || timeString < el.started_at) {
                                 el.done = true;
                             } else {
                                 el.done = false;

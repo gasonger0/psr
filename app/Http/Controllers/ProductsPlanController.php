@@ -29,6 +29,7 @@ class ProductsPlanController extends Controller
                 $plan->slot_id = $slot['product_slot_id'];
                 $plan->started_at = $post['started_at'];
                 $plan->ended_at = $post['ended_at'];
+                $plan->amount = $post['amount'];
                 $plan->save();
                 return true;
             } else {

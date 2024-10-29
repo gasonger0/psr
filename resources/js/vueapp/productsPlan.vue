@@ -1,5 +1,5 @@
 <script setup>
-import { Card, Button, Divider, Modal, TimePicker, Tooltip, Popconfirm } from 'ant-design-vue';
+import { Card, Button, Divider, Modal, TimePicker, Tooltip, Popconfirm, Switch, InputNumber } from 'ant-design-vue';
 import axios from 'axios';
 import { reactive, ref } from 'vue';
 import dayjs from 'dayjs';
@@ -25,7 +25,13 @@ export default {
             showLoader: ref(false),
             confirmPlanOpen: ref(false),
             plans: reactive([]),
-            key: ref(1)
+            key: ref(1),
+            stageSwitch: ref(false),
+            // active_slots: {},
+            stages: {
+                1: "Варка",
+                2: "Упаковка"
+            },
         }
     },
     methods: {
@@ -36,6 +42,10 @@ export default {
                         if (response.data) {
                             this.products = response.data.map(el => {
                                 el.isSelected = false;
+                                el.active_slots = {
+                                    1: false,
+                                    2: false
+                                };
                                 return el;
                             });
                             resolve(true);
@@ -51,18 +61,30 @@ export default {
                             let prod = this.products.find((i) => i.product_id == el.product_id);
                             if (prod) {
                                 if (!prod.slots) {
-                                    prod.slots = [];
+                                    prod.slots = {
+                                        1: [],
+                                        2: []
+                                    };
                                 }
                                 let f = this.lines.find((s) => s.line_id == el.line_id);
-                                if (f) {
-                                    el.title = f.title;
-                                }
+                                // if (f) {
+                                //     el.title = f.title;
+                                // }
                                 let isActive = this.plans.find(i => i.slot_id == el.product_slot_id);
-                                console.log(el);
                                 el.isActive = isActive != null;
-                                prod.slots.push(el);
+                                prod.slots[el.type_id].push(el);
                             }
-                        })
+                        });
+                        this.products.forEach(el => {
+                            if (el.slots) {
+                                if (el.slots[1].find(i => i.isActive == true)) {
+                                    el.active_slots[1] = true;
+                                }
+                                if (el.slots[2].find(i => i.isActive == true)) {
+                                    el.active_slots[2] = true;
+                                }
+                            }
+                        });
                         resolve(true);
                     });
             });
@@ -94,6 +116,7 @@ export default {
             return new Promise((resolve, reject) => {
                 axios.get('/api/get_product_orders')
                     .then((response) => {
+                        console.log(this.products);
                         response.data.forEach(el => {
                             let prod = this.products.find((i) => i.product_id == el.product_id);
                             if (prod) {
@@ -132,8 +155,15 @@ export default {
                     this.active.started_at = dayjs();
                     let product = this.products.find(el => el.product_id == ev.target.dataset.id);
                     if (product) {
-                        for (let i in product.slots) {
-                            this.document.querySelector('.line[data-id="' + product.slots[i].line_id + '"]').classList.toggle('hidden');
+                        if (product.active_slots[1]) {
+                            for (let i in product.slots[1]) {
+                                this.document.querySelector('.line[data-id="' + product.slots[1][i].line_id + '"]').classList.toggle('hidden');
+                            }
+                        }
+                        if (product.active_slots[2]) {
+                            for (let i in product.slots[2]) {
+                                this.document.querySelector('.line[data-id="' + product.slots[2][i].line_id + '"]').classList.toggle('hidden');
+                            }
                         }
                     }
                 })
@@ -150,11 +180,12 @@ export default {
                         console.log(prod);
                         console.log(line_id);
                         console.log(prod.slots);
-                        this.active.slot = prod.slots.find(n => n.line_id == line_id);
+                        this.active.slot = prod.slots[1].concat(prod.slots[2]).find(n => n.line_id == line_id);
                         this.active.perfomance = this.active.slot.perfomance
                         this.active.amount = prod.order_amount;
+                        this.active.order_amount = prod.order_amount
                         this.active.title = prod.title;
-                        this.active.time = (this.active.perfomance / this.active.amount).toFixed(2);
+                        this.active.time = (this.active.amount / this.active.perfomance).toFixed(2);
                         this.active.ended_at = this.active.started_at.add(this.active.time, 'hour');
                         console.log(this.active.slot);
                         this.confirmPlanOpen = true;
@@ -205,14 +236,31 @@ export default {
             this.active.started_at = t;
             this.active.ended_at = this.active.started_at.add(this.active.time, 'hour');
         },
-        addPlan() {
-            axios.post('/api/add_product_plan',
-                {
-                    started_at: this.active.started_at.format('HH:mm'),
-                    ended_at: this.active.ended_at.format('HH:mm'),
-                    slot_id: this.active.slot.product_slot_id
-                }
-            ).then(async () => {
+        changeAmount() {
+            this.active.time = (this.active.amount / this.active.perfomance).toFixed(2)
+        },
+        async addPlan(add) {
+            if (add) {
+                axios.post('/api/add_product_plan',
+                    {
+                        started_at: this.active.started_at.format('HH:mm'),
+                        ended_at: this.active.ended_at.format('HH:mm'),
+                        slot_id: this.active.slot.product_slot_id,
+                        amount: this.active.amount
+                    }
+                ).then(async () => {
+                    this.confirmPlanOpen = false;
+                    this.listenerSet = false;
+                    this.showLoader = true;
+                    this.key += 1;
+                    await this.getProducts();
+                    await this.getProductPlan();
+                    await this.getProductSlots();
+                    this.$forceUpdate();
+                    this.initFunc();
+                    this.showLoader = false;
+                });
+            } else {
                 this.confirmPlanOpen = false;
                 this.listenerSet = false;
                 this.showLoader = true;
@@ -223,8 +271,7 @@ export default {
                 this.$forceUpdate();
                 this.initFunc();
                 this.showLoader = false;
-            });
-
+            }
         },
         deletePlan(id) {
             console.log('ID: ' + id);
@@ -287,7 +334,8 @@ export default {
     <div style="height: fit-content; margin-left: 1vw;display: flex; gap: 10px;" :key="key">
         <Button type="dashed" @click="() => showList = !showList">{{ !showList ? 'Показать список продукции' : 'Скрыть'
             }}</Button>
-        <Popconfirm title="Это действие удалит весь план продукции" okText="Да" cancelText="Отмена" @confirm="clearPlan">
+        <Popconfirm title="Это действие удалит весь план продукции" okText="Да" cancelText="Отмена"
+            @confirm="clearPlan">
             <Button type="primary">Очистить план</Button>
         </Popconfirm>
     </div>
@@ -306,9 +354,11 @@ export default {
                         <br>
                         <span>Этапы изготовления по линиям:</span>
                         <ol>
-                            <li v-for="(i, j) in v.slots">
-                                <span :style="i.isActive ? 'background: #50bb50;padding: 5px; color: white;' : ''">{{
-                                    i.title }}</span>
+                            <li v-for="(i, j) in stages">
+                                <span
+                                    :style="v.active_slots[j] ? 'background: #50bb50;padding: 5px; color: white;' : ''">
+                                    {{ i }}
+                                </span>
                             </li>
                         </ol>
                     </div>
@@ -335,20 +385,25 @@ export default {
                     <template #title>
                         <div style="display:flex;align-items: center;justify-content: space-between;">
                             <span>{{ v.started_at }} - {{ v.ended_at }}</span>
-                            <Tooltip title="УБрать из плана">
+                            <Tooltip title="Убрать из плана">
                                 <DeleteOutlined style="height:fit-content; color:#ff4d4f;"
                                     @click="deletePlan(v.plan_product_id)" />
                             </Tooltip>
                         </div>
                     </template>
+                    <b style="margin-bottom: 10px;display: block;">Объём изготовления: {{ v.amount }}</b>
                     <span style="white-space: break-spaces;">{{ v.title }}</span>
                 </Card>
             </section>
         </div>
     </div>
-    <Modal v-model:open="confirmPlanOpen" @ok="addPlan" okText="Да" cancelText="Нет">
+    <Modal v-model:open="confirmPlanOpen" @ok="addPlan(true)" @cancel="addPlan(false)" okText="Да" cancelText="Нет">
         <span>Это действие поставит работу <b>{{ active.title }}</b> на линии <b>{{ active.line.title }}</b>.</span>
         <br>
+        <div style="display: flex;justify-content: space-between;margin: 14px 0px;">
+            <b style="font-size: 16px">Объём изготовления:</b>
+            <InputNumber v-model:value="active.amount" :max="active.order_amount" @change="changeAmount" />
+        </div>
         <div style="display: flex;justify-content: space-between;margin: 14px 0px;">
             <b style="font-size: 16px">Время начала:</b>
             <TimePicker v-model:value="active.started_at" @change="changeTime" format="HH:mm" />
