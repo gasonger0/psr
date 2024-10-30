@@ -70,17 +70,20 @@ class TableController extends Controller
                     $product_index = array_search(
                         $row[1],
                         array_column($products,  'title')
-                        // array_filter($products,
-                        //     function ($i) use ($curCat) {
-                        //         if ($i['category_id'] == $curCat['category_id']) {
-                        //             return true;
-                        //         }
-                        //     }
-                        // )
                     );
                     if ($product_index !== false) {
                         $amounts[] = [
                             'product_id' => $products[$product_index]['product_id'],
+                            'amount'     => $row[3]
+                        ];
+                        continue;
+                    } else if ($row[0] != null) {
+                        $prod = new ProductsDictionary();
+                        $prod->title = $row[1];
+                        $prod->category_id = $curCat['category_id'];
+                        $prod->save();
+                        $amounts[] = [
+                            'product_id' => $prod->product_id,
                             'amount'     => $row[3]
                         ];
                         continue;
@@ -93,15 +96,51 @@ class TableController extends Controller
             foreach ($amounts as $amount) {
                 if ($val = $amount['amount']) {
                     $am = ProductsOrder::where('product_id', '=', $amount['product_id'])->get();
-                    foreach ($am as $i) {
-                        $i->amount = $val;
-                        $i->save();
+                    if ($am->count() > 0) {
+                        foreach ($am as $i) {
+                            $i->amount = $val;
+                            $i->save();
+                        }
+                    } else {
+                        $order = new ProductsOrder();
+                        $order->product_id = $amount['product_id'];
+                        $order->amount = $val;
+                        $order->save();
                     }
                 }
             }
             return json_encode([$unrecognized, $amounts]);
         }
     }
+
+    public function loadDefaults(Request $request)
+    {
+        $xlsx = SimpleXLSX::parse($request->files->get('file')->getRealPath());
+        if ($xlsx) {
+            $cats = Products_categories::get(['title', 'category_id'])->toArray();
+            foreach ($cats as &$cat) {
+                $cat['title'] = mb_strtoupper($cat['title']);
+            }
+            $curCat = null;
+            $unrecognized = [];
+            $amounts = [];
+            foreach ($xlsx->rows(0) as $k => $row) {
+                $category_index = array_search(mb_strtoupper($row[1]), array_column($cats, 'title'));
+                if ($category_index !== false) {
+                    $curCat = $cats[$category_index];
+                    continue;
+                }
+                if ($curCat) {
+                    if ($row[1]) {
+                    }
+                }
+                if ($curCat && !strtotime($row[1])) {
+                    $unrecognized[$k] = $row[1];
+                }
+            }
+        }
+    }
+
     private function processProducts()
     {
         $currentLine = null;

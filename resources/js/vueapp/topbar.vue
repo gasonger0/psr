@@ -1,6 +1,6 @@
 <script setup>
 import { ref } from 'vue';
-import { Upload, Button, Switch } from 'ant-design-vue';
+import { Upload, Button, Switch, Dropdown, Menu, MenuItem } from 'ant-design-vue';
 import { BarChartOutlined, UploadOutlined, EditOutlined, TeamOutlined, AppstoreOutlined } from '@ant-design/icons-vue';
 import axios from 'axios';
 </script>
@@ -18,7 +18,7 @@ export default {
             console.log(file);
             let fd = new FormData();
             fd.append('file', file);
-            
+
             this.$emit('notify', 'info', "Подождите, идёт обработка файла...");
 
             axios.post('/api/load_xlsx', fd).then((response) => {
@@ -49,6 +49,22 @@ export default {
             });
             return false;
         },
+        processDefaults(file) {
+            let fd = new FormData();
+            fd.append('file', file);
+            this.$emit('notify', 'info', "Подождите, идёт обработка файла...");
+
+            axios.post('/api/load_defaults', fd).then((response) => {
+                if (response) {
+                    console.log(response);
+                    this.$emit('notify', 'success', "Файл успешно загружен. Обновите страницу, чтобы оперировать актуальными данными");
+                }
+            }).catch((err) => {
+                console.log(err);
+                this.$emit('notify', 'warning', err);
+            });
+            return false;
+        },
         changeBoard(prod) {
             console.log(prod);
             this.$emit('change-board');
@@ -63,18 +79,44 @@ export default {
         <div>
             <Switch checked-children="Продукция" un-checked-children="Работники" v-model:checked="boardMode"
                 @change="changeBoard" />
-            <Upload v-model:file-list="uploadedFile" name="file" :before-upload="(ev) => processXlsx(ev)" :showUploadList=false>
-                <Button type="primary" style="background-color: green;">
+
+            <Dropdown>
+                <Button style="background-color: green; color:white;">
                     <UploadOutlined />
-                    Новый график
+                    Загрузить
                 </Button>
-            </Upload>
-            <Upload v-model:file-list="uploadedFile" name="file" :before-upload="(ev) => processOrder(ev)" :showUploadList="false">
-                <Button type="primary" style="background-color: green;">
-                    <UploadOutlined />
-                    Выгрузить остатки
-                </Button>
-            </Upload>
+                <template #overlay>
+                    <Menu>
+                        <MenuItem>
+                        <Upload v-model:file-list="uploadedFile" name="file" :before-upload="(ev) => processXlsx(ev)"
+                            :showUploadList=false>
+                            <Button type="primary" style="background-color: green;">
+                                <UploadOutlined />
+                                Новый график
+                            </Button>
+                        </Upload>
+                        </MenuItem>
+                        <MenuItem>
+                            <Upload v-model:file-list="uploadedFile" name="file" :before-upload="(ev) => processOrder(ev)"
+                                :showUploadList="false">
+                                <Button type="primary" style="background-color: green;">
+                                    <UploadOutlined />
+                                    Анализ заказов
+                                </Button>
+                            </Upload>
+                        </MenuItem>
+                        <MenuItem>
+                            <Upload v-model:file-list="uploadedFile" name="file" :before-upload="(ev) => processDefaults(ev)"
+                                :showUploadList="false"> 
+                                <Button type="primary" style="background-color: green;">
+                                    <UploadOutlined />
+                                    Нормы планирования
+                                </Button>
+                            </Upload>
+                        </MenuItem>
+                    </Menu>
+                </template>
+            </Dropdown>
             <Button type="default" @click="$emit('showResult')">
                 <BarChartOutlined />
                 Отчёт

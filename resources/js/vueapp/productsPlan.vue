@@ -27,7 +27,7 @@ export default {
             plans: reactive([]),
             key: ref(1),
             stageSwitch: ref(false),
-            // active_slots: {},
+            nullOrders: ref(false),
             stages: {
                 1: "Варка",
                 2: "Упаковка"
@@ -46,6 +46,7 @@ export default {
                                     1: false,
                                     2: false
                                 };
+                                el.order_amount = 0;
                                 return el;
                             });
                             resolve(true);
@@ -122,7 +123,9 @@ export default {
                             if (prod) {
                                 prod.order_amount = el.amount;
                             }
-                        })
+                        });
+
+                        this.products = this.products.filter(el => el.order_amount > 0);
                         resolve(true);
                     })
             })
@@ -155,12 +158,14 @@ export default {
                     this.active.started_at = dayjs();
                     let product = this.products.find(el => el.product_id == ev.target.dataset.id);
                     if (product) {
-                        if (product.active_slots[1]) {
+                        console.log(product.slots);
+                        if (!product.active_slots[1] && product.slots[1]) {
                             for (let i in product.slots[1]) {
+                                console.log(i);
                                 this.document.querySelector('.line[data-id="' + product.slots[1][i].line_id + '"]').classList.toggle('hidden');
                             }
                         }
-                        if (product.active_slots[2]) {
+                        if (product.active_slots[1] && product.slots[2]) {
                             for (let i in product.slots[2]) {
                                 this.document.querySelector('.line[data-id="' + product.slots[2][i].line_id + '"]').classList.toggle('hidden');
                             }
@@ -233,11 +238,14 @@ export default {
             this.document.querySelector('.lines-container').scrollTo({ left: 0 });
         },
         changeTime(t, s) {
-            this.active.started_at = t;
+            if (t) {
+                this.active.started_at;
+            }
             this.active.ended_at = this.active.started_at.add(this.active.time, 'hour');
         },
         changeAmount() {
-            this.active.time = (this.active.amount / this.active.perfomance).toFixed(2)
+            this.active.time = (this.active.amount / this.active.perfomance).toFixed(2);
+            this.changeTime()
         },
         async addPlan(add) {
             if (add) {
@@ -256,6 +264,7 @@ export default {
                     await this.getProducts();
                     await this.getProductPlan();
                     await this.getProductSlots();
+                    await this.getOrders();
                     this.$forceUpdate();
                     this.initFunc();
                     this.showLoader = false;
@@ -268,6 +277,7 @@ export default {
                 await this.getProducts();
                 await this.getProductPlan();
                 await this.getProductSlots();
+                await this.getOrders();
                 this.$forceUpdate();
                 this.initFunc();
                 this.showLoader = false;
@@ -285,6 +295,7 @@ export default {
                 await this.getProducts();
                 await this.getProductPlan();
                 await this.getProductSlots();
+                await this.getOrders();
                 this.listenerSet = false;
                 this.initFunc();
                 this.showLoader = false;
@@ -341,7 +352,17 @@ export default {
     </div>
     <div class="lines-container" :key="key">
         <div class="line" :data-id="-1" v-show="showList">
-            <Card :bordered="false" class="head" title="Продукция" :headStyle="{ 'background-color': 'white' }">
+            <Card :bordered="false" class="head" :headStyle="{ 'background-color': 'white' }">
+                <template #title>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>Продукция</span>
+                        <!-- <Switch v-model:checked="nullOrders"
+                            checked-children="Не пустые"
+                            un-checked-children="Все"
+                            @change="filterOrders">
+                        </Switch> -->
+                    </div>
+                </template>
             </Card>
             <section class="line_items products">
                 <Card draggable="true" class="draggable-card" v-for="(v, k) in products" :data-id="v.product_id"
