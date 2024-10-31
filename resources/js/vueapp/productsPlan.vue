@@ -1,10 +1,10 @@
 <script setup>
-import { Card, Button, Divider, Modal, TimePicker, Tooltip, Popconfirm, Switch, InputNumber } from 'ant-design-vue';
+import { Card, Button, Divider, Modal, TimePicker, Tooltip, Popconfirm, Switch, InputNumber, Input, Upload } from 'ant-design-vue';
 import axios from 'axios';
 import { reactive, ref } from 'vue';
 import dayjs from 'dayjs';
 import Loading from './loading.vue';
-import { DeleteOutlined } from '@ant-design/icons-vue';
+import { CloudDownloadOutlined, CloudUploadOutlined, DeleteOutlined } from '@ant-design/icons-vue';
 </script>
 <script>
 export default {
@@ -28,6 +28,8 @@ export default {
             key: ref(1),
             stageSwitch: ref(false),
             nullOrders: ref(false),
+            exportFileName: ref(''),
+            file: ref([]),
             stages: {
                 1: "Варка",
                 2: "Упаковка"
@@ -45,6 +47,10 @@ export default {
                                 el.active_slots = {
                                     1: false,
                                     2: false
+                                };
+                                el.slots = {
+                                    1: [],
+                                    2: []
                                 };
                                 el.order_amount = 0;
                                 return el;
@@ -67,11 +73,11 @@ export default {
                                         2: []
                                     };
                                 }
-                                let f = this.lines.find((s) => s.line_id == el.line_id);
+                                // let f = this.lines.find((s) => s.line_id == el.line_id);
                                 // if (f) {
                                 //     el.title = f.title;
                                 // }
-                                let isActive = this.plans.find(i => i.slot_id == el.product_slot_id);
+                                let isActive = this.plans.find(i => i.line_id == el.line_id);
                                 el.isActive = isActive != null;
                                 prod.slots[el.type_id].push(el);
                             }
@@ -151,7 +157,7 @@ export default {
                     ev.target.classList.add(`selected`);
 
                     this.document.querySelectorAll('.line').forEach(el => {
-                        el.classList.add('hidden');
+                        el.classList.add('hidden-hard');
                     });
 
                     this.active.html = ev.target;
@@ -159,15 +165,16 @@ export default {
                     let product = this.products.find(el => el.product_id == ev.target.dataset.id);
                     if (product) {
                         console.log(product.slots);
+                        console.log(product.active_slots);
                         if (!product.active_slots[1] && product.slots[1]) {
                             for (let i in product.slots[1]) {
                                 console.log(i);
-                                this.document.querySelector('.line[data-id="' + product.slots[1][i].line_id + '"]').classList.toggle('hidden');
+                                this.document.querySelector('.line[data-id="' + product.slots[1][i].line_id + '"]').classList.toggle('hidden-hard');
                             }
                         }
                         if (product.active_slots[1] && product.slots[2]) {
                             for (let i in product.slots[2]) {
-                                this.document.querySelector('.line[data-id="' + product.slots[2][i].line_id + '"]').classList.toggle('hidden');
+                                this.document.querySelector('.line[data-id="' + product.slots[2][i].line_id + '"]').classList.toggle('hidden-hard');
                             }
                         }
                     }
@@ -175,7 +182,7 @@ export default {
 
                 line.addEventListener(`dragend`, (ev) => {
                     this.document.querySelectorAll('.line').forEach(el => {
-                        el.classList.remove('hidden');
+                        el.classList.remove('hidden-hard');
                     });
                     if (ev.target.classList.contains('selected') && ev.target == this.active.html) {
                         ev.target.classList.remove(`selected`);
@@ -325,6 +332,40 @@ export default {
                         return 1;
                     }
                 });
+        },
+        exportPlan() {
+            let jsonString = JSON.stringify(this.plans);
+            const blob = new Blob([jsonString], { type: 'application/json' });
+
+            // Trigger download
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${this.exportFileName}.json`;
+            a.click();
+
+            // Clean up
+            URL.revokeObjectURL(url);
+
+        },
+        importPlan(file) {
+            console.log(file);
+            let fd = new FormData();
+            fd.append('file', file);
+
+            this.$emit('notify', 'info', "Подождите, идёт обработка файла...");
+
+            axios.post('/api/load_plan_json', fd).then((response) => {
+                if (response) {
+                    console.log(response);
+                    this.$emit('notify', 'success', "Файл успешно загружен. Обновите страницу, чтобы оперировать актуальными данными");
+                }
+            }).catch((err) => {
+                console.log(err);
+                this.$emit('notify', 'warning', err);
+            })
+            console.log(file);
+            return false;
         }
     },
     async created() {
@@ -345,6 +386,17 @@ export default {
     <div style="height: fit-content; margin-left: 1vw;display: flex; gap: 10px;" :key="key">
         <Button type="dashed" @click="() => showList = !showList">{{ !showList ? 'Показать список продукции' : 'Скрыть'
             }}</Button>
+        <Popconfirm okText="ОК" cancelText="Отмена"
+            @confirm="exportPlan">
+            <template #title>
+                <Input v-model:value="exportFileName" placeholder="Наименование файла"/>
+            </template>
+            <Button type="default"><CloudDownloadOutlined />Экспорт плана</Button>
+        </Popconfirm>
+        <Upload v-model:file-list="file" :before-upload="(ev) => importPlan(ev)"
+            :showUploadList="false">
+            <Button type="default"><CloudUploadOutlined/>Импорт плана</Button>
+        </Upload>
         <Popconfirm title="Это действие удалит весь план продукции" okText="Да" cancelText="Отмена"
             @confirm="clearPlan">
             <Button type="primary">Очистить план</Button>
@@ -356,11 +408,6 @@ export default {
                 <template #title>
                     <div style="display: flex; justify-content: space-between;">
                         <span>Продукция</span>
-                        <!-- <Switch v-model:checked="nullOrders"
-                            checked-children="Не пустые"
-                            un-checked-children="Все"
-                            @change="filterOrders">
-                        </Switch> -->
                     </div>
                 </template>
             </Card>
@@ -374,11 +421,17 @@ export default {
                         <span>Нужно обеспечить: <b>{{ v.order_amount }}</b></span>
                         <br>
                         <span>Этапы изготовления по линиям:</span>
-                        <ol>
-                            <li v-for="(i, j) in stages">
+                        <ol v-if="(v.slots[1].length + v.slots[2].length) > 0">
+                            <li v-if="v.slots[1].length > 0">
                                 <span
-                                    :style="v.active_slots[j] ? 'background: #50bb50;padding: 5px; color: white;' : ''">
-                                    {{ i }}
+                                    :style="v.active_slots[1] ? 'background: #50bb50;padding: 5px; color: white;' : ''">
+                                    {{ stages[1] }}
+                                </span>
+                            </li>
+                            <li v-if="v.slots[2].length > 0">
+                                <span
+                                    :style="v.active_slots[2] ? 'background: #50bb50;padding: 5px; color: white;' : ''">
+                                    {{ stages[2] }}
                                 </span>
                             </li>
                         </ol>

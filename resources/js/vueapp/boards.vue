@@ -227,7 +227,10 @@ export default {
                             el.edit = false;
                             el.color = ref(el.color);
                             el.showDelete = ref(false);
-                            el.time = ref([dayjs(el.started_at, 'hh:mm:ss'), dayjs(el.ended_at, 'HH:mm:ss')]);
+                            el.time = ref([
+                                el.started_at ? dayjs(el.started_at, 'hh:mm:ss') : dayjs(), 
+                                el.ended_at   ? dayjs(el.ended_at, 'HH:mm:ss')   : dayjs()
+                            ]);
                             //el.time = ref(dayjs(el.started_at, 'hh:mm:ss'));
                             let curTime = new Date();
 
@@ -441,7 +444,6 @@ export default {
                     <div class="line_title" :data-id="line.line_id" v-show="!line.edit">
                         <b>{{ line.title }}</b>
                     </div>
-                    <span style="color: white; font-weight:401;">Смена: {{ line.shift }}</span>
                     <Input v-show="line.edit" :data-id="line.line_id" class="line_title" v-model:value="line.title"
                         style="display: block;color:black;" />
 

@@ -11,9 +11,7 @@ class LinesController extends Controller
 {
     static public function getList($columns = ['*'])
     {
-        return json_encode(DB::select(
-            'SELECT l.*, (SELECT shift FROM products p WHERE p.line_id = l.line_id LIMIT 1) AS shift FROM `lines` l;'
-        ));
+        return Lines::all()->toJson();
     }
 
     static public function add($title = null, $workers_count = null, $started_at = null, $ended_at = null, $color = null)

@@ -28,6 +28,7 @@ class ProductsSlotsController extends Controller
                 $s->people_count        = $slot['people_count'];
                 $s->perfomance          = $slot['perfomance'];
                 $s->order               = $slot['order'];
+                $s->type_id             = $slot['type_id'];
                 $s->save();
             } else {
                 $oldSlot = ProductsSlots::find($slot['product_slot_id']);

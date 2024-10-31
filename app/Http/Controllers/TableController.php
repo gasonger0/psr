@@ -6,6 +6,7 @@ use App\Models\Lines;
 use App\Models\Products_categories;
 use App\Models\ProductsDictionary;
 use App\Models\ProductsOrder;
+use App\Models\ProductsPlan;
 use App\Models\Slots;
 use App\Models\Workers;
 use Illuminate\Http\Request;
@@ -137,6 +138,26 @@ class TableController extends Controller
                 if ($curCat && !strtotime($row[1])) {
                     $unrecognized[$k] = $row[1];
                 }
+            }
+        }
+    }
+
+    public function loadPlan(Request $request)
+    {
+        $path = $request->files->get('file')->getRealPath();
+        $data = json_decode(file_get_contents($path), true);
+        if ($data) {
+            ProductsPlanController::clear();
+
+            foreach ($data as $item) {
+                $i = new ProductsPlan();
+                $i->product_id = $item['product_id'];
+                $i->line_id = $item['line_id'];
+                $i->slot_id = $item['slot_id'];
+                $i->started_at = $item['started_at'];
+                $i->ended_at = $item['ended_at'];
+                $i->amount = $item['amount'];
+                $i->save();
             }
         }
     }

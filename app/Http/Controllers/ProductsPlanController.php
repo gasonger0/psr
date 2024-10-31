@@ -44,9 +44,10 @@ class ProductsPlanController extends Controller
         return true;
     }
 
-    public function clear()
+    static public function clear()
     {
-        return ProductsPlan::truncate();
+        ProductsPlan::truncate();
+        return;
     }
 
     static public function afterLineUpdate($line_id, $newStart, $oldStart, $newEnd, $oldEnd)

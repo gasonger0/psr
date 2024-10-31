@@ -135,8 +135,7 @@ body {
 }
 
 .line.hidden-hard {
-    opacity: 0;
-    width: 10px !important;
+    display: none;
 }
 
 #popover {
