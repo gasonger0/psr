@@ -7,6 +7,7 @@ use App\Models\Products_categories;
 use App\Models\ProductsDictionary;
 use App\Models\ProductsOrder;
 use App\Models\ProductsPlan;
+use App\Models\ProductsSlots;
 use App\Models\Responsible;
 use App\Models\Slots;
 use App\Models\Workers;
@@ -119,40 +120,62 @@ class TableController extends Controller
     {
         $xlsx = SimpleXLSX::parse($request->files->get('file')->getRealPath());
         if ($xlsx) {
-            $f = null;
-            $arr = [];
-            foreach ($xlsx->rows(0) as $k => $i) {
-                if ($i[1] == 'Примечание') {
-                    break;
-                }
-                if ($i[1] != '') {
-                    $arr[$i[0]][] = $i;
-                    $f = $i[0];
-                } else if ($f != null) {
-                    $arr[$f][] = $i;
-                }
-            }
-            return json_encode($arr[1]);
-            $cats = Products_categories::get(['title', 'category_id'])->toArray();
-            foreach ($cats as &$cat) {
-                $cat['title'] = mb_strtoupper($cat['title']);
-            }
-            $curCat = null;
-            $unrecognized = [];
-            $amounts = [];
-            foreach ($xlsx->rows(0) as $k => $row) {
-                $category_index = array_search(mb_strtoupper($row[1]), array_column($cats, 'title'));
-                if ($category_index !== false) {
-                    $curCat = $cats[$category_index];
+            $categories = Products_categories::all(['category_id', 'title'])->toArray();
+
+            $categories = array_map(function($el){
+                $el['title'] = mb_strtoupper($el['title']);
+                return $el;
+            }, $categories);
+            // $products = ProductsDictionary::all(['product_id', 'title'])->toArray();
+            // ProductsDictionaryController::clear();
+            // ProductsSlotsController::clear();
+
+            $activeCategory = null;
+            $activeProduct = null;
+            foreach ($xlsx->rows() as $k => $row) {
+                if ($k < 13) {
                     continue;
                 }
-                if ($curCat) {
-                    if ($row[1]) {
+                if ($row[0] != '') {
+                    // Product
+                    $activeProduct = ProductsDictionary::insertGetId([
+                        'title' => $row[1],
+                        'category_id' => $activeCategory['category_id']
+                    ]);         
+                } else if ($row[1] != '') {
+                    // Cat
+                    $index = array_search(
+                        mb_strtoupper($row[1]),
+                        array_column($categories, 'title')
+                    );
+
+                    if ($index !== false) {
+                        $activeCategory = $categories[$index];
+                    } else {
+                        var_dump($row[1]);
                     }
+                    continue;
+                } 
+
+                // Slots
+                $line_id = Lines::where('title', '=', $row[4])
+                    ->first()->line_id ?? null;
+                $boil = ProductsSlots::where('product_id', '=', $activeProduct)
+                    ->where('line_id', '=', $line_id)
+                    ->first();
+                if (!$boil) {
+                    $boil = new ProductsSlots();
                 }
-                if ($curCat && !strtotime($row[1])) {
-                    $unrecognized[$k] = $row[1];
-                }
+                $boil->product_id = $activeProduct;
+                $boil->line_id = $line_id;
+                $boil->people_count = intval($row[7]) ?? 0;
+                $boil->perfomance = $row[5] ?? 0;
+                $boil->type_id = 1;
+                $boil->save();
+
+                $pack = array_slice($row, 15, 4 * 5);
+                $pack = array_chunk($pack, 4);
+                return;
             }
         }
     }

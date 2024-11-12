@@ -42,4 +42,8 @@ class ProductsSlotsController extends Controller
             }
         }
     }
+
+    static public function clear() {
+        ProductsSlots::truncate();
+    }
 }

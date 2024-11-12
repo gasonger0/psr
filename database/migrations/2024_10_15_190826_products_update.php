@@ -21,9 +21,9 @@ return new class extends Migration
             $table->id('product_slot_id')->primary()->autoIncrement();
             $table->integer('product_id');
             $table->integer('line_id');
-            $table->integer('people_count');
-            $table->float('perfomance');
-            $table->integer('order');
+            $table->integer('people_count')->nullable();
+            $table->float('perfomance')->nullable();
+            // $table->integer('order');
             $table->dateTime('updated_at')->default(now());
             $table->dateTime('created_at')->default(now());
         });

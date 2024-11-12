@@ -52,4 +52,9 @@ class ProductsDictionaryController extends Controller
             }
         }
     }
+
+    static public function clear() {
+        ProductsDictionary::truncate();
+        return 1;
+    }
 }

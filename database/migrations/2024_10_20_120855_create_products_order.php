@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('products_order', function (Blueprint $table) {
             $table->id('order_id');
             $table->integer('product_id');
-            $table->integer('amount');
+            $table->integer('amount')->nullable();
             $table->dateTime('created_at')->default(now());
             $table->dateTime('updated_at')->default(now());
         });
