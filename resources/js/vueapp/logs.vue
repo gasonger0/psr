@@ -11,27 +11,52 @@ export default {
             type: Boolean
         }
     },
-    data(){
+    data() {
         return {
             logs: ref([]),
             columns: [{
                 title: 'Дата и время',
-                dataIndex: 'created_at' 
+                dataIndex: 'created_at'
             }, {
                 title: 'Действие',
                 dataIndex: 'action'
             }, {
                 title: 'Дополнительно',
                 dataIndex: 'extra'
-            }] 
+            }, {
+                title: 'Человек на линии',
+                dataIndex: 'people_count'
+            }]
         }
     },
     methods: {
         close() {
             this.$emit('close-modal');
         },
+        loadLog() {
+            axios.get('/api/load_logs')
+                .then(response => {
+                    if (response.data) {
+                        let url = response.data;
+                        console.log(response);
+                        let a = document.createElement('a');
+                        if (typeof a.download === undefined) {
+                            window.location = url;
+                        } else {
+                            a.href = url;
+                            a.download = response.data;
+                            document.body.appendChild(a);
+                            a.click();
+                        }
+                    }
+                })
+                .catch((err) => {
+                    console.log(err);
+                    this.$emit('notify', 'error', "Что-то пошло не так: " + err.code);
+                });
+        }
     },
-    mounted(){
+    mounted() {
         axios.get('/api/get_logs')
             .then((response) => {
                 if (response.data) {
@@ -54,10 +79,10 @@ export default {
 }
 </script>
 <template>
-    <Modal v-model:open="$props.open" @cancel="close(false)"
-        :closable="true" style="width:50vw;" :footer="false">
+    <Modal v-model:open="$props.open" @cancel="close(false)" :closable="true" style="width:50vw;" :footer="false">
+        <Button type="primary" @click="loadLog">Выгрузить в xlsx</Button>
         <div class="table-container">
-                <!-- <div style="display: flex; gap: 10px;margin-bottom:10px;">
+            <!-- <div style="display: flex; gap: 10px;margin-bottom:10px;">
                     <Button>Простои</Button>
                     <Button>Отчёты</Button>
                     <Button>Загрузка остатков</Button>

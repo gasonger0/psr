@@ -22,6 +22,7 @@ export default {
             active: null,
             replacer: ref(null),
             contKey: 1,
+            responsible: [],
             showList: false,
             cancel_reasons: [
                 {
@@ -49,7 +50,14 @@ export default {
                     title: 'Иное',
                     value: 8
                 }
-            ]
+            ],
+            positions: {
+                1: 'Начальник смены',
+                2: 'Мастер смены',
+                3: 'Мастер варочного участка',
+                4: 'Инженер',
+                5: 'Наладчик'
+            }
         }
     },
     methods: {
@@ -64,6 +72,18 @@ export default {
                         this.$emit('notify', 'error', "Что-то пошло не так: " + err.code);
                         reject(err);
                     });
+            })
+        },
+        async getResponsible() {
+            return new Promise((resolve, reject) => {
+                axios.get('/api/get_responsible')
+                    .then(response => {
+                        this.responsible = response.data.map(el => {
+                            el.position = this.positions[el.position];
+                            return el;
+                        });
+                        resolve(true);
+                    })
             })
         },
         async processData() {
@@ -198,7 +218,8 @@ export default {
                     if (!f.down_from) {
                         axios.post('/api/add_log', {
                             action: 'Остановка линии ' + f.title,
-                            extra: 'Причина: ' + this.cancel_reasons[option - 1].title
+                            extra: 'Причина: ' + this.cancel_reasons[option - 1].title,
+                            people_count: f.workers_count
                         });
                     } else {
                         axios.post('/api/add_log', {
@@ -228,8 +249,8 @@ export default {
                             el.color = ref(el.color);
                             el.showDelete = ref(false);
                             el.time = ref([
-                                el.started_at ? dayjs(el.started_at, 'hh:mm:ss') : dayjs(), 
-                                el.ended_at   ? dayjs(el.ended_at, 'HH:mm:ss')   : dayjs()
+                                el.started_at ? dayjs(el.started_at, 'hh:mm:ss') : dayjs(),
+                                el.ended_at ? dayjs(el.ended_at, 'HH:mm:ss') : dayjs()
                             ]);
                             //el.time = ref(dayjs(el.started_at, 'hh:mm:ss'));
                             let curTime = new Date();
@@ -245,6 +266,31 @@ export default {
                             } else {
                                 el.done = false;
                             }
+
+                            let arr = [];
+                            if (el.master) {
+                                let f = this.responsible.find(i => i.responsible_id == el.master);
+                                if (f) {
+                                    let n = f.name.split(' ');
+                                    n = n[0] + ' ' + n[1][0] + '.';
+                                    arr.push(n + ', ' + f.position);
+                                }
+                            } else {
+                                delete el.master;
+                            }
+
+                            if (el.engineer) {
+                                let f = this.responsible.find(i => i.responsible_id == el.engineer);
+                                if (f) {
+                                    let n = f.name.split(' ');
+                                    n = n[0] + ' ' + n[1][0] + '.';
+                                    arr.push(n + ', ' + f.position);
+                                }
+                            } else {
+                                delete el.engineer;
+                            }
+
+                            el.responsibles = arr.join('\n');
                             return el;
                         })
                         resolve(true);
@@ -281,20 +327,54 @@ export default {
             fd.append('started_at', record.time[0].format('HH:mm:ss'));
             fd.append('ended_at', record.time[1].format('HH:mm:ss'));
             // }
-            fd.append('workers_count', record.workers_count);
+            if (record.workers_count) {
+                fd.append('workers_count', record.workers_count);
+            }
             fd.append('color', record.color);
             fd.append('title', record.title);
+            if (record.master != null) {
+                fd.append('master', record.master);
+            }
+            if (record.engineer != null) {
+                fd.append('engineer', record.engineer);
+            }
             if (record.cancel_reason != null) {
                 fd.append('cancel_reason', record.cancel_reason);
             }
 
-            console.log(fd);
             axios.post('/api/save_line', fd)
                 .then((response) => {
-                    console.log(response);
+                    this.$emit('notify', 'success', 'Сохранено');
+                    let i = this.lines.find(el => el.line_id == record['line_id']);
+                    i.started_at = dayjs(record.time[0].format('HH:mm:ss'));
+                    i.ended_at = dayjs(record.time[1].format('HH:mm:ss'));
+                    let arr = [];
+                    if (i.master) {
+                        let f = this.responsible.find(m => m.responsible_id == i.master);
+                        if (f) {
+                            let n = f.name.split(' ');
+                            n = n[0] + ' ' + n[1][0] + '.';
+                            arr.push(n + ', ' + f.position);
+                        }
+                    } else {
+                        delete i.master;
+                    }
+
+                    if (i.engineer) {
+                        let f = this.responsible.find(m => m.responsible_id == i.engineer);
+                        if (f) {
+                            let n = f.name.split(' ');
+                            n = n[0] + ' ' + n[1][0] + '.';
+                            arr.push(n + ', ' + f.position);
+                        }
+                    } else {
+                        delete i.engineer;
+                    }
+
+                    i.responsibles = arr.join('\n');
                 })
                 .catch((err) => {
-                    console.log(err);
+                    this.$emit('notify', 'error', 'Что-то пошло не так...');
                 })
         },
         changeLine(line_id, worker_id) {
@@ -395,6 +475,7 @@ export default {
         }
     },
     async created() {
+        await this.getResponsible();
         await this.getLines();
         await this.getSlots();
         await this.getWorkers();
@@ -423,8 +504,7 @@ export default {
             <section class="line_items">
                 <Card :title="v.title" draggable="true" class="draggable-card"
                     v-for="(v, k) in workers.filter(el => el.current_line_id == null)"
-                    :style="v.on_break ? 'opacity: 0.6' : ''" :data-id="v.worker_id"
-                    :key="v.worker_id"
+                    :style="v.on_break ? 'opacity: 0.6' : ''" :data-id="v.worker_id" :key="v.worker_id"
                     @focus="() => { v.showDelete = true }" @mouseleave="() => { v.showDelete = false }">
                     <template #extra>
                         <span style="color: #1677ff;text-decoration: underline;">
@@ -507,6 +587,17 @@ export default {
                                 {{ i.title }}
                             </SelectOption>
                         </Select>
+                        <span>Ответственные:</span>
+                        <Select v-model:value="line.master" style="width:100%;">
+                            <SelectOption v-for="i in responsible" v-model:value="i.responsible_id">
+                                {{ i.name }}
+                            </SelectOption>
+                        </Select>
+                        <Select v-model:value="line.engineer" style="width:100%;margin-top:10px;">
+                            <SelectOption v-for="i in responsible" v-model:value="i.responsible_id">
+                                {{ i.name }}
+                            </SelectOption>
+                        </Select>
                     </div>
                 </template>
                 <template v-else>
@@ -516,14 +607,15 @@ export default {
                             }}</span>
                         <br>
                         <span>Всего работников на линии: {{ line.count_current ? line.count_current : '0' }}</span>
+                        <br>
+                        <span v-show="line.responsibles">Ответственные: <br />{{ line.responsibles }}</span>
                     </div>
                 </template>
             </Card>
             <section class="line_items">
                 <Card :title="v.title" draggable="true" class="draggable-card"
-                    v-for="(v, k) in workers.filter(el => el.current_line_id == line.line_id)"
-                    :key="v.worker_id"
-                    :style="v.on_break ? 'opacity: 0.6' : ''" :data-id="v.worker_id" 
+                    v-for="(v, k) in workers.filter(el => el.current_line_id == line.line_id)" :key="v.worker_id"
+                    :style="v.on_break ? 'opacity: 0.6' : ''" :data-id="v.worker_id"
                     @focus="() => { v.showDelete = true }" @mouseleave="() => { v.showDelete = false }">
                     <template #extra>
                         <span style="color: #1677ff;text-decoration: underline;">

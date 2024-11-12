@@ -5,12 +5,16 @@ namespace App\Http\Controllers;
 use App\Models\ProductsPlan;
 use App\Models\ProductsSlots;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class ProductsPlanController extends Controller
 {
-    public function getList(Request $request)
+    static public function getList(Request $request)
     {
         if (!($id = $request->post('product_id'))) {
+            return ProductsPlan::join('products_dictionary', 'products_plan.product_id', '=', 'products_dictionary.product_id')
+                ->select('products_plan.*', DB::raw('products_dictionary.title as title'))
+                ->get()->toJson();
             return ProductsPlan::all()->toJson();
         } else {
             return ProductsPlan::where('product_id', '=', $id)->get()->toJson();

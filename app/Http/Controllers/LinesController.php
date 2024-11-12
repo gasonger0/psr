@@ -14,7 +14,7 @@ class LinesController extends Controller
         return Lines::all()->toJson();
     }
 
-    static public function add($title = null, $workers_count = null, $started_at = null, $ended_at = null, $color = null)
+    static public function add($title = null, $workers_count = null, $started_at = null, $ended_at = null, $color = null, $master=null, $engineer=null)
     {
         if (empty($title))
             return;
@@ -26,6 +26,8 @@ class LinesController extends Controller
         $line->started_at = $started_at;
         $line->ended_at = $ended_at;
         $line->color = $color;
+        $line->master = $master;
+        $line->engineer = $engineer;
 
         $line->save();
         return $line->line_id;
@@ -39,7 +41,9 @@ class LinesController extends Controller
                 $request->post('workers_count'),
                 $request->post('started_at'),
                 $request->post('ended_at'),
-                $request->post('color')
+                $request->post('color'),
+                $request->post('master'),
+                $request->post('engineer')
             );
             if ($id) {
                 return json_encode([
@@ -70,6 +74,8 @@ class LinesController extends Controller
             }
             // $line->ended_at = strval($request->post('ended_at'));
             $line->color = $request->post('color');
+            $line->master = $request->post('master');
+            $line->engineer = $request->post('engineer');
 
             $line->save();
             // $line->shiftEnd($diff->i + $diff->h * 60);

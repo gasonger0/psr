@@ -37,13 +37,19 @@ export default {
                 title: 'Количество струдников',
                 dataIndex: 'people_count'
             }, {
-                title: 'Единиц в час',
+                title: 'Ящиков в час',
                 dataIndex: 'perfomance'
             }],
             measures: {
                 people_count: ' человек',
                 perfomance: ' кг/ч'
-            }
+            },
+            specColumns: [
+                { title: 'Штук в Ящике:', dataIndex: 'amount2parts' },
+                { title: 'Штуки в Кг: Шт *', dataIndex: 'parts2kg' },
+                { title: 'Кг в Варки: Кг *', dataIndex: 'kg2boil' },
+                { title: 'Тачки: Кг*', dataIndex: 'cars' }
+            ]
         }
     },
     methods: {
@@ -88,14 +94,14 @@ export default {
                 this.addProducts();
             }
             this.loading = true;
-            this.activeProduct = product_id;
+            this.activeProduct = this.products.find(el => el.product_id == product_id);
             this.slots = reactive([{}]);
             setTimeout(() => {
                 axios.post('/api/get_product_slots', 'product_id=' + product_id)
                     .then((response) => {
                         if (response.data) {
                             this.slots = response.data;
-                            
+
                             this.loading = false;
                         }
                     })
@@ -107,12 +113,13 @@ export default {
         },
         exit(save) {
             if (save) {
-                if (this.products.find(el => el.product_id == -1)) {
+                if (this.products.find(el => el.product_id == this.activeProduct.product_id)) {
                     this.addProducts();
+                    this.addProductSlot();
                     this.getProducts(this.activeCategory);
                 } else {
                     this.addProductSlot();
-                    this.getProductSlots(this.activeProduct);
+                    this.getProductSlots(this.activeProduct.product_id);
                 }
                 this.editing = false;
             } else {
@@ -128,6 +135,11 @@ export default {
             this.slots = false;
         },
         addProducts() {
+            let index = this.products.find(el => el.product_id == this.activeProduct.product_id);
+            if (index) {
+                this.products[index] = this.activeProduct;
+            }
+            console.log(index);
             axios.post('/api/add_products', this.products)
                 .then(response => {
                     this.$emit('notify', 'success', 'Продукция добавлена');
@@ -136,12 +148,12 @@ export default {
         addSlotFront(k) {
             this.slots.push({
                 product_slot_id: -1,
-                product_id: this.activeProduct,
+                product_id: this.activeProduct.product_id,
                 line_id: null,
                 people_count: 0,
                 perfomance: 0,
                 type_id: k,
-                order: this.slots.filter(el => {return el.type_id == k}).length + 1
+                order: this.slots.filter(el => { return el.type_id == k }).length + 1
             });
         },
         addProductSlot() {
@@ -174,7 +186,7 @@ export default {
                 <List :data-source="products" v-if="products.length != 0">
                     <template #renderItem="{ item }">
                         <ListItem @click="getProductSlots(item.product_id)" v-if="!editing" class="product_list-item"
-                            :class="activeProduct == item.product_id ? 'active' : ''">
+                            :class="activeProduct.product_id == item.product_id ? 'active' : ''">
                             <a href="#">{{ item.title }}</a>
                         </ListItem>
                         <ListItem v-else class="product_list-item">
@@ -236,6 +248,15 @@ export default {
                                 </TableSummary>
                             </template>
                         </Table>
+                    </TabPane>
+                    <TabPane :key="3" tab="Служебная информация">
+                        <div style="display:flex; flex-direction: column; gap: 10px;">
+                            <div v-for="(v) in specColumns" style="display: flex;">
+                                <span style="width:20%;">{{ v.title }}</span>
+                                <Input v-if="editing" v-model:value="activeProduct[v.dataIndex]" style="max-width:300px;"/>
+                                <span v-else>{{ activeProduct[v.dataIndex] }}</span>
+                            </div>
+                        </div>
                     </TabPane>
                 </Tabs>
 

@@ -27,6 +27,10 @@ class ProductsCategoriesController extends Controller
         return json_encode($tree);
     }
 
+    static public function getList() {
+        return Products_categories::all()->toArray();
+    }
+
     private function fillTree($data = [], $branches = []) {
         $tree = [];
         foreach ($branches as $branch) {

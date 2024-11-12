@@ -7,6 +7,7 @@ use App\Models\Products_categories;
 use App\Models\ProductsDictionary;
 use App\Models\ProductsOrder;
 use App\Models\ProductsPlan;
+use App\Models\Responsible;
 use App\Models\Slots;
 use App\Models\Workers;
 use Illuminate\Http\Request;
@@ -118,6 +119,20 @@ class TableController extends Controller
     {
         $xlsx = SimpleXLSX::parse($request->files->get('file')->getRealPath());
         if ($xlsx) {
+            $f = null;
+            $arr = [];
+            foreach ($xlsx->rows(0) as $k => $i) {
+                if ($i[1] == 'Примечание') {
+                    break;
+                }
+                if ($i[1] != '') {
+                    $arr[$i[0]][] = $i;
+                    $f = $i[0];
+                } else if ($f != null) {
+                    $arr[$f][] = $i;
+                }
+            }
+            return json_encode($arr[1]);
             $cats = Products_categories::get(['title', 'category_id'])->toArray();
             foreach ($cats as &$cat) {
                 $cat['title'] = mb_strtoupper($cat['title']);
@@ -142,14 +157,166 @@ class TableController extends Controller
         }
     }
 
+    public function loadFormulas(Request $request)
+    {
+        $xlsx = SimpleXLSX::parse($request->files->get('file')->getRealPath());
+        $arr = [];
+        $dataIndexes = [
+            1 => 'title',
+            3 => 'crates to parts',
+            4 => 'parts to kg',
+            5 => 'kg to vark',
+            6 => 'TG',
+            8 => '.tg'
+        ];
+
+        $fieldsTitles = [
+            1 => 'title',
+            2 => 'amount',
+            3 => 'parts',
+            4 => 'kg',
+            5 => 'boiling',
+            6 => 'cars'
+        ];
+
+        foreach ($xlsx->rowsEx() as $k => $row) {
+            $formulas =
+                array_filter(
+                    array_map(function ($m) {
+                        return isset($m['f']) ? $m['f'] : $m['value'];
+                    }, array_slice($row, 0, 9)),
+                    function ($i) {
+                        return $i != null;
+                    }
+                );
+            if (count($formulas) > 0) {
+                foreach ($formulas as $i => $j) {
+                    $letter = chr(97 + $i);
+                }
+            }
+            $arr[$k] = $formulas;
+        }
+
+        return $arr;
+    }
+
+    public function dowloadForPrint()
+    {
+        $plans = json_decode(ProductsPlanController::getList(new Request()), true);
+
+        $linesFromPlans = array_unique(array_map(function ($el) {
+            return $el['line_id'];
+        }, $plans));
+        $productsFromLines = array_unique(array_map(function ($el) {
+            return $el['product_id'];
+        }, $plans));
+
+        $r = json_decode(ResponsibleController::getList(), true);
+        $responsibles = [];
+        foreach ($r as $f) {
+            $responsibles[$f['responsible_id']] = $f['name'];
+        }
+
+        $lines = Lines::whereIn('line_id', $linesFromPlans)->get(['line_id', 'title', 'started_at', 'ended_at', 'master', 'engineer'])->toArray();
+        $products = ProductsDictionary::whereIn('product_id', $productsFromLines)->get(['product_id', 'title', 'amount2parts', 'parts2kg', 'kg2boil', 'cars'])->toArray();
+
+        $array = [[
+            '№',
+            'Наименование',
+            'Плановое кол-во корпуса',
+            '',
+            '',
+            '',
+            '',
+            '',
+            '',
+            'План',
+            ''
+        ], [
+            '',
+            '',
+            'ящ',
+            'шт',
+            'кг',
+            'варка',
+            'телеги',
+            '',
+            '',
+            '',
+            '',
+            'кол-во людей',
+            'начало',
+            'окончание'
+        ]];
+
+        foreach ($lines as &$line) {
+            $linePlans = array_filter($plans, function ($el) use ($line) {
+                return $el['line_id'] == $line['line_id'];
+            });
+
+            $linePlans = array_map(function ($el) use ($products) {
+                $title = array_search(
+                    $el['product_id'],
+                    array_column($products, 'product_id')
+                );
+
+                if ($title !== false) {
+                    $el['title'] = $products[$title]['title'];
+                    $el['amount2parts'] = $products[$title]['amount2parts'];
+                    $el['parts2kg'] = $products[$title]['parts2kg'];
+                    $el['kg2boil'] = $products[$title]['kg2boil'];
+                    $el['cars'] = $products[$title]['cars'];
+                }
+
+                return $el;
+            }, $linePlans);
+
+            $line['items'] = $linePlans;
+
+            $line['master'] = $line['master'] ? $responsibles[$line['master']] : '';
+            $line['engineer'] = $line['engineer'] ? $responsibles[$line['engineer']] : '';
+
+            $array[] = ['', 'Ответственные:' . $line['master'] . ',' . $line['engineer']];
+            $array[] = ['', $line['title']];
+
+            var_dump($line);
+            foreach ($line['items'] as $product) {
+                if (!isset($product['amount2parts'])) {
+                    continue;
+                }
+                $crates = floatval($product['amount']);
+                $parts = eval('return ' . $crates . '*' . floatval($product['amount2parts']) . ';');
+                $kg = eval('return ' . $parts . '*' . floatval($product['parts2kg']) . ';');
+                $boils = eval('return ' . $kg . '*' . floatval($product['kg2boil']) . ';');
+                $cars = eval('return ' . $boils . '*' . floatval($product['cars']) . ';');
+                $array[] = [
+                    '',
+                    $product['title'],
+                    $crates,
+                    $parts,
+                    $kg,
+                    $boils,
+                    ceil($cars)
+                ];
+                $array[] = [];
+            }
+        }
+
+
+        $xlsx = SimpleXLSXGen::fromArray($array);
+        $name = 'План_' . date('d_m_Y-H:i:s', time()) . '.xlsx';
+        $xlsx->saveAs($name);
+        return $name;
+    }
+
     public function loadPlan(Request $request)
     {
         $path = $request->files->get('file')->getRealPath();
         $data = json_decode(file_get_contents($path), true);
-        if ($data) {
+        if ($data['plans']) {
             ProductsPlanController::clear();
 
-            foreach ($data as $item) {
+            foreach ($data['plans'] as $item) {
                 $i = new ProductsPlan();
                 $i->product_id = $item['product_id'];
                 $i->line_id = $item['line_id'];
@@ -158,6 +325,20 @@ class TableController extends Controller
                 $i->ended_at = $item['ended_at'];
                 $i->amount = $item['amount'];
                 $i->save();
+            }
+        }
+        if ($data['lines']) {
+            foreach ($data['lines'] as $item) {
+                $i = Lines::find($item['line_id']);
+                if ($i) {
+                    $i->master = $item['master'];
+                    $i->started_at = $item['started_at'];
+                    $i->ended_at = $item['ended_at'];
+                    $i->color = $item['color'];
+                    $i->type_id = $item['type_id'];
+                    $i->engineer = $item['engineer'];
+                    $i->save();
+                }
             }
         }
     }
@@ -267,9 +448,13 @@ class TableController extends Controller
                     '',
                     ''
                 ];
+
                 $count = count($columns);
                 foreach ($line['slots'] as $slot) {
                     $worker = Workers::find($slot['worker_id']);
+                    /**
+                     * Обработать все слоты, на которых работал человек, а не каждый отдельно
+                     */
                     $workTime = self::setFloat(self::getWorkTime($slot['started_at'], $slot['ended_at']));
                     $ktu = $data[array_search($slot['worker_id'], array_column($data, 'worker_id'))]['ktu'];
                     $columns[] = [
@@ -323,10 +508,10 @@ class TableController extends Controller
 
 
         $xlsx = SimpleXLSXGen::fromArray($columns);
-        $name = time() . '.xlsx';
+        $name = 'Отчёт_' . date('d_m_Y-H:i:s', time()) . '.xlsx';
         $xlsx->saveAs($name);
         return $name;
-        return $xlsx->download();
+        // return $xlsx->download();
     }
     static private function getWorkTime($start, $end)
     {

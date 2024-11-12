@@ -7,6 +7,7 @@ use App\Http\Controllers\ProductsDictionaryController;
 use App\Http\Controllers\ProductsOrderController;
 use App\Http\Controllers\ProductsPlanController;
 use App\Http\Controllers\ProductsSlotsController;
+use App\Http\Controllers\ResponsibleController;
 use App\Http\Controllers\SlotsController;
 use App\Http\Controllers\TableController;
 use App\Http\Controllers\WorkersController;
@@ -67,6 +68,11 @@ Route::post('add_product_slots',    [ProductsSlotsController::class,        'add
  ****************/
 Route::get('/get_product_orders',   [ProductsOrderController::class,        'getList'   ]);
 
+/*************
+ * RESPONSIBLE
+ ************/
+Route::get('/get_responsible',      [ResponsibleController::class,          'getList'   ]);
+
 /******
  * XLSX
  *****/
@@ -76,9 +82,12 @@ Route::post('/load_order',          [TableController::class,                'loa
 Route::post('/load_defaults',       [TableController::class,                'loadDefaults']);
 Route::post('/get_xlsx',            [TableController::class,                'getFile'   ]);
 Route::post('load_plan_json',       [TableController::class,                'loadPlan'  ]);
+Route::get('/download_plan',        [TableController::class,                'dowloadForPrint']);
+Route::post('/load_formulas',       [TableController::class,                'loadFormulas']);
 
 /******
  * LOGS
  *****/
 Route::get('/get_logs',             [LogsController::class,                 'getAll'    ]);
 Route::post('/add_log',             [LogsController::class,                 'add'       ]);
+Route::get('/load_logs',            [LogsController::class,                 'logXlsx'   ]);

@@ -26,7 +26,6 @@ class Lines extends Model
     {
         $c1 = Carbon::instance(new \DateTime($this->down_time, new \DateTimeZone('Europe/Moscow')));
         $c1->addMinutes($minutes);
-        var_dump($c1);
         return $this->update([
             'down_time' => $c1
         ]);

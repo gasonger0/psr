@@ -4,7 +4,7 @@ import axios from 'axios';
 import { reactive, ref } from 'vue';
 import dayjs from 'dayjs';
 import Loading from './loading.vue';
-import { CloudDownloadOutlined, CloudUploadOutlined, DeleteOutlined } from '@ant-design/icons-vue';
+import { CloudDownloadOutlined, CloudUploadOutlined, DeleteOutlined, PrinterOutlined } from '@ant-design/icons-vue';
 </script>
 <script>
 export default {
@@ -18,6 +18,7 @@ export default {
             products: reactive([]),
             productsSlots: reactive([]),
             document: document,
+            isNewPlan: ref(false),
             lines: reactive([]),
             listenerSet: ref(false),
             showList: ref(false),
@@ -26,8 +27,9 @@ export default {
             confirmPlanOpen: ref(false),
             plans: reactive([]),
             key: ref(1),
-            stageSwitch: ref(false),
-            nullOrders: ref(false),
+            categorySwitch: ref(false),
+            // stageSwitch: ref(false),
+            // nullOrders: ref(false),
             exportFileName: ref(''),
             file: ref([]),
             stages: {
@@ -39,7 +41,9 @@ export default {
     methods: {
         async getProducts() {
             return new Promise((resolve, reject) => {
-                axios.post('/api/get_products')
+                axios.post('/api/get_products', {
+                    packaged: this.categorySwitch
+                })
                     .then((response) => {
                         if (response.data) {
                             this.products = response.data.map(el => {
@@ -77,7 +81,7 @@ export default {
                                 // if (f) {
                                 //     el.title = f.title;
                                 // }
-                                let isActive = this.plans.find(i => i.line_id == el.line_id);
+                                let isActive = this.plans.find(i => i.line_id == el.line_id && i.product_id == el.product_id);
                                 el.isActive = isActive != null;
                                 prod.slots[el.type_id].push(el);
                             }
@@ -107,13 +111,13 @@ export default {
                             (String(curTime.getMinutes()).length == 1 ? '0' + String(curTime.getMinutes()) : String(curTime.getMinutes()))
                             + ':' +
                             (String(curTime.getSeconds()).length == 1 ? '0' + String(curTime.getSeconds()) : String(curTime.getSeconds()));
-                        this.plans = response.data;
-                        this.plans.forEach((el) => {
+                        this.plans = response.data.map((el) => {
                             let prod = this.products.find((i) => i.product_id == el.product_id);
-                            el.title = prod.title;
-                            // if (el.started_at < timeString && el.ended_at > timeString) {
-                            //     prod.current_line_id = el.line_id;
-                            // }
+
+                            if (el.started_at < timeString && el.ended_at > timeString) {
+                                prod.current_line_id = el.line_id;
+                            }
+                            return el;
                         });
                         resolve(true);
                     })
@@ -156,54 +160,70 @@ export default {
                 line.addEventListener(`dragstart`, (ev) => {
                     ev.target.classList.add(`selected`);
 
-                    this.document.querySelectorAll('.line').forEach(el => {
-                        el.classList.add('hidden-hard');
-                    });
-
                     this.active.html = ev.target;
-                    this.active.started_at = dayjs();
-                    let product = this.products.find(el => el.product_id == ev.target.dataset.id);
-                    if (product) {
-                        console.log(product.slots);
-                        console.log(product.active_slots);
-                        if (!product.active_slots[1] && product.slots[1]) {
-                            for (let i in product.slots[1]) {
-                                console.log(i);
-                                this.document.querySelector('.line[data-id="' + product.slots[1][i].line_id + '"]').classList.toggle('hidden-hard');
+                    if (ev.target.closest('.line').dataset.id == "-1") {
+                        this.isNewPlan = true;
+                        this.document.querySelectorAll('.line').forEach(el => {
+                            el.classList.add('hidden-hard');
+                        });
+
+                        this.document.querySelector('.line[data-id="-1"]').classList.remove('hidden-hard');
+
+
+                        let product = this.products.find(el => el.product_id == ev.target.dataset.id);
+                        if (product) {
+                            if (!product.active_slots[1] && product.slots[1]) {
+                                for (let i in product.slots[1]) {
+                                    console.log(i);
+                                    this.document.querySelector('.line[data-id="' + product.slots[1][i].line_id + '"]').classList.toggle('hidden-hard');
+                                }
                             }
-                        }
-                        if (product.active_slots[1] && product.slots[2]) {
-                            for (let i in product.slots[2]) {
-                                this.document.querySelector('.line[data-id="' + product.slots[2][i].line_id + '"]').classList.toggle('hidden-hard');
+                            if (product.active_slots[1] && product.slots[2]) {
+                                for (let i in product.slots[2]) {
+                                    this.document.querySelector('.line[data-id="' + product.slots[2][i].line_id + '"]').classList.toggle('hidden-hard');
+                                }
                             }
                         }
                     }
                 })
 
                 line.addEventListener(`dragend`, (ev) => {
-                    this.document.querySelectorAll('.line').forEach(el => {
-                        el.classList.remove('hidden-hard');
-                    });
-                    if (ev.target.classList.contains('selected') && ev.target == this.active.html) {
-                        ev.target.classList.remove(`selected`);
-                        let line_id = ev.target.closest('.line').dataset.id;
-                        this.active.line = this.lines.find(f => f.line_id == line_id);
-                        let prod = this.products.find(i => i.product_id == ev.target.dataset.id);
-                        console.log(prod);
-                        console.log(line_id);
-                        console.log(prod.slots);
-                        this.active.slot = prod.slots[1].concat(prod.slots[2]).find(n => n.line_id == line_id);
-                        this.active.perfomance = this.active.slot.perfomance
-                        this.active.amount = prod.order_amount;
-                        this.active.order_amount = prod.order_amount
-                        this.active.title = prod.title;
-                        this.active.time = (this.active.amount / this.active.perfomance).toFixed(2);
-                        this.active.ended_at = this.active.started_at.add(this.active.time, 'hour');
-                        console.log(this.active.slot);
-                        this.confirmPlanOpen = true;
-                        // this.addPlan(ev.target.closest('.line').dataset.id, ev.target.dataset.id);
-                        // this.changeLine(ev.target.closest('.line').dataset.id, ev.target.dataset.id);
+                    if (this.isNewPlan) {
+                        this.document.querySelectorAll('.line').forEach(el => {
+                            el.classList.remove('hidden-hard');
+                        });
+                        if (ev.target.classList.contains('selected') && ev.target == this.active.html) {
+                            ev.target.classList.remove(`selected`);
+                            let line_id = ev.target.closest('.line').dataset.id;
 
+                            this.active.line = ref(this.lines.find(f => f.line_id == line_id));
+                            let prod = this.products.find(i => i.product_id == ev.target.dataset.id);
+                            this.active.slot = prod.slots[1].concat(prod.slots[2]).find(n => n.line_id == line_id);
+                            this.active.perfomance = this.active.slot.perfomance
+                            this.active.amount = prod.order_amount;
+                            this.active.order_amount = ref(prod.order_amount);
+                            this.active.title = prod.title;
+
+                            let lastProd = this.plans.filter((el) => el.line_id == line_id);
+                            console.log(lastProd)
+                            if (lastProd.length > 0) {
+                                lastProd = lastProd.reduce((p, c) => p.ended_at > c.ended_at ? p : c);
+                                this.active.started_at = ref(dayjs(lastProd.ended_at, 'HH:mm:ss'));
+                            } else if (this.active.line.started_at != null) {
+                                this.active.started_at = ref(dayjs(this.active.line.started_at, 'HH:mm:ss'));
+                            } else {
+                                this.active.started_at = ref(dayjs());
+                            }
+                            this.active.time = (this.active.amount / this.active.perfomance).toFixed(2);
+                            this.active.ended_at = ref(this.active.started_at.add(this.active.time, 'hour'));
+                            this.active.showError = (this.active.line.ended_at < this.active.ended_at.format('HH:mm:ss'));
+                            this.confirmPlanOpen = true;
+                            // this.addPlan(ev.target.closest('.line').dataset.id, ev.target.dataset.id);
+                            // this.changeLine(ev.target.closest('.line').dataset.id, ev.target.dataset.id);
+
+                        }
+                    } else {
+                        // Обработка при изменении порядка для планов на линии
                     }
                 });
 
@@ -249,6 +269,7 @@ export default {
                 this.active.started_at;
             }
             this.active.ended_at = this.active.started_at.add(this.active.time, 'hour');
+            this.active.showError = this.active.line.ended_at < this.active.ended_at.format('HH:mm:ss');
         },
         changeAmount() {
             this.active.time = (this.active.amount / this.active.perfomance).toFixed(2);
@@ -315,26 +336,24 @@ export default {
                 })
         },
         filterPlans(line_id) {
-            return this.plans.filter(el => el.line_id == line_id)
+            let a = this.plans.filter(el => el.line_id == line_id)
                 .sort((a, b) => {
-                    let i = a.started_at.split(':');
-                    let j = b.started_at.split(':');
-                    let k = new Date();
-                    let l = new Date();
-                    k.setHours(a[0], a[1], a[2]);
-                    l.setHours(b[0], b[1], b[2]);
-                    if (k == l) {
+                    if (a.started_at == b.started_at) {
                         return 0;
-                    }
-                    if (k < l) {
+                    } else if (a.started_at < b.started_at) {
                         return -1;
                     } else {
                         return 1;
                     }
                 });
+            console.log(a);
+            return a;
+        },
+        printPlan() {
+            axios.get('/api/download_plan')
         },
         exportPlan() {
-            let jsonString = JSON.stringify(this.plans);
+            let jsonString = JSON.stringify({plans: this.plans, lines: this.lines});
             const blob = new Blob([jsonString], { type: 'application/json' });
 
             // Trigger download
@@ -366,6 +385,14 @@ export default {
             })
             console.log(file);
             return false;
+        },
+        async changeCat() {
+            this.showLoader = true;
+            await this.getProducts();
+            await this.getProductPlan();
+            await this.getProductSlots();
+            await this.getOrders();
+            this.showLoader = false;
         }
     },
     async created() {
@@ -379,24 +406,29 @@ export default {
     },
     updated() {
         this.initFunc();
-    },
+    }
 }
 </script>
 <template>
     <div style="height: fit-content; margin-left: 1vw;display: flex; gap: 10px;" :key="key">
         <Button type="dashed" @click="() => showList = !showList">{{ !showList ? 'Показать список продукции' : 'Скрыть'
             }}</Button>
-        <Popconfirm okText="ОК" cancelText="Отмена"
-            @confirm="exportPlan">
+        <Popconfirm okText="ОК" cancelText="Отмена" @confirm="exportPlan">
             <template #title>
-                <Input v-model:value="exportFileName" placeholder="Наименование файла"/>
+                <Input v-model:value="exportFileName" placeholder="Наименование файла" />
             </template>
-            <Button type="default"><CloudDownloadOutlined />Экспорт плана</Button>
+            <Button type="default">
+                <CloudDownloadOutlined />Экспорт плана
+            </Button>
         </Popconfirm>
-        <Upload v-model:file-list="file" :before-upload="(ev) => importPlan(ev)"
-            :showUploadList="false">
-            <Button type="default"><CloudUploadOutlined/>Импорт плана</Button>
+        <Upload v-model:file-list="file" :before-upload="(ev) => importPlan(ev)" :showUploadList="false">
+            <Button type="default">
+                <CloudUploadOutlined />Импорт плана
+            </Button>
         </Upload>
+        <Button typr="default" @click="printPlan">
+            <PrinterOutlined />Распечатать план в xlsx
+        </Button>
         <Popconfirm title="Это действие удалит весь план продукции" okText="Да" cancelText="Отмена"
             @confirm="clearPlan">
             <Button type="primary">Очистить план</Button>
@@ -408,6 +440,8 @@ export default {
                 <template #title>
                     <div style="display: flex; justify-content: space-between;">
                         <span>Продукция</span>
+                        <Switch checked-children="Фасованная" un-checked-children="Весовая"
+                            v-model:checked="categorySwitch" @change="changeCat" />
                     </div>
                 </template>
             </Card>
@@ -454,8 +488,7 @@ export default {
 
             <section class="line_items products">
                 <Card class="draggable-card" v-for="(v, k) in filterPlans(line.line_id)" :data-id="v.plan_product_id"
-                    :key="v.plan_product_id" @focus="() => { v.showDelete = true }"
-                    @mouseleave="() => { v.showDelete = false }">
+                    :key="v.plan_product_id" draggable="true">
                     <template #title>
                         <div style="display:flex;align-items: center;justify-content: space-between;">
                             <span>{{ v.started_at }} - {{ v.ended_at }}</span>
@@ -476,7 +509,7 @@ export default {
         <br>
         <div style="display: flex;justify-content: space-between;margin: 14px 0px;">
             <b style="font-size: 16px">Объём изготовления:</b>
-            <InputNumber v-model:value="active.amount" :max="active.order_amount" @change="changeAmount" />
+            <InputNumber v-model:value="active.amount" @change="changeAmount" />
         </div>
         <div style="display: flex;justify-content: space-between;margin: 14px 0px;">
             <b style="font-size: 16px">Время начала:</b>
@@ -487,6 +520,12 @@ export default {
             ч.</span>
         <br>
         <span>Работа по данной продукции закончится в {{ active.ended_at.format('HH:mm') }}</span>
+        <br>
+        <span v-if="active.showError" style="color:#ff4d4f">
+            Внимание! Продукция будет изготавливаться дольше, чем работает линия!
+            <br />
+            Скорректируте объём изготовления продукции или время работы линии
+        </span>
     </Modal>
     <Loading :open="showLoader" />
 </template>

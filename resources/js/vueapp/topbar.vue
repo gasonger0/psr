@@ -65,6 +65,22 @@ export default {
             });
             return false;
         },
+        processFormulas(file) {
+            let fd = new FormData();
+            fd.append('file', file);
+            this.$emit('notify', 'info', "Подождите, идёт обработка файла...");
+
+            axios.post('/api/load_formulas', fd).then((response) => {
+                if (response) {
+                    console.log(response);
+                    this.$emit('notify', 'success', "Файл успешно загружен. Обновите страницу, чтобы оперировать актуальными данными");
+                }
+            }).catch((err) => {
+                console.log(err);
+                this.$emit('notify', 'warning', err);
+            });
+            return false;
+        },
         changeBoard(prod) {
             console.log(prod);
             this.$emit('change-board');
@@ -111,6 +127,15 @@ export default {
                                 <Button type="primary" style="background-color: green;">
                                     <UploadOutlined />
                                     Нормы планирования
+                                </Button>
+                            </Upload>
+                        </MenuItem>
+                        <MenuItem>
+                            <Upload v-model:file-list="uploadedFile" name="file" :before-upload="(ev) => processFormulas(ev)"
+                                :showUploadList="false">
+                                <Button type="primary" style="background-color: green;">
+                                    <UploadOutlined/>
+                                    Бланк на варку
                                 </Button>
                             </Upload>
                         </MenuItem>
