@@ -244,6 +244,9 @@ class TableController extends Controller
         $products = ProductsDictionary::whereIn('product_id', $productsFromLines)->get(['product_id', 'title', 'amount2parts', 'parts2kg', 'kg2boil', 'cars'])->toArray();
 
         $array = [[
+            'Дата', 
+            '<i>'.date('d_m_Y-H:i:s', time()).'</i>'
+        ],[
             '№',
             'Наименование',
             'Плановое кол-во корпуса',

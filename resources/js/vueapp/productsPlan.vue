@@ -223,6 +223,16 @@ export default {
 
                         }
                     } else {
+                        let oldOrder = ev.target.dataset.order;
+                        let children = Array.from(ev.target.parentNode.children);
+                        let newOrder =  children.indexOf(ev.target);
+
+                        // Получить ID и время работый старой карточки
+                        // Получит ИД и время работы новой карточки
+                        // Посчитать разницу
+                        // Посчитать, сколько карточек изменит время работы
+                        // Отправить на бэкенд, как изменить время работы в карточках и их ИД
+
                         // Обработка при изменении порядка для планов на линии
                     }
                 });
@@ -351,9 +361,22 @@ export default {
         },
         printPlan() {
             axios.get('/api/download_plan')
+                .then(response => {
+                    let url = response.data;
+                    console.log(response);
+                    let a = document.createElement('a');
+                    if (typeof a.download === undefined) {
+                        window.location = url;
+                    } else {
+                        a.href = url;
+                        a.download = response.data;
+                        document.body.appendChild(a);
+                        a.click();
+                    }
+                })
         },
         exportPlan() {
-            let jsonString = JSON.stringify({plans: this.plans, lines: this.lines});
+            let jsonString = JSON.stringify({ plans: this.plans, lines: this.lines });
             const blob = new Blob([jsonString], { type: 'application/json' });
 
             // Trigger download
@@ -487,7 +510,7 @@ export default {
             </Card>
 
             <section class="line_items products">
-                <Card class="draggable-card" v-for="(v, k) in filterPlans(line.line_id)" :data-id="v.plan_product_id"
+                <Card class="draggable-card" v-for="(v, k) in filterPlans(line.line_id)" :data-id="v.plan_product_id" :data-order="k"
                     :key="v.plan_product_id" draggable="true">
                     <template #title>
                         <div style="display:flex;align-items: center;justify-content: space-between;">
