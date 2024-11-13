@@ -54,6 +54,7 @@ Route::get('/get_categories',       [ProductsCategoriesController::class,   'get
  ***************/
 Route::get('/get_product_plans',    [ProductsPlanController::class,         'getList'   ]);
 Route::post('/add_product_plan',    [ProductsPlanController::class,         'addPlan'   ]);
+Route::post('/change_plan',         [ProductsPlanController::class,         'changePlan']);
 Route::post('/delete_product_plan', [ProductsPlanController::class,         'delPlan'   ]);
 Route::delete('/clear_plan',        [ProductsPlanController::class,         'clear'     ]);
 

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\ProductsPlan;
 use App\Models\ProductsSlots;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -46,6 +47,18 @@ class ProductsPlanController extends Controller
     {
         ProductsPlan::find($request->post('product_plan_id'))->delete();
         return true;
+    }
+
+    public function  changePlan(Request $request) 
+    {
+        if ($data = $request->post()) {
+            $plan = ProductsPlan::find($data['plan_product_id']);
+            $plan->started_at = Carbon::parse($plan->started_at)->addMinutes($data['diff']);
+            $plan->ended_at = Carbon::parse($plan->ended_at)->addMinutes($data['diff']);;
+            $plan->save();
+            return; 
+        }
+        return -1;
     }
 
     static public function clear()

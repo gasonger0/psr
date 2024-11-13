@@ -223,17 +223,80 @@ export default {
 
                         }
                     } else {
-                        let oldOrder = ev.target.dataset.order;
-                        let children = Array.from(ev.target.parentNode.children);
-                        let newOrder =  children.indexOf(ev.target);
+                        if (ev.target.classList.contains('selected') && ev.target == this.active.html) {
+                            ev.target.classList.remove(`selected`);
+                            let children = Array.from(ev.target.parentNode.children);
+                            let sp = [ev.target.dataset.order, children.indexOf(ev.target)];
 
-                        // Получить ID и время работый старой карточки
-                        // Получит ИД и время работы новой карточки
-                        // Посчитать разницу
-                        // Посчитать, сколько карточек изменит время работы
-                        // Отправить на бэкенд, как изменить время работы в карточках и их ИД
+                            let changeIds = children.filter(el => el.dataset.order >= Math.min(sp[0], sp[1]) && el.dataset.order <= Math.max(sp[0], sp[1]));
 
-                        // Обработка при изменении порядка для планов на линии
+                            console.log(changeIds);
+
+                            let oldId = changeIds.find(el => el.dataset.order == sp[1]);
+                            let newId = children[sp[1]];
+
+
+                            console.log(oldId);
+                            console.log(newId);
+                            console.log(this.plans);
+                            let oldd = this.plans.find(el => el.plan_product_id == oldId.dataset.id);
+                            let neww = this.plans.find(el => el.plan_product_id == newId.dataset.id);
+
+                            // console.log(dayjs('10:00:00', 'hh:mm:ss'));
+
+                            let a = dayjs(oldd.started_at, 'hh:mm:ss');
+                            let b = dayjs(neww.started_at, 'hh:mm:ss');
+                            console.log(a, b);
+
+                            let dateDiff = a.diff(b, 'minutes');
+                            console.log('data:');
+                            console.log(dateDiff);
+                            this.showLoader = true;
+                            changeIds.forEach((el, k) => {
+                                if (el.dataset.id == ev.target.dataset.id) {
+                                    axios.post('/api/change_plan', {
+                                        plan_product_id: el.dataset.id,
+                                        diff: dateDiff
+                                    }).then(async (response) => {
+                                        if (k == (changeIds.length - 1)) {
+                                            this.listenerSet = false;
+                                            this.key += 1;
+                                            await this.getProducts();
+                                            await this.getProductPlan();
+                                            await this.getProductSlots();
+                                            await this.getOrders();
+                                            this.$forceUpdate();
+                                            this.initFunc();
+                                            this.showLoader = false;
+                                        }
+                                    });
+                                } else {
+                                    axios.post('/api/change_plan', {
+                                        plan_product_id: el.dataset.id,
+                                        diff: -dateDiff
+                                    }).then(async (response) => {
+                                        if (k == (changeIds.length - 1)) {
+                                            this.listenerSet = false;
+                                            this.key += 1;
+                                            await this.getProducts();
+                                            await this.getProductPlan();
+                                            await this.getProductSlots();
+                                            await this.getOrders();
+                                            this.$forceUpdate();
+                                            this.initFunc();
+                                            this.showLoader = false;
+                                        }
+                                    });
+                                }
+                            });
+                            // Получить ID и время работый старой карточки
+                            // Получит ИД и время работы новой карточки
+                            // Посчитать разницу
+                            // Посчитать, сколько карточек изменит время работы
+                            // Отправить на бэкенд, как изменить время работы в карточках и их ИД
+
+                            // Обработка при изменении порядка для планов на линии
+                        }
                     }
                 });
 
@@ -510,8 +573,8 @@ export default {
             </Card>
 
             <section class="line_items products">
-                <Card class="draggable-card" v-for="(v, k) in filterPlans(line.line_id)" :data-id="v.plan_product_id" :data-order="k"
-                    :key="v.plan_product_id" draggable="true">
+                <Card class="draggable-card" v-for="(v, k) in filterPlans(line.line_id)" :data-id="v.plan_product_id"
+                    :data-order="k" :key="v.plan_product_id" draggable="true">
                     <template #title>
                         <div style="display:flex;align-items: center;justify-content: space-between;">
                             <span>{{ v.started_at }} - {{ v.ended_at }}</span>
