@@ -72,12 +72,12 @@ class TableController extends Controller
                 if ($curCat) {
                     $product_index = array_search(
                         $row[1],
-                        array_column($products,  'title')
+                        array_column($products, 'title')
                     );
                     if ($product_index !== false) {
                         $amounts[] = [
                             'product_id' => $products[$product_index]['product_id'],
-                            'amount'     => $row[3]
+                            'amount' => $row[3]
                         ];
                         continue;
                     } else if ($row[0] != null) {
@@ -87,7 +87,7 @@ class TableController extends Controller
                         $prod->save();
                         $amounts[] = [
                             'product_id' => $prod->product_id,
-                            'amount'     => $row[3]
+                            'amount' => $row[3]
                         ];
                         continue;
                     }
@@ -122,7 +122,7 @@ class TableController extends Controller
         if ($xlsx) {
             $categories = Products_categories::all(['category_id', 'title'])->toArray();
 
-            $categories = array_map(function($el){
+            $categories = array_map(function ($el) {
                 $el['title'] = mb_strtoupper($el['title']);
                 return $el;
             }, $categories);
@@ -133,6 +133,9 @@ class TableController extends Controller
             $activeCategory = null;
             $activeProduct = null;
             foreach ($xlsx->rows() as $k => $row) {
+                if ($row[1] == 'Примечание') {
+                    break;
+                }
                 if ($k < 13) {
                     continue;
                 }
@@ -141,7 +144,7 @@ class TableController extends Controller
                     $activeProduct = ProductsDictionary::insertGetId([
                         'title' => $row[1],
                         'category_id' => $activeCategory['category_id']
-                    ]);         
+                    ]);
                 } else if ($row[1] != '') {
                     // Cat
                     $index = array_search(
@@ -151,31 +154,57 @@ class TableController extends Controller
 
                     if ($index !== false) {
                         $activeCategory = $categories[$index];
-                    } else {
-                        var_dump($row[1]);
                     }
                     continue;
-                } 
+                }
 
                 // Slots
                 $line_id = Lines::where('title', '=', $row[4])
                     ->first()->line_id ?? null;
-                $boil = ProductsSlots::where('product_id', '=', $activeProduct)
-                    ->where('line_id', '=', $line_id)
-                    ->first();
-                if (!$boil) {
-                    $boil = new ProductsSlots();
-                }
-                $boil->product_id = $activeProduct;
-                $boil->line_id = $line_id;
-                $boil->people_count = intval($row[7]) ?? 0;
-                $boil->perfomance = $row[5] ?? 0;
-                $boil->type_id = 1;
-                $boil->save();
 
-                $pack = array_slice($row, 15, 4 * 5);
+                if ($line_id) {
+                    $boil = ProductsSlots::where('product_id', '=', $activeProduct)
+                        ->where('line_id', '=', $line_id)
+                        ->first();
+                    if (!$boil) {
+                        $boil = new ProductsSlots();
+                    }
+                    $boil->product_id = $activeProduct;
+                    $boil->line_id = $line_id;
+                    $boil->people_count = intval($row[7]) ?? 0;
+                    $boil->perfomance = doubleval($row[5]) ?? 0;
+                    $boil->type_id = 1;
+                    $boil->save();
+
+                }
+
+                $pack = array_slice($row, 14, 4 * 5);
                 $pack = array_chunk($pack, 4);
-                return;
+                foreach ($pack as $el) {
+                    if (!$el[0]) {
+                        continue;
+                    }
+                    $line_id = Lines::where('title', '=', $el[0])
+                        ->first()->line_id ?? null;
+                    if ($line_id) {
+                        $slot = ProductsSlots::where('product_id', '=', $activeProduct)
+                            ->where('line_id', '=', $line_id)
+                            ->first();
+                        if ($slot) {
+                            continue;
+                        } else {
+                            $slot = new ProductsSlots();
+                            $slot->product_id = $activeProduct;
+                            $slot->line_id = $line_id;
+                            $slot->people_count = intval($el[2]) ?? 0;
+                            $slot->perfomance = doubleval($el[1]) ?? 0;
+                            $slot->type_id = 2;
+                            $slot->save();
+                        }
+                    } else {
+                        print_r('Not fount line: ' . $el[0]);
+                    }
+                }
             }
         }
     }
@@ -184,42 +213,22 @@ class TableController extends Controller
     {
         $xlsx = SimpleXLSX::parse($request->files->get('file')->getRealPath());
         $arr = [];
-        $dataIndexes = [
-            1 => 'title',
-            3 => 'crates to parts',
-            4 => 'parts to kg',
-            5 => 'kg to vark',
-            6 => 'TG',
-            8 => '.tg'
-        ];
-
-        $fieldsTitles = [
-            1 => 'title',
-            2 => 'amount',
-            3 => 'parts',
-            4 => 'kg',
-            5 => 'boiling',
-            6 => 'cars'
-        ];
 
         foreach ($xlsx->rowsEx() as $k => $row) {
-            $formulas =
-                array_filter(
-                    array_map(function ($m) {
-                        return isset($m['f']) ? $m['f'] : $m['value'];
-                    }, array_slice($row, 0, 9)),
-                    function ($i) {
-                        return $i != null;
-                    }
-                );
-            if (count($formulas) > 0) {
-                foreach ($formulas as $i => $j) {
-                    $letter = chr(97 + $i);
+            $i = ProductsDictionary::where('title', '=', $row[1]['value'])->first();
+            if ($i) {
+                if ($row[3]['f']) {
+                    $i->amount2parts = preg_filter('/[A-Z]\d{1,4}./', '', $row[3]['f']);
                 }
+                if ($row[4]['f']) {
+                    $i->parts2kg = preg_filter('/[A-Z]\d{1,4}./', '', $row[4]['f']);
+                }
+                if ($row[5]['f']) {
+                    $i->kg2boil = preg_filter('/[A-Z]\d{1,4}./', '', $row[5]['f']);
+                }
+                $i->save();
             }
-            $arr[$k] = $formulas;
         }
-
         return $arr;
     }
 
@@ -241,39 +250,43 @@ class TableController extends Controller
         }
 
         $lines = Lines::whereIn('line_id', $linesFromPlans)->get(['line_id', 'title', 'started_at', 'ended_at', 'master', 'engineer'])->toArray();
-        $products = ProductsDictionary::whereIn('product_id', $productsFromLines)->get(['product_id', 'title', 'amount2parts', 'parts2kg', 'kg2boil', 'cars'])->toArray();
+        $products = ProductsDictionary::whereIn('product_id', $productsFromLines)->get(['product_id', 'title', 'amount2parts', 'parts2kg', 'kg2boil'])->toArray();
 
-        $array = [[
-            'Дата', 
-            '<i>'.date('d_m_Y-H:i:s', time()).'</i>'
-        ],[
-            '№',
-            'Наименование',
-            'Плановое кол-во корпуса',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            'План',
-            ''
-        ], [
-            '',
-            '',
-            'ящ',
-            'шт',
-            'кг',
-            'варка',
-            'телеги',
-            '',
-            '',
-            '',
-            '',
-            'кол-во людей',
-            'начало',
-            'окончание'
-        ]];
+        $array = [
+            [
+                'Дата',
+                '<i>' . date('d_m_Y-H:i:s', time()) . '</i>'
+            ],
+            [
+                '№',
+                'Наименование',
+                'Плановое кол-во корпуса',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                'План',
+                ''
+            ],
+            [
+                '',
+                '',
+                'ящ',
+                'шт',
+                'кг',
+                'варка',
+                'телеги',
+                '',
+                '',
+                '',
+                '',
+                'кол-во людей',
+                'начало',
+                'окончание'
+            ]
+        ];
 
         foreach ($lines as &$line) {
             $linePlans = array_filter($plans, function ($el) use ($line) {
@@ -291,7 +304,7 @@ class TableController extends Controller
                     $el['amount2parts'] = $products[$title]['amount2parts'];
                     $el['parts2kg'] = $products[$title]['parts2kg'];
                     $el['kg2boil'] = $products[$title]['kg2boil'];
-                    $el['cars'] = $products[$title]['cars'];
+                    // $el['cars'] = $products[$title]['cars'];
                 }
 
                 return $el;
@@ -305,16 +318,15 @@ class TableController extends Controller
             $array[] = ['', 'Ответственные:' . $line['master'] . ',' . $line['engineer']];
             $array[] = ['', $line['title']];
 
-            var_dump($line);
             foreach ($line['items'] as $product) {
                 if (!isset($product['amount2parts'])) {
                     continue;
                 }
                 $crates = floatval($product['amount']);
-                $parts = eval('return ' . $crates . '*' . floatval($product['amount2parts']) . ';');
-                $kg = eval('return ' . $parts . '*' . floatval($product['parts2kg']) . ';');
-                $boils = eval('return ' . $kg . '*' . floatval($product['kg2boil']) . ';');
-                $cars = eval('return ' . $boils . '*' . floatval($product['cars']) . ';');
+                $parts = eval ('return ' . $crates . '*' . floatval($product['amount2parts']) . ';');
+                $kg = eval ('return ' . $parts . '*' . floatval($product['parts2kg']) . ';');
+                $boils = eval ('return ' . $kg . '*' . floatval($product['kg2boil']) . ';');
+                $cars = ceil($boils);
                 $array[] = [
                     '',
                     $product['title'],
@@ -441,7 +453,7 @@ class TableController extends Controller
     }
     public function getFile(Request $request)
     {
-        $data  = $request->post();
+        $data = $request->post();
 
         $lines = Lines::all();
         foreach ($lines as $line) {

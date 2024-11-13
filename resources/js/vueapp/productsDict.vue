@@ -37,7 +37,7 @@ export default {
                 title: 'Количество струдников',
                 dataIndex: 'people_count'
             }, {
-                title: 'Ящиков в час',
+                title: 'Кг в час',
                 dataIndex: 'perfomance'
             }],
             measures: {
@@ -48,7 +48,7 @@ export default {
                 { title: 'Штук в Ящике:', dataIndex: 'amount2parts' },
                 { title: 'Штуки в Кг: Шт *', dataIndex: 'parts2kg' },
                 { title: 'Кг в Варки: Кг *', dataIndex: 'kg2boil' },
-                { title: 'Тачки: Кг*', dataIndex: 'cars' }
+                // { title: 'Тачки: Кг*', dataIndex: 'cars' }
             ]
         }
     },

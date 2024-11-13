@@ -11,11 +11,11 @@ class ProductsSlotsController extends Controller
         $type_id = $request->post('type_id');
         $id = $request->post('product_id');
         if ($id) {
-            return ProductsSlots::where('product_id', '=', $id)->orderBy('order', 'DESC')->get()->toJson();
+            return ProductsSlots::where('product_id', '=', $id)->get()->toJson();
         } else if ($type_id){
-            return ProductsSlots::where('type_id', '=', $type_id)->orderBy('order', 'DESC')->get()->toJson();
+            return ProductsSlots::where('type_id', '=', $type_id)->get()->toJson();
         }else {
-            return ProductsSlots::orderBy('order', 'ASC')->get()->toJson();
+            return ProductsSlots::all()->toJson();
         }
     }
 

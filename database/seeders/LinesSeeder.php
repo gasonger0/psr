@@ -14,24 +14,24 @@ class LinesSeeder extends Seeder
     public function run(): void
     {
         Lines::create([
-                "line_id" => 1,
-                "title" => "ВАРОЧНАЯ КОЛОНКА №1",
-                "type_id" => "1"
+            "line_id" => 1,
+            "title" => "ВАРОЧНАЯ КОЛОНКА №1",
+            "type_id" => "1"
         ]);
         Lines::create([
-                "line_id" => 2,
-                "title" => "ВАРОЧНАЯ КОЛОНКА №2",
-                "type_id" => "2"
+            "line_id" => 2,
+            "title" => "ВАРОЧНАЯ КОЛОНКА №2",
+            "type_id" => "2"
         ]);
         Lines::create([
-                "line_id" => 3,
-                "title" => "МОНДОМИКС",
-                "type_id" => "1"
+            "line_id" => 3,
+            "title" => "МОНДОМИКС",
+            "type_id" => "1"
         ]);
         Lines::create([
-                "line_id" => 4,
-                "title" => "ТОРНАДО",
-                "type_id" => "1"
+            "line_id" => 4,
+            "title" => "ТОРНАДО",
+            "type_id" => "1"
         ]);
         Lines::create([
             "line_id" => 5,
@@ -192,6 +192,22 @@ class LinesSeeder extends Seeder
             "line_id" => 36,
             "title" => "Картонажный участок",
             "type_id" => "2"
+        ]);
+        Lines::create([
+            "title" => "Сборка ящиков под продукцию",
+            "type_id" => 2
+        ]);
+        Lines::create([
+            "title" => "Заверточная машина №1",
+            "type_id" => 2
+        ]);
+        Lines::create([
+            "title" => "Заверточная машина №2",
+            "type_id" => 2
+        ]);
+        Lines::create([
+            "title" => "Сборка подарочного набора",
+            "type_id" => 2
         ]);
     }
 }
