@@ -27,6 +27,7 @@ Route::post('/down_line',           [LinesController::class,                'dow
 Route::get( '/get_workers',         [WorkersController::class,              'getList'   ]);
 Route::post('/save_worker',         [WorkersController::class,              'save'      ]);
 Route::post('/change_lines',        [WorkersController::class,              'change'    ]);
+Route::post('/add_worker',          [WorkersController::class,              'addFromWeb']);
 
 /*******
  * SLOTS

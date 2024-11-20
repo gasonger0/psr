@@ -158,6 +158,12 @@ export default {
             let draggable = this.document.querySelectorAll('.line_items.products');
             draggable.forEach(line => {
                 line.addEventListener(`dragstart`, (ev) => {
+                    let x = this.document.querySelector('.lines-container');
+                    setTimeout(() => {
+                        x.scrollTo(
+                            { top: 0, behavior: 'smooth' }
+                        );
+                    }, 100);
                     ev.target.classList.add(`selected`);
 
                     this.active.html = ev.target;

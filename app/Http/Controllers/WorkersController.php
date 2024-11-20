@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Workers;
 use Illuminate\Http\Request;
 use App\Models\Slots;
+use DateTime;
+use DateTimeZone;
 
 class WorkersController extends Controller
 {
@@ -58,10 +60,19 @@ class WorkersController extends Controller
         };
     }
 
-    // static public function updateBaseTime($worker_id, $time) {
-    //     $s = Workers::find($worker_id);
-    //     $s->addMinutes($time);
-    // }
+    static public function addFromWeb(Request $request) {
+        $tz = new DateTimeZone('Europe/Moscow');
+        $b_start = new DateTime($request->post('break')[0]);
+        $b_start->setTimezone($tz);
+        $b_end = new DateTime($request->post('break')[1]);
+        $b_end->setTimezone($tz);
+        return self::add(
+            $request->post('company'),
+            $request->post('title'),
+            $b_start,
+            $b_end
+        );
+    }
 
     static public function dropData()
     {

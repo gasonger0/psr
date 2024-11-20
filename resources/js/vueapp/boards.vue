@@ -1,12 +1,12 @@
 <script setup>
-import { BackTop, Card, FloatButton, Input, Switch, TimeRangePicker, FloatButtonGroup, Tooltip, Button, Popover, Select, notification, SelectOption, Popconfirm } from 'ant-design-vue';
+import { BackTop, Card, FloatButton, Input, Switch, TimeRangePicker, FloatButtonGroup, Tooltip, Button, Popover, Select, notification, SelectOption, Popconfirm, Modal, TimePicker } from 'ant-design-vue';
 import { ref, reactive } from 'vue';
 import axios from 'axios';
 import Loading from './loading.vue';
 import dayjs from 'dayjs';
 import { ColorPicker } from 'vue-color-kit';
 import 'vue-color-kit/dist/vue-color-kit.css'
-import { ForwardOutlined, LoginOutlined, PlusCircleOutlined, StopOutlined, InfoCircleOutlined, UserDeleteOutlined, UserSwitchOutlined } from '@ant-design/icons-vue';
+import { ForwardOutlined, LoginOutlined, PlusCircleOutlined, StopOutlined, InfoCircleOutlined, UserDeleteOutlined, UserSwitchOutlined, UserAddOutlined } from '@ant-design/icons-vue';
 </script>
 <script>
 export default {
@@ -51,6 +51,12 @@ export default {
                     value: 8
                 }
             ],
+            newWorker: ref(false),
+            newWorkerFields: {
+                worker_id: null,
+                title: null,
+                break: [dayjs(), dayjs()]
+            },
             positions: {
                 1: 'Начальник смены',
                 2: 'Мастер смены',
@@ -236,7 +242,30 @@ export default {
                     this.$emit('notify', 'error', "Что-то пошло не так: " + err.code);
                 });
         },
-
+        addWorkerFront() {
+            this.showList = true;
+            this.newWorker = true;
+            return;
+        },
+        addWorker() {
+            // this.newWorkerFields.b_start = this.newWorkerFields.break[0].format('hh') 
+            axios.post('/api/add_worker',
+                this.newWorkerFields
+            ).then((response) => {
+                if (response.data) {
+                    this.newWorker = false;
+                    this.workers.push({
+                        worker_id: response.data,
+                        break_started_at: this.newWorkerFields.break[0].format('HH:mm'),
+                        break_ended_at: this.newWorkerFields.break[1].format('HH:mm'),
+                        title: this.newWorkerFields.title,
+                        company: this.newWorkerFields.title
+                    });
+                }
+            }).catch(err => {
+                this.$emit('notify', 'error', "Что-то пошло не так: " + err.code);
+            });
+        },
         /*------------------- LINES START -------------------*/
         async getLines() {
             return new Promise((resolve, reject) => {
@@ -312,7 +341,7 @@ export default {
             let x = this.document.querySelector('.lines-container');
             setTimeout(() => {
                 x.scrollTo(
-                    { left: x.clientWidth, behavior: 'smooth' }
+                    { left: x.scrollWidth, behavior: 'smooth' }
                 );
             }, 100);
             return;
@@ -411,6 +440,11 @@ export default {
                 draggable.forEach(line => {
                     line.addEventListener(`dragstart`, (ev) => {
                         ev.target.classList.add(`selected`);
+                        setTimeout(() => {
+                            x.scrollTo(
+                                { top: 0, behavior: 'smooth' }
+                            );
+                        }, 100);
                         this.document.querySelectorAll('.done-line').forEach(el => {
                             el.classList.toggle('hidden');
                         })
@@ -430,8 +464,7 @@ export default {
                             // }
                             ev.target.classList.remove(`selected`);
                             this.changeLine(ev.target.closest('.line').dataset.id, ev.target.dataset.id);
-                            this.listenerSet = false;
-                            this.initFunc();
+
                             //this.$emit('data-recieved', this.$data);
                         }
                     });
@@ -502,6 +535,20 @@ export default {
                 <br>
             </Card>
             <section class="line_items">
+                <Card v-show="newWorker" draggable="false" class="draggable-card">
+                    <span>Имя:</span>
+                    <Input v-model:value="newWorkerFields.title" />
+                    <br>
+                    <span>Компания:</span>
+                    <Input v-model:value="newWorkerFields.company" />
+                    <br>
+                    <span>Обед:</span>
+                    <TimeRangePicker v-model:value="newWorkerFields.break" format="HH:mm" :showTime="true"
+                        :allowClear="true" type="time" :showDate="false" style="width:fit-content;" />
+                    <Button type="primary" style="width:100%" @click="addWorker">
+                        Сохранить
+                    </Button>
+                </Card>
                 <Card :title="v.title" draggable="true" class="draggable-card"
                     v-for="(v, k) in workers.filter(el => el.current_line_id == null)"
                     :style="v.on_break ? 'opacity: 0.6' : ''" :data-id="v.worker_id" :key="v.worker_id"
@@ -676,12 +723,20 @@ export default {
                 <LoginOutlined />
             </template>
         </FloatButton>
-        <!-- <FloatButton type="default" @click="addWorkerFront">
+        <FloatButton type="default" @click="addWorkerFront">
             <template #tooltip>
                 <div>Добавить сотрудника</div>
             </template>
             <template #icon>
                 <UserAddOutlined />
+            </template>
+        </FloatButton>
+        <!-- <FloatButton type="default" @click="addResp">
+            <template #tooltip>
+                <div>Добавить ответственного</div>
+            </template>
+            <template #icon>
+                <UserAddOutlined style="color:#1677ff"/>
             </template>
         </FloatButton> -->
         <BackTop />
