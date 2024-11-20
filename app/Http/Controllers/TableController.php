@@ -253,13 +253,19 @@ class TableController extends Controller
         $products = ProductsDictionary::whereIn('product_id', $productsFromLines)->get(['product_id', 'title', 'amount2parts', 'parts2kg', 'kg2boil'])->toArray();
 
         $array = [
+            ['','','','',''],
             [
-                'Дата',
-                '<i>' . date('d_m_Y-H:i:s', time()) . '</i>'
+                '<style height="52">Дата</style>',
+                '<style height="52">' . date('d_m_Y-H:i:s', time()) . '</style>',
+                '','',''
+            ],
+            [
+                '<style height="52">Смена:</style>',
+                '', '', '', ''
             ],
             [
                 '<center><b>№</b></center>',
-                '<style border="#000000" height="20" font-size="16">Наименование</style>',
+                '<style border="#000000" font-size="20">Наименование</style>',
                 '<center><b>Плановое кол-во корпуса</b></center>',
                 null,
                 null,
@@ -272,7 +278,7 @@ class TableController extends Controller
                 null,
                 'ящ',
                 'шт',
-                '<style width="40">кг</style>',
+                'кг',
                 'варка',
                 'телеги',
                 '',
@@ -338,7 +344,10 @@ class TableController extends Controller
         }
 
 
-        $xlsx = SimpleXLSXGen::fromArray($array);
+        $xlsx = SimpleXLSXGen::fromArray($array)
+            ->setDefaultFont('Times New Roman')
+            ->setDefaultFontSize(14)
+            ->setColWidth(1, 12);
         $name = 'План_' . date('d_m_Y-H:i:s', time()) . '.xlsx';
         $xlsx->saveAs($name);
         return $name;
