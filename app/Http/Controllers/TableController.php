@@ -315,11 +315,14 @@ class TableController extends Controller
 
             $line['items'] = $linePlans;
 
-            $line['master'] = $line['master'] ? $responsibles[$line['master']] : '';
-            $line['engineer'] = $line['engineer'] ? $responsibles[$line['engineer']] : '';
+            $line['master'] = $line['master'] ? explode(' ', $responsibles[$line['master']]) : '';
+            $line['engineer'] = $line['engineer'] ? explode(' ', $responsibles[$line['engineer']]) : '';
 
-            $array[] = ['', 'Ответственные:' . $line['master'] . ',' . $line['engineer']];
-            $array[] = ['', $line['title']];
+            $line['master'] = $line['master'][0] . $line['master'][1][0] . '.';
+            $line['engineer'] = $line['engineer'][0] . $line['engineer'][1][0] . '.';
+
+            $array[] = ['', '<style fill="#B7DEE8"><b>ОТВЕТСТВЕННЫЕ:' . $line['master'] . ',' . $line['engineer'] . '</b></style>'];
+            $array[] = ['', '<style fill="#D8E4BC"><b>' . $line['title'] . '</b></style>'];
 
             foreach ($line['items'] as $product) {
                 if (!isset($product['amount2parts'])) {
