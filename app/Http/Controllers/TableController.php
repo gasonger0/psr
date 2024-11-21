@@ -18,6 +18,8 @@ use Shuchkin\SimpleXLSXGen;
 class TableController extends Controller
 {
     private $file = [];
+    static $MCS = '<center><middle>';
+    static $MCE = '</middle></center>';
 
     private static $skipPhrases = ['подготовительное время', 'заключительное время'];
 
@@ -175,7 +177,6 @@ class TableController extends Controller
                     $boil->perfomance = doubleval($row[5]) ?? 0;
                     $boil->type_id = 1;
                     $boil->save();
-
                 }
 
                 $pack = array_slice($row, 14, 4 * 5);
@@ -249,45 +250,98 @@ class TableController extends Controller
             $responsibles[$f['responsible_id']] = $f['name'];
         }
 
-        $lines = Lines::whereIn('line_id', $linesFromPlans)->get(['line_id', 'title', 'started_at', 'ended_at', 'master', 'engineer'])->toArray();
+        $lines = Lines::whereIn('line_id', $linesFromPlans)->get(['line_id', 'title', 'started_at', 'ended_at', 'master', 'engineer', 'workers_count'])->toArray();
         $products = ProductsDictionary::whereIn('product_id', $productsFromLines)->get(['product_id', 'title', 'amount2parts', 'parts2kg', 'kg2boil'])->toArray();
 
         $array = [
-            ['','','','',''],
+            ['', '', 
+            self::$MCS . '2' . self::$MCE, self::$MCS . '3' . self::$MCE, self::$MCS . '4' . self::$MCE, self::$MCS . '5' . self::$MCE, self::$MCS . '6' . self::$MCE, 
+            self::$MCS . '7' . self::$MCE, self::$MCS . '8' . self::$MCE, self::$MCS . '9' . self::$MCE, self::$MCS . '10' .self::$MCE, self::$MCS . '11' .self::$MCE, 
+            self::$MCS . '12' .self::$MCE, self::$MCS . '13' .self::$MCE, self::$MCS . '14' .self::$MCE, self::$MCS . '15' .self::$MCE, self::$MCS . '16' .self::$MCE, 
+            self::$MCS . '17' .self::$MCE, self::$MCS . '18' .self::$MCE, self::$MCS . '19' .self::$MCE, self::$MCS . '20' .self::$MCE, self::$MCS . '21' .self::$MCE, 
+            self::$MCS . '22' .self::$MCE, self::$MCS . '23' .self::$MCE, self::$MCS . '24' .self::$MCE, self::$MCS . '25' .self::$MCE, self::$MCS . '26' .self::$MCE, 
+            self::$MCS . '27' .self::$MCE, self::$MCS . '28' .self::$MCE],
             [
                 '<style height="52">Дата</style>',
-                '<style height="52">' . date('d_m_Y-H:i:s', time()) . '</style>',
-                '','',''
+                '<style height="52">' . date('d_m_Y-H:i:s', time()) . '</style>'
             ],
             [
                 '<style height="52">Смена:</style>',
-                '', '', '', ''
+                '',
+                '',
+                'план:',
+                'с зефирной массой',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                'факт:',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                self::$MCS . 'Ген.директор ООО КФ "Сокол"' . self::$MCE
             ],
             [
-                '<center><b>№</b></center>',
-                '<style border="#000000" font-size="20">Наименование</style>',
-                '<center><b>Плановое кол-во корпуса</b></center>',
-                null,
-                null,
-                '<center><b>План</b></center>',
-                null,
-                null,
+                self::$MCS . '<b>№</b>' . self::$MCE,
+                '<style border="#000000" font-size="20">' . self::$MCS . 'Наименование' . self::$MCE . '</style>',
+                self::$MCS . '<b>Плановое кол-во корпуса</b>' . self::$MCE,
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                self::$MCS . '<b>План</b>' . self::$MCE,
+                '',
+                '',
+                self::$MCS . '<b>Зефирная масска, кг</b>' . self::$MCE,
+                '',
+                self::$MCS . '<b>ПРИМЕЧАНИЕ</b>' . self::$MCE,
+                self::$MCS . '<b>Факт</b>' . self::$MCE,
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                self::$MCS . '<b>ПРИМЕЧАНИЕ</b>' . self::$MCE
             ],
+            ['', '', '', '', '', '', '', '', '', '', '', self::$MCS . '<b>кол-во людей</b>' . self::$MCE, self::$MCS . 'Время' . self::$MCE],
             [
-                null,
-                null,
-                'ящ',
-                'шт',
-                'кг',
-                'варка',
-                'телеги',
+                '',
+                '',
+                self::$MCS . '<b>ящ</b>' . self::$MCE,
+                self::$MCS . '<b>шт</b>' . self::$MCE,
+                self::$MCS . '<b>кг</b>' . self::$MCE,
+                self::$MCS . '<b>варка</b>' . self::$MCE,
+                self::$MCS . '<b>телеги</b>' . self::$MCE,
                 '',
                 '',
                 '',
                 '',
-                'кол-во людей',
-                'начало',
-                'окончание'
+                '',
+                self::$MCS . '<b>начало</b>' . self::$MCE,
+                self::$MCS . '<b>окончание</b>' . self::$MCS
             ]
         ];
 
@@ -318,39 +372,56 @@ class TableController extends Controller
             $line['master'] = $line['master'] ? explode(' ', $responsibles[$line['master']]) : '';
             $line['engineer'] = $line['engineer'] ? explode(' ', $responsibles[$line['engineer']]) : '';
 
-            $line['master'] = $line['master'][0] . $line['master'][1][0] . '.';
-            $line['engineer'] = $line['engineer'][0] . $line['engineer'][1][0] . '.';
+            if (is_array($line['master'])) {
+                $line['master'] =  $line['master'][0] . mb_strcut($line['master'][1], 0, 1) . '.';
+            }
+            if (is_array($line['engineer'])) {
+                $line['engineer'] = $line['engineer'][0] . mb_strcut($line['engineer'][1], 0, 1) . '.';
+            }
 
-            $array[] = ['', '<style fill="#B7DEE8"><b>ОТВЕТСТВЕННЫЕ:' . $line['master'] . ',' . $line['engineer'] . '</b></style>'];
-            $array[] = ['', '<style fill="#D8E4BC"><b>' . $line['title'] . '</b></style>'];
+            $array[] = ['', '<style bgcolor="#B7DEE8"><b>ОТВЕТСТВЕННЫЕ:' . $line['master'] . ',' . $line['engineer'] . '</b></style>'];
+            $array[] = ['', '<style bgcolor="#D8E4BC"><b>' . $line['title'] . '</b></style>','','','','','','','','','', $line['workers_count'], $line['started_at'], $line['ended_at']];
 
             foreach ($line['items'] as $product) {
                 if (!isset($product['amount2parts'])) {
                     continue;
                 }
                 $crates = floatval($product['amount']);
-                $parts = eval ('return ' . $crates . '*' . floatval($product['amount2parts']) . ';');
-                $kg = eval ('return ' . $parts . '*' . floatval($product['parts2kg']) . ';');
-                $boils = eval ('return ' . $kg . '*' . floatval($product['kg2boil']) . ';');
+                $parts = eval('return ' . $crates . '*' . floatval($product['amount2parts']) . ';');
+                $kg = eval('return ' . $parts . '*' . floatval($product['parts2kg']) . ';');
+                $boils = eval('return ' . $kg . '*' . floatval($product['kg2boil']) . ';');
                 $cars = ceil($boils);
                 $array[] = [
                     '',
-                    $product['title'],
-                    $crates,
-                    $parts,
-                    $kg,
-                    $boils,
-                    ceil($cars)
+                    self::$MCS . $product['title'] . self::$MCE,
+                    self::$MCS . $crates . self::$MCE,
+                    self::$MCS . $parts . self::$MCE,
+                    self::$MCS . $kg . self::$MCE,
+                    self::$MCS . $boils . self::$MCE,
+                    self::$MCS . ceil($cars) . self::$MCE,
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    $product['workers_count'],
+                    $product['started_at'],
+                    $product['ended_at']
                 ];
-                $array[] = [];
             }
+            $array[] = [];
         }
 
 
         $xlsx = SimpleXLSXGen::fromArray($array)
-            ->setDefaultFont('Times New Roman')
+            // ->setDefaultFont('Times New Roman')
             ->setDefaultFontSize(14)
-            ->setColWidth(1, 12);
+            ->setColWidth(13, 18)
+            ->setColWidth(14, 63)
+            ->setColWidth(1, 12)->setColWidth(2, 73)->setColWidth(4, 26)
+            ->mergeCells('A4:A6')
+            ->mergeCells('B4:B6')->mergeCells('C4:J5')->mergeCells('L4:N4')->mergeCells('L5:L6')->mergeCells('M5:N5');
+
         $name = 'План_' . date('d_m_Y-H:i:s', time()) . '.xlsx';
         $xlsx->saveAs($name);
         return $name;
