@@ -32,6 +32,7 @@ class ProductsPlanController extends Controller
                 $plan->product_id = $slot['product_id'];
                 $plan->line_id = $slot['line_id'];
                 $plan->slot_id = $slot['product_slot_id'];
+                $plan->workers_count = $slot['people_count'];
                 $plan->started_at = $post['started_at'];
                 $plan->ended_at = $post['ended_at'];
                 $plan->amount = $post['amount'];
