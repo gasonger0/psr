@@ -209,5 +209,9 @@ class LinesSeeder extends Seeder
             "title" => "Сборка подарочного набора",
             "type_id" => 2
         ]);
+        Lines::create([
+            "title" => "Обсыпка кокосовой стружкой",
+            "type_id" => 2 
+        ]);
     }
 }

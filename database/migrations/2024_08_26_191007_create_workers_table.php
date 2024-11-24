@@ -16,8 +16,8 @@ return new class extends Migration
             $table->string('title');
             $table->dateTime('created_at')->default(now());
             $table->dateTime('updated_at')->default(now());
-            $table->time('break_started_at');
-            $table->time('break_ended_at');
+            $table->time('break_started_at')->nullable();
+            $table->time('break_ended_at')->nullable();
         });
     }
 

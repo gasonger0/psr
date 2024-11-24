@@ -14,7 +14,7 @@ class LinesController extends Controller
         return Lines::all()->toJson();
     }
 
-    static public function add($title = null, $workers_count = null, $started_at = null, $ended_at = null, $color = null, $master=null, $engineer=null)
+    static public function add($title = null, $workers_count = null, $started_at = null, $ended_at = null, $color = null, $master=null, $engineer=null, $type_id=null)
     {
         if (empty($title))
             return;
@@ -28,6 +28,7 @@ class LinesController extends Controller
         $line->color = $color;
         $line->master = $master;
         $line->engineer = $engineer;
+        $line->type_id = $type_id;
 
         $line->save();
         return $line->line_id;
@@ -43,7 +44,8 @@ class LinesController extends Controller
                 $request->post('ended_at'),
                 $request->post('color'),
                 $request->post('master'),
-                $request->post('engineer')
+                $request->post('engineer'),
+                $request->post('type_id')
             );
             if ($id) {
                 return json_encode([

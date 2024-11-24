@@ -56,6 +56,8 @@ class TableController extends Controller
         }
 
         if ($xlsx = SimpleXLSX::parse($request->files->get('file')->getRealPath())) {
+
+            ProductsOrder::truncate();
             $cats = Products_categories::get(['title', 'category_id'])->toArray();
             $products = ProductsDictionary::get(['title', 'product_id', 'category_id'])->toArray();
             foreach ($cats as &$cat) {

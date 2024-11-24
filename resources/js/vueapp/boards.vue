@@ -1,5 +1,5 @@
 <script setup>
-import { BackTop, Card, FloatButton, Input, Switch, TimeRangePicker, FloatButtonGroup, Tooltip, Button, Popover, Select, notification, SelectOption, Popconfirm, Modal, TimePicker } from 'ant-design-vue';
+import { BackTop, Card, FloatButton, Input, Switch, TimeRangePicker, FloatButtonGroup, Tooltip, Button, Popover, Select, notification, SelectOption, Popconfirm, Modal, TimePicker, RadioGroup, RadioButton } from 'ant-design-vue';
 import { ref, reactive } from 'vue';
 import axios from 'axios';
 import Loading from './loading.vue';
@@ -359,7 +359,10 @@ export default {
             if (record.workers_count) {
                 fd.append('workers_count', record.workers_count);
             }
-            fd.append('color', record.color);
+            fd.append('type_id', record.type_id);
+            if (record.color) {
+                fd.append('color', record.color);
+            }
             fd.append('title', record.title);
             if (record.master != null) {
                 fd.append('master', record.master);
@@ -558,7 +561,7 @@ export default {
                             {{ v.company }}
                         </span>
                     </template>
-                    <span v-show="v.break_started_at && v.break_ended_at" style="height: fit-content;">
+                    <span v-if="v.break_started_at && v.break_ended_at" style="height: fit-content;">
                         Обед: {{ v.break_started_at.substr(0, 5) + ' - ' + v.break_ended_at.substr(0, 5) }}
                     </span>
                 </Card>
@@ -617,7 +620,7 @@ export default {
                         <span
                             style="display: flex; justify-content: space-between; margin-bottom:10px;align-items: center;">
                             <span style="height:fit-content;">Необходимо:&nbsp;&nbsp;</span>
-                            <Input v-model:value="line.workers_count" type="number" />
+                            <Input v-model:value="line.workers_count" type="number" placeholder="10 человек" />
                         </span>
                         <!-- <span style="display: flex; justify-content: space-between; align-items: center;"
                             v-if="line.line_id != -1">
@@ -634,6 +637,12 @@ export default {
                                 {{ i.title }}
                             </SelectOption>
                         </Select>
+                        <br>
+                        <br>
+                        <RadioGroup v-model:value="line.type_id">
+                            <RadioButton value="1">Варка</RadioButton>
+                            <RadioButton value="2">Упаковка</RadioButton>
+                        </RadioGroup>
                         <span>Ответственные:</span>
                         <Select v-model:value="line.master" style="width:100%;">
                             <SelectOption v-for="i in responsible" v-model:value="i.responsible_id">

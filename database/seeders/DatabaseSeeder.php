@@ -14,8 +14,8 @@ class DatabaseSeeder extends Seeder
         $this->call([
             LinesSeeder::class,
             ProductsCategoriesSeeder::class,
-            // ResponsibleSeeder::class,
-            // WorkerSeeder::class
+            ResponsibleSeeder::class,
+            WorkerSeeder::class
         ]);
     }
 }

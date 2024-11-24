@@ -14,11 +14,11 @@ return new class extends Migration
         Schema::create('lines', function (Blueprint $table) {
             $table->id()->primary()->autoIncrement();
             $table->string('title');
-            $table->integer('workers_count');
+            $table->integer('workers_count')->nullable();
             $table->dateTime('created_at')->default(now());
             $table->dateTime('updated_at')->default(now());
-            $table->time('started_at');
-            $table->time('ended_at');
+            $table->time('started_at')->nullable();
+            $table->time('ended_at')->nullable();
         });
     }
 

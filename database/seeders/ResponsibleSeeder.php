@@ -14,51 +14,51 @@ class ResponsibleSeeder extends Seeder
     public function run(): void
     {
         Responsible::create([
-            'title' => 'Иванова Алена Сергеева',
+            'name' => 'Иванова Алена Сергеева',
             'position' => 1
         ]);
         Responsible::create([
-            'title' => 'Чинякина Светлана Викторовна',
+            'name' => 'Чинякина Светлана Викторовна',
             'position' => 1
         ]);
         Responsible::create([
-            'title' => 'Жукова Марина Петровна',
+            'name' => 'Жукова Марина Петровна',
             'position' => 2
         ]);
         Responsible::create([
-            'title' => 'Степанова Людмила Вячеславовна',
+            'name' => 'Степанова Людмила Вячеславовна',
             'position' => 2
         ]);
         Responsible::create([
-            'title' => 'Васильева Светлана Валерьевна',
+            'name' => 'Васильева Светлана Валерьевна',
             'position' => 2
         ]);
         Responsible::create([
-            'title' => 'Борисова Светлана Михайловна',
+            'name' => 'Борисова Светлана Михайловна',
             'position' => 3
         ]);
         Responsible::create([
-            'title' => 'Топталина Ольга Фаритовна',
+            'name' => 'Топталина Ольга Фаритовна',
             'position' => 3
         ]);
         Responsible::create([
-            'title' => 'Демьянов Станислав Владимирович',
+            'name' => 'Демьянов Станислав Владимирович',
             'position' => 3
         ]);
         Responsible::create([
-            'title' => 'Лизнев Павел Николаевич',
+            'name' => 'Лизнев Павел Николаевич',
             'position' => 4
         ]);
         Responsible::create([
-            'title' => 'Гимпу Эдуард Михайлович',
+            'name' => 'Гимпу Эдуард Михайлович',
             'position' => 4
         ]);
         Responsible::create([
-            'title' => 'Илашко Сергей',
+            'name' => 'Илашко Сергей',
             'position' => 5
         ]);
         Responsible::create([
-            'title' => 'Колесников Вадим Николаевич',
+            'name' => 'Колесников Вадим Николаевич',
             'position' => 5
         ]);
     }
