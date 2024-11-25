@@ -1,10 +1,10 @@
 <script setup>
-import { Card, Button, Divider, Modal, TimePicker, Tooltip, Popconfirm, Switch, InputNumber, Input, Upload } from 'ant-design-vue';
+import { Card, Button, Divider, Modal, TimePicker, Tooltip, Popconfirm, Switch, InputNumber, Input, Upload, FloatButton, RadioGroup, RadioButton } from 'ant-design-vue';
 import axios from 'axios';
 import { reactive, ref } from 'vue';
 import dayjs from 'dayjs';
 import Loading from './loading.vue';
-import { CloudDownloadOutlined, CloudUploadOutlined, DeleteOutlined, PrinterOutlined } from '@ant-design/icons-vue';
+import { CloudDownloadOutlined, CloudUploadOutlined, DeleteOutlined, LeftOutlined, PrinterOutlined, RightOutlined } from '@ant-design/icons-vue';
 </script>
 <script>
 export default {
@@ -36,6 +36,7 @@ export default {
                 1: "Варка",
                 2: "Упаковка"
             },
+            isScrolling: false
         }
     },
     methods: {
@@ -485,6 +486,37 @@ export default {
             await this.getProductSlots();
             await this.getOrders();
             this.showLoader = false;
+        },
+        scroll(direction, start) {
+            if (start == 1) {
+                if (!this.isScrolling) {
+                    let cont = this.document.querySelector('.lines-container');
+                    this.isScrolling = setInterval((el) => {
+                        cont.scrollTo({
+                            left: cont.scrollLeft + (direction ? 100 : -100),
+                            behavior: "smooth"
+                        });
+                        if (cont.scrollLeft == cont.scrollWidth) {
+                            clearInterval(this.isScrolling);
+                            this.isScrolling = false;
+                            this.showRight = false;
+                        }
+                    }, 20);
+                }
+            } else if (start == 2) {
+                console.log(start);
+                clearInterval(this.isScrolling);
+                this.isScrolling = null;
+            } else {
+                let cont = this.document.querySelector('.lines-container');
+                cont.scrollTo({
+                    left: cont.scrollLeft + (direction ? 100 : -100),
+                    behavior: "smooth"
+                });
+                setTimeout(() => {
+                    return;
+                }, 20);
+            }
         }
     },
     async created() {
@@ -596,6 +628,18 @@ export default {
             </section>
         </div>
     </div>
+    <FloatButton @dragover="scroll(true, 0)" @mouseover="scroll(true, 1)" @mouseleave="scroll(true, 2)"
+        style="top:50%;">
+        <template #icon>
+            <RightOutlined />
+        </template>
+    </FloatButton>
+    <FloatButton @dragover="scroll(false, 0)" @mouseover="scroll(false, 1)" @mouseleave="scroll(false, 2)"
+        style="top:50%;left:1%">
+        <template #icon>
+            <LeftOutlined />
+        </template>
+    </FloatButton>
     <Modal v-model:open="confirmPlanOpen" @ok="addPlan(true)" @cancel="addPlan(false)" okText="Да" cancelText="Нет">
         <span>Это действие поставит работу <b>{{ active.title }}</b> на линии <b>{{ active.line.title }}</b>.</span>
         <br>
@@ -607,11 +651,23 @@ export default {
             <b style="font-size: 16px">Время начала:</b>
             <TimePicker v-model:value="active.started_at" @change="changeTime" format="HH:mm" />
         </div>
+        <h3>Колонка: </h3>
+        <RadioGroup v-model:value="active.colon">
+            <RadioButton value="1">Варочная колонка №1</RadioButton>
+            <RadioButton value="2">Варочная колонка №2</RadioButton>
+        </RadioGroup>
         <br>
-        <span>С учётом производительности линии для данного продукта, время изготовления составит {{ active.time }}
-            ч.</span>
+        <h3>Оборудование:</h3>
+        <RadioGroup v-model:value="active.hardware">
+            <RadioButton value="1">Мондомикс</RadioButton>
+            <RadioButton value="2">Торнадо</RadioButton>
+            <RadioButton value="3">Китайский АЭРОС</RadioButton>
+        </RadioGroup>
         <br>
-        <span>Работа по данной продукции закончится в {{ active.ended_at.format('HH:mm') }}</span>
+        <br>
+        <span>С учётом производительности линии для данного продукта, время изготовления составит <b>{{ active.time }}</b>ч.</span>
+        <br>
+        <span>Работа по данной продукции закончится в <b>{{ active.ended_at.format('HH:mm') }}</b></span>
         <br>
         <span v-if="active.showError" style="color:#ff4d4f">
             Внимание! Продукция будет изготавливаться дольше, чем работает линия!

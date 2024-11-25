@@ -508,6 +508,37 @@ export default {
             }
             this.listenerSet = true;
             this.document.querySelector('.lines-container').scrollTo({ left: 0 });
+        },
+        scroll(direction, start) {
+            if (start == 1) {
+                if (!this.isScrolling) {
+                    let cont = this.document.querySelector('.lines-container');
+                    this.isScrolling = setInterval((el) => {
+                        cont.scrollTo({
+                            left: cont.scrollLeft + (direction ? 100 : -100),
+                            behavior: "smooth"
+                        });
+                        if (cont.scrollLeft == cont.scrollWidth) {
+                            clearInterval(this.isScrolling);
+                            this.isScrolling = false;
+                            this.showRight = false;
+                        }
+                    }, 20);
+                }
+            } else if (start == 2) {
+                console.log(start);
+                clearInterval(this.isScrolling);
+                this.isScrolling = null;
+            } else {
+                let cont = this.document.querySelector('.lines-container');
+                cont.scrollTo({
+                    left: cont.scrollLeft + (direction ? 100 : -100),
+                    behavior: "smooth"
+                });
+                setTimeout(() => {
+                    return;
+                }, 20);
+            }
         }
     },
     async created() {
@@ -750,4 +781,16 @@ export default {
         </FloatButton> -->
         <BackTop />
     </FloatButtonGroup>
+    <FloatButton @dragover="scroll(true, 0)" @mouseover="scroll(true, 1)" @mouseleave="scroll(true, 2)"
+        style="top:50%;">
+        <template #icon>
+            <RightOutlined />
+        </template>
+    </FloatButton>
+    <FloatButton @dragover="scroll(false, 0)" @mouseover="scroll(false, 1)" @mouseleave="scroll(false, 2)"
+        style="top:50%;left:1%">
+        <template #icon>
+            <LeftOutlined />
+        </template>
+    </FloatButton>
 </template>
