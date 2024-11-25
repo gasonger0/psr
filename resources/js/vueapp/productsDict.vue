@@ -45,10 +45,11 @@ export default {
                 perfomance: ' кг/ч'
             },
             specColumns: [
-                { title: 'Штук в Ящике:', dataIndex: 'amount2parts' },
-                { title: 'Штуки в Кг: Шт *', dataIndex: 'parts2kg' },
-                { title: 'Кг в Варки: Кг *', dataIndex: 'kg2boil' },
-                // { title: 'Тачки: Кг*', dataIndex: 'cars' }
+                { title: 'Штук в Ящике:',   dataIndex: 'amount2parts',  addon: ''                       },
+                { title: 'Штуки в Кг:',     dataIndex: 'parts2kg',      addon: 'Шт ×'                   },
+                { title: 'Кг в Варки:',     dataIndex: 'kg2boil',       addon: 'Кг ×'                   },
+                { title: 'Тачки:',          dataIndex: 'cars',          addon: 'Варка ×'                },
+                { title: 'Поддоны:',        dataIndex: 'cars2plates',   addon: '(Варка - Варка(цел)) ×' }
             ]
         }
     },
@@ -253,8 +254,8 @@ export default {
                         <div style="display:flex; flex-direction: column; gap: 10px;">
                             <div v-for="(v) in specColumns" style="display: flex;">
                                 <span style="width:20%;">{{ v.title }}</span>
-                                <Input v-if="editing" v-model:value="activeProduct[v.dataIndex]" style="max-width:300px;"/>
-                                <span v-else>{{ activeProduct[v.dataIndex] }}</span>
+                                <Input v-if="editing" v-model:value="activeProduct[v.dataIndex]" style="max-width:300px;" :addon-before="v.addon"/>
+                                <span v-else>{{ v.addon }} {{ activeProduct[v.dataIndex] ? activeProduct[v.dataIndex] : '-'}}</span>
                             </div>
                         </div>
                     </TabPane>

@@ -17,11 +17,13 @@ return new class extends Migration
         });
 
         Schema::table('products_plan', function(Blueprint $table) {
-            $table->integer('hardware')->default(1);
-            $table->integer('colon')->default(1);
+            $table->string('hardware')->nullable();
+            $table->integer('colon')->nullable();
         });
 
-        Schema::
+        Schema::table('products_dictionary', function(Blueprint $table) {
+            $table->string('cars2plates')->nullable();
+        });
     }
 
     /**
@@ -29,6 +31,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        //
+        //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     }
 };

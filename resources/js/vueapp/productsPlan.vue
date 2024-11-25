@@ -1,5 +1,5 @@
 <script setup>
-import { Card, Button, Divider, Modal, TimePicker, Tooltip, Popconfirm, Switch, InputNumber, Input, Upload, FloatButton, RadioGroup, RadioButton } from 'ant-design-vue';
+import { Card, Button, Divider, Modal, TimePicker, Tooltip, Popconfirm, Switch, InputNumber, Input, Upload, FloatButton, RadioGroup, RadioButton, CheckboxGroup, Checkbox } from 'ant-design-vue';
 import axios from 'axios';
 import { reactive, ref } from 'vue';
 import dayjs from 'dayjs';
@@ -362,7 +362,9 @@ export default {
                         started_at: this.active.started_at.format('HH:mm'),
                         ended_at: this.active.ended_at.format('HH:mm'),
                         slot_id: this.active.slot.product_slot_id,
-                        amount: this.active.amount
+                        amount: this.active.amount,
+                        colon: this.active.colon,
+                        hardware: this.active.hardware
                     }
                 ).then(async () => {
                     this.confirmPlanOpen = false;
@@ -652,10 +654,14 @@ export default {
             <TimePicker v-model:value="active.started_at" @change="changeTime" format="HH:mm" />
         </div>
         <h3>Колонка: </h3>
-        <RadioGroup v-model:value="active.colon">
-            <RadioButton value="1">Варочная колонка №1</RadioButton>
-            <RadioButton value="2">Варочная колонка №2</RadioButton>
-        </RadioGroup>
+        <!-- <RadioGroup v-model:value="active.colon"> -->
+            <!-- <RadioButton value="1">Варочная колонка №1</RadioButton> -->
+            <!-- <RadioButton value="2">Варочная колонка №2</RadioButton> -->
+        <!-- </RadioGroup> -->
+        <CheckboxGroup v-model:value="active.colon">
+            <Checkbox value="1">Варочная колонка №1</Checkbox>
+            <Checkbox value="2">Варочная колонка №2</Checkbox>
+        </CheckboxGroup>
         <br>
         <h3>Оборудование:</h3>
         <RadioGroup v-model:value="active.hardware">

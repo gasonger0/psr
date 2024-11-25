@@ -229,6 +229,12 @@ class TableController extends Controller
                 if ($row[5]['f']) {
                     $i->kg2boil = preg_filter('/[A-Z]\d{1,4}./', '', $row[5]['f']);
                 }
+                if ($row[8]['f']) {
+                    $i->cars2plates = preg_filter('/[A-Z]\d{1,4}-[A-Z]\d{1,4}./', '', $row[8]['f']);
+                }
+                if($row[12]['f']) {
+                    $i->cars = preg_filter('/[A-Z]\d{1,4}./', '', $row[12]['f']);
+                }
                 $i->save();
             }
         }
@@ -253,7 +259,7 @@ class TableController extends Controller
         }
 
         $lines = Lines::whereIn('line_id', $linesFromPlans)->get(['line_id', 'title', 'started_at', 'ended_at', 'master', 'engineer', 'workers_count'])->toArray();
-        $products = ProductsDictionary::whereIn('product_id', $productsFromLines)->get(['product_id', 'title', 'amount2parts', 'parts2kg', 'kg2boil'])->toArray();
+        $products = ProductsDictionary::whereIn('product_id', $productsFromLines)->get(['product_id', 'title', 'amount2parts', 'parts2kg', 'kg2boil', 'cars', 'cars2plates'])->toArray();
 
         $array = [
             ['', '', 
@@ -363,7 +369,8 @@ class TableController extends Controller
                     $el['amount2parts'] = $products[$title]['amount2parts'];
                     $el['parts2kg'] = $products[$title]['parts2kg'];
                     $el['kg2boil'] = $products[$title]['kg2boil'];
-                    // $el['cars'] = $products[$title]['cars'];
+                    $el['cars'] = $products[$title]['cars'];
+                    $el['cars2plates'] = $products[$title]['cars2plates'];
                 }
 
                 return $el;
@@ -382,6 +389,9 @@ class TableController extends Controller
             }
 
             $array[] = ['', '<style bgcolor="#B7DEE8"><b>ОТВЕТСТВЕННЫЕ:' . $line['master'] . ',' . $line['engineer'] . '</b></style>'];
+            // $array[] = ['', ]
+
+            /// Тут добавить колонку и оьорудование
             $array[] = ['', '<style bgcolor="#D8E4BC"><b>' . $line['title'] . '</b></style>','','','','','','','','','', $line['workers_count'], $line['started_at'], $line['ended_at']];
 
             foreach ($line['items'] as $product) {
@@ -392,7 +402,9 @@ class TableController extends Controller
                 $parts = eval('return ' . $crates . '*' . floatval($product['amount2parts']) . ';');
                 $kg = eval('return ' . $parts . '*' . floatval($product['parts2kg']) . ';');
                 $boils = eval('return ' . $kg . '*' . floatval($product['kg2boil']) . ';');
-                $cars = ceil($boils);
+                $prec = eval('return ' . $boils  . '*') . floatval($product['cars'] . ';');
+                $cars = ceil($prec);
+                $plates = eval('return ' . ($prec - $cars) . '*' . floatval($product['cars2plates']) . ';');
                 $array[] = [
                     '',
                     self::$MCS . $product['title'] . self::$MCE,
@@ -400,8 +412,8 @@ class TableController extends Controller
                     self::$MCS . $parts . self::$MCE,
                     self::$MCS . $kg . self::$MCE,
                     self::$MCS . $boils . self::$MCE,
-                    self::$MCS . ceil($cars) . self::$MCE,
-                    '',
+                    self::$MCS . $cars . self::$MCE,
+                    self::$MCS . $plates . self::$MCE,
                     '',
                     '',
                     '',

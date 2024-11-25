@@ -15,139 +15,207 @@ class WorkerSeeder extends Seeder
     {
         Workers::create([
             "title" => "Щепеткина",
-            "company" => "яцюк"
+            "company" => "яцюк",
+            "break_started_at" => "13:00:00",
+            "break_ended_at" => "13:30:00"
         ]);
         Workers::create([
             "title" => "Ивашкевич",
-            "company" => "альфа-старт"
+            "company" => "альфа-старт",
+            "break_started_at" => "13:00:00",
+            "break_ended_at" => "13:30:00",
         ]);
         Workers::create([
             "title" => "Алимардонова",
-            "company" => "сокол"
+            "company" => "сокол",
+            "break_started_at" => "13:00:00",
+            "break_ended_at" => "13:30:00",
         ]);
         Workers::create([
             "title" => "Сидоренко",
-            "company" => "роганов"
+            "company" => "роганов",
+            "break_started_at" => "13:00:00",
+            "break_ended_at" => "13:30:00",
         ]);
         Workers::create([
             "title" => "Абдулмаликова",
-            "company" => "авнгард"
+            "company" => "авнгард",
+            "break_started_at" => "13:00:00",
+            "break_ended_at" => "13:30:00",
         ]);
         Workers::create([
             "title" => "Рахимбердиева",
-            "company" => "авангард"
+            "company" => "авангард",
+            "break_started_at" => "13:00:00",
+            "break_ended_at" => "13:30:00",
         ]);
         Workers::create([
             "title" => "Иванова",
-            "company" => "роганов"
+            "company" => "роганов",
+            "break_started_at" => "13:00:00",
+            "break_ended_at" => "13:30:00",
         ]);
         Workers::create([
             "title" => "Санавбари",
-            "company" => "роганов"
+            "company" => "роганов",
+            "break_started_at" => "13:00:00",
+            "break_ended_at" => "13:30:00",
         ]);
         Workers::create([
             "title" => "Солиджонов",
-            "company" => "авангард"
+            "company" => "авангард",
+            "break_started_at" => "13:00:00",
+            "break_ended_at" => "13:30:00",
         ]);
         Workers::create([
             "title" => "Атахонова",
-            "company" => "сокол"
+            "company" => "сокол",
+            "break_started_at" => "13:00:00",
+            "break_ended_at" => "13:30:00",
         ]);
         Workers::create([
             "title" => "Ташев",
-            "company" => "авангард"
+            "company" => "авангард",
+            "break_started_at" => "13:00:00",
+            "break_ended_at" => "13:30:00",
         ]);
         Workers::create([
             "title" => "Мелентович",
-            "company" => "яцюк"
+            "company" => "яцюк",
+            "break_started_at" => "13:00:00",
+            "break_ended_at" => "13:30:00",
         ]);
         Workers::create([
             "title" => "Магомедов",
-            "company" => "роганов"
+            "company" => "роганов",
+            "break_started_at" => "13:00:00",
+            "break_ended_at" => "13:30:00",
         ]);
         Workers::create([
             "title" => "Типаева",
-            "company" => "роганов"
+            "company" => "роганов",
+            "break_started_at" => "13:00:00",
+            "break_ended_at" => "13:30:00",
         ]);
         Workers::create([
             "title" => "Шевченко",
-            "company" => "яцюк"
+            "company" => "яцюк",
+            "break_started_at" => "13:00:00",
+            "break_ended_at" => "13:30:00",
         ]);
         Workers::create([
             "title" => "Сазонова",
-            "company" => "яцюк"
+            "company" => "яцюк",
+            "break_started_at" => "13:00:00",
+            "break_ended_at" => "13:30:00",
         ]);
         Workers::create([
             "title" => "Машкова",
-            "company" => "яцюк"
+            "company" => "яцюк",
+            "break_started_at" => "13:00:00",
+            "break_ended_at" => "13:30:00",
         ]);
         Workers::create([
             "title" => "Ивкина",
-            "company" => "роганов"
+            "company" => "роганов",
+            "break_started_at" => "13:00:00",
+            "break_ended_at" => "13:30:00",
         ]);
         Workers::create([
             "title" => "Бегматова",
-            "company" => "авангард"
+            "company" => "авангард",
+            "break_started_at" => "13:00:00",
+            "break_ended_at" => "13:30:00",
         ]);
         Workers::create([
             "title" => "Медетова",
-            "company" => "авангард"
+            "company" => "авангард",
+            "break_started_at" => "13:00:00",
+            "break_ended_at" => "13:30:00",
         ]);
         Workers::create([
             "title" => "Андреева",
-            "company" => "сокол"
+            "company" => "сокол",
+            "break_started_at" => "13:00:00",
+            "break_ended_at" => "13:30:00",
         ]);
         Workers::create([
             "title" => "Шарипова",
-            "company" => "сокол"
+            "company" => "сокол",
+            "break_started_at" => "13:00:00",
+            "break_ended_at" => "13:30:00",
         ]);
         Workers::create([
             "title" => "Раджабов",
-            "company" => "авангард"
+            "company" => "авангард",
+            "break_started_at" => "13:00:00",
+            "break_ended_at" => "13:30:00",
         ]);
         Workers::create([
             "title" => "Шибалин",
-            "company" => "яцюк"
+            "company" => "яцюк",
+            "break_started_at" => "13:00:00",
+            "break_ended_at" => "13:30:00",
         ]);
         Workers::create([
             "title" => "Горячев",
-            "company" => "роганов"
+            "company" => "роганов",
+            "break_started_at" => "13:00:00",
+            "break_ended_at" => "13:30:00",
         ]);
         Workers::create([
             "title" => "Мукумова",
-            "company" => "Сокол"
+            "company" => "Сокол",
+            "break_started_at" => "13:00:00",
+            "break_ended_at" => "13:30:00",
         ]);
         Workers::create([
             "title" => "Шекерова",
-            "company" => "роганов"
+            "company" => "роганов",
+            "break_started_at" => "13:00:00",
+            "break_ended_at" => "13:30:00",
         ]);
         Workers::create([
             "title" => "Дадабаева",
-            "company" => "Сокол"
+            "company" => "Сокол",
+            "break_started_at" => "13:00:00",
+            "break_ended_at" => "13:30:00",
         ]);
         Workers::create([
             "title" => "Мицкая",
-            "company" => "альфа-старт"
+            "company" => "альфа-старт",
+            "break_started_at" => "13:00:00",
+            "break_ended_at" => "13:30:00",
         ]);
         Workers::create([
             "title" => "Каприна",
-            "company" => "яцюк"
+            "company" => "яцюк",
+            "break_started_at" => "13:00:00",
+            "break_ended_at" => "13:30:00",
         ]);
         Workers::create([
             "title" => "Кузнецова",
-            "company" => "альфа-старт"
+            "company" => "альфа-старт",
+            "break_started_at" => "13:00:00",
+            "break_ended_at" => "13:30:00",
         ]);
         Workers::create([
             "title" => "Платонов",
-            "company" => "яцюк"
+            "company" => "яцюк",
+            "break_started_at" => "13:00:00",
+            "break_ended_at" => "13:30:00",
         ]);
         Workers::create([
             "title" => "Бабаева",
-            "company" => "авангард"
+            "company" => "авангард",
+            "break_started_at" => "13:00:00",
+            "break_ended_at" => "13:30:00",
         ]);
         Workers::create([
             "title" => "Рахмонов",
-            "company" => "авангард"
+            "company" => "авангард",
+            "break_started_at" => "13:00:00",
+            "break_ended_at" => "13:30:00",
         ]);
     }
 }

@@ -6,7 +6,7 @@ import Loading from './loading.vue';
 import dayjs from 'dayjs';
 import { ColorPicker } from 'vue-color-kit';
 import 'vue-color-kit/dist/vue-color-kit.css'
-import { ForwardOutlined, LoginOutlined, PlusCircleOutlined, StopOutlined, InfoCircleOutlined, UserDeleteOutlined, UserSwitchOutlined, UserAddOutlined } from '@ant-design/icons-vue';
+import { ForwardOutlined, LoginOutlined, PlusCircleOutlined, StopOutlined, InfoCircleOutlined, UserDeleteOutlined, UserSwitchOutlined, UserAddOutlined, RightOutlined, LeftOutlined } from '@ant-design/icons-vue';
 </script>
 <script>
 export default {

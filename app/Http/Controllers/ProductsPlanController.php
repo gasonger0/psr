@@ -36,6 +36,8 @@ class ProductsPlanController extends Controller
                 $plan->started_at = $post['started_at'];
                 $plan->ended_at = $post['ended_at'];
                 $plan->amount = $post['amount'];
+                $plan->hardware = $post['hardware'];
+                $plan->colon = is_array($post['colon']) ? implode(';', $post['colon']) : $post['colon'];
                 $plan->save();
                 return true;
             } else {
