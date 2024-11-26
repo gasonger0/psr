@@ -18,7 +18,7 @@ return new class extends Migration
 
         Schema::table('products_plan', function(Blueprint $table) {
             $table->string('hardware')->nullable();
-            $table->integer('colon')->nullable();
+            $table->string('colon')->nullable();
         });
 
         Schema::table('products_dictionary', function(Blueprint $table) {

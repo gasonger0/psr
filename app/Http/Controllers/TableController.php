@@ -20,8 +20,9 @@ class TableController extends Controller
     private $file = [];
     static $MCS = '<center><middle>';
     static $MCE = '</middle></center>';
-
     private static $skipPhrases = ['подготовительное время', 'заключительное время'];
+    private static $colons = ['', 'Варочная колонка №1', 'Варочная колонка №2'];
+    private static $hardware = ['', 'Мондомикс', 'Торнадо', 'Китайский аэрос'];
 
     public function loadFile(Request $request)
     {
@@ -232,7 +233,7 @@ class TableController extends Controller
                 if ($row[8]['f']) {
                     $i->cars2plates = preg_filter('/[A-Z]\d{1,4}-[A-Z]\d{1,4}./', '', $row[8]['f']);
                 }
-                if($row[12]['f']) {
+                if ($row[12]['f']) {
                     $i->cars = preg_filter('/[A-Z]\d{1,4}./', '', $row[12]['f']);
                 }
                 $i->save();
@@ -262,13 +263,37 @@ class TableController extends Controller
         $products = ProductsDictionary::whereIn('product_id', $productsFromLines)->get(['product_id', 'title', 'amount2parts', 'parts2kg', 'kg2boil', 'cars', 'cars2plates'])->toArray();
 
         $array = [
-            ['', '', 
-            self::$MCS . '2' . self::$MCE, self::$MCS . '3' . self::$MCE, self::$MCS . '4' . self::$MCE, self::$MCS . '5' . self::$MCE, self::$MCS . '6' . self::$MCE, 
-            self::$MCS . '7' . self::$MCE, self::$MCS . '8' . self::$MCE, self::$MCS . '9' . self::$MCE, self::$MCS . '10' .self::$MCE, self::$MCS . '11' .self::$MCE, 
-            self::$MCS . '12' .self::$MCE, self::$MCS . '13' .self::$MCE, self::$MCS . '14' .self::$MCE, self::$MCS . '15' .self::$MCE, self::$MCS . '16' .self::$MCE, 
-            self::$MCS . '17' .self::$MCE, self::$MCS . '18' .self::$MCE, self::$MCS . '19' .self::$MCE, self::$MCS . '20' .self::$MCE, self::$MCS . '21' .self::$MCE, 
-            self::$MCS . '22' .self::$MCE, self::$MCS . '23' .self::$MCE, self::$MCS . '24' .self::$MCE, self::$MCS . '25' .self::$MCE, self::$MCS . '26' .self::$MCE, 
-            self::$MCS . '27' .self::$MCE, self::$MCS . '28' .self::$MCE],
+            [
+                '',
+                '',
+                self::$MCS . '2' . self::$MCE,
+                self::$MCS . '3' . self::$MCE,
+                self::$MCS . '4' . self::$MCE,
+                self::$MCS . '5' . self::$MCE,
+                self::$MCS . '6' . self::$MCE,
+                self::$MCS . '7' . self::$MCE,
+                self::$MCS . '8' . self::$MCE,
+                self::$MCS . '9' . self::$MCE,
+                self::$MCS . '10' . self::$MCE,
+                self::$MCS . '11' . self::$MCE,
+                self::$MCS . '12' . self::$MCE,
+                self::$MCS . '13' . self::$MCE,
+                self::$MCS . '14' . self::$MCE,
+                self::$MCS . '15' . self::$MCE,
+                self::$MCS . '16' . self::$MCE,
+                self::$MCS . '17' . self::$MCE,
+                self::$MCS . '18' . self::$MCE,
+                self::$MCS . '19' . self::$MCE,
+                self::$MCS . '20' . self::$MCE,
+                self::$MCS . '21' . self::$MCE,
+                self::$MCS . '22' . self::$MCE,
+                self::$MCS . '23' . self::$MCE,
+                self::$MCS . '24' . self::$MCE,
+                self::$MCS . '25' . self::$MCE,
+                self::$MCS . '26' . self::$MCE,
+                self::$MCS . '27' . self::$MCE,
+                self::$MCS . '28' . self::$MCE
+            ],
             [
                 '<style height="52">Дата</style>',
                 '<style height="52">' . date('d_m_Y-H:i:s', time()) . '</style>'
@@ -278,7 +303,7 @@ class TableController extends Controller
                 '',
                 '',
                 'план:',
-                'с зефирной массой',
+                '',
                 '',
                 '',
                 '',
@@ -299,12 +324,11 @@ class TableController extends Controller
                 '',
                 '',
                 '',
-                '',
                 self::$MCS . 'Ген.директор ООО КФ "Сокол"' . self::$MCE
             ],
             [
                 self::$MCS . '<b>№</b>' . self::$MCE,
-                '<style border="#000000" font-size="20">' . self::$MCS . 'Наименование' . self::$MCE . '</style>',
+                '<style border="#000000" font-size="20">' . self::$MCS . '<b>Наименование</b>' . self::$MCE . '</style>',
                 self::$MCS . '<b>Плановое кол-во корпуса</b>' . self::$MCE,
                 '',
                 '',
@@ -331,25 +355,66 @@ class TableController extends Controller
                 '',
                 '',
                 '',
-                '',
                 self::$MCS . '<b>ПРИМЕЧАНИЕ</b>' . self::$MCE
             ],
-            ['', '', '', '', '', '', '', '', '', '', '', self::$MCS . '<b>кол-во людей</b>' . self::$MCE, self::$MCS . 'Время' . self::$MCE],
             [
-                '',
+                '', 
+                '', 
+                '', 
+                '', 
+                '', 
+                '', 
+                '', 
+                '', 
+                '', 
+                '', 
+                '', 
+                self::$MCS . '<wraptext><b>кол-во людей</b></wraptext>' . self::$MCE, 
+                self::$MCS . '<b>Время, ч</b>' . self::$MCE,
+                '', 
+                '', 
+                '', 
+                '', 
+                '', 
+                '', 
+                '', 
+                '', 
+                '', 
+                '', 
+                '', 
+                '', 
+                self::$MCS . '<wraptext><b>кол-во людей</b></wraptext>' . self::$MCE, 
+                self::$MCS . '<b>Время, ч</b>' . self::$MCE
+            ],
+            [
+                '<style height="57"></style>',
                 '',
                 self::$MCS . '<b>ящ</b>' . self::$MCE,
                 self::$MCS . '<b>шт</b>' . self::$MCE,
                 self::$MCS . '<b>кг</b>' . self::$MCE,
-                self::$MCS . '<b>варка</b>' . self::$MCE,
-                self::$MCS . '<b>телеги</b>' . self::$MCE,
+                self::$MCS . '<b>Варка</b>' . self::$MCE,
+                self::$MCS . '<b>Телеги</b>' . self::$MCE,
                 '',
                 '',
                 '',
                 '',
                 '',
                 self::$MCS . '<b>начало</b>' . self::$MCE,
-                self::$MCS . '<b>окончание</b>' . self::$MCS
+                self::$MCS . '<b>окончание</b>' . self::$MCS, 
+                '',
+                '',
+                '',
+                self::$MCS . '<b>ящ</b>' . self::$MCE,
+                self::$MCS . '<b>шт</b>' . self::$MCE,
+                self::$MCS . '<b>кг</b>' . self::$MCE,
+                self::$MCS . '<b>Варка</b>' . self::$MCE,
+                self::$MCS . '<b>Телеги</b>' . self::$MCE,
+                '',
+                '',
+                '',
+                '',
+                self::$MCS . '<b>начало</b>' . self::$MCE,
+                self::$MCS . '<b>окончание</b>' . self::$MCS,
             ]
         ];
 
@@ -376,13 +441,24 @@ class TableController extends Controller
                 return $el;
             }, $linePlans);
 
-            $line['items'] = $linePlans;
+            $line['items'] = [];
+            $hardwares = array_filter(array_unique(array_column($linePlans, 'hardware')));
+
+
+            foreach ($hardwares as $hw) {
+                $line['items'][$hw] = [
+                    'hwTitle' => self::$hardware[$hw],
+                    'items' => array_filter($linePlans, function ($el) use ($hw) {
+                        return $el['hardware'] == $hw;
+                    })
+                ];
+            }
 
             $line['master'] = $line['master'] ? explode(' ', $responsibles[$line['master']]) : '';
             $line['engineer'] = $line['engineer'] ? explode(' ', $responsibles[$line['engineer']]) : '';
 
             if (is_array($line['master'])) {
-                $line['master'] =  $line['master'][0] . mb_strcut($line['master'][1], 0, 1) . '.';
+                $line['master'] = $line['master'][0] . mb_strcut($line['master'][1], 0, 1) . '.';
             }
             if (is_array($line['engineer'])) {
                 $line['engineer'] = $line['engineer'][0] . mb_strcut($line['engineer'][1], 0, 1) . '.';
@@ -391,37 +467,49 @@ class TableController extends Controller
             $array[] = ['', '<style bgcolor="#B7DEE8"><b>ОТВЕТСТВЕННЫЕ:' . $line['master'] . ',' . $line['engineer'] . '</b></style>'];
             // $array[] = ['', ]
 
-            /// Тут добавить колонку и оьорудование
-            $array[] = ['', '<style bgcolor="#D8E4BC"><b>' . $line['title'] . '</b></style>','','','','','','','','','', $line['workers_count'], $line['started_at'], $line['ended_at']];
+            $colon = array_filter(array_unique(array_column($line['items'], 'colon')));
+            if (count($colon) >= 2) {
+                $colon = [1,2];
+            }
+            if (!empty($colon)) {
+                $array[] = ['', '<b>', self::$colons[$colon[0]], '</b>'];
+            }
+            $array[] = ['', '<style bgcolor="#D8E4BC"><b>' . $line['title'] . '</b></style>', '', '', '', '', '', '', '', '', '', $line['workers_count'], $line['started_at'], $line['ended_at']];
+            if (!empty($colon) && count($colon) > 1) {
+                $array[] = ['', '<b>', self::$colons[$colon[1]], '</b>'];
+            }
 
-            foreach ($line['items'] as $product) {
-                if (!isset($product['amount2parts'])) {
-                    continue;
+            // var_dump($line);
+            foreach ($line['items'] as $hw) {
+                $array[] = ['', '<style bgcolor="#D8E4BC"><b>' . mb_strtoupper($hw['hwTitle']) . '</b></style>'];
+                foreach ($hw['items'] as $product) {
+                    if (!isset($product['amount2parts'])) {
+                        continue;
+                    }
+                    $kg = floatval($product['amount']);
+                    $parts = eval ('return ' . $kg . '/' . floatval($product['parts2kg']) . ';');
+                    $crates = eval ('return ' . $parts . '/' . floatval($product['amount2parts']) . ';');
+                    $boils = eval ('return ' . $kg . '*' . floatval($product['kg2boil']) . ';');
+                    $prec = eval ('return ' . $boils . '*' . floatval($product['cars']) . ';');
+                    $cars = ceil($prec);
+                    $plates = eval ('return ' . ($prec - $cars) . '*' . floatval($product['cars2plates']) . ';');
+                    $array[] = [
+                        '',
+                        $product['title'],
+                        self::$MCS . $crates . self::$MCE,
+                        self::$MCS . $parts . self::$MCE,
+                        self::$MCS . $kg . self::$MCE,
+                        self::$MCS . $boils . self::$MCE,
+                        self::$MCS . $cars . self::$MCE,
+                        '<b>т</b>',
+                        self::$MCS . $plates . self::$MCE,
+                        '<b>под</b>',
+                        self::$MCS . '<b>' . $prec . '</b>' . self::$MCE,
+                        $product['workers_count'],
+                        $product['started_at'],
+                        $product['ended_at']
+                    ];
                 }
-                $crates = floatval($product['amount']);
-                $parts = eval('return ' . $crates . '*' . floatval($product['amount2parts']) . ';');
-                $kg = eval('return ' . $parts . '*' . floatval($product['parts2kg']) . ';');
-                $boils = eval('return ' . $kg . '*' . floatval($product['kg2boil']) . ';');
-                $prec = eval('return ' . $boils  . '*') . floatval($product['cars'] . ';');
-                $cars = ceil($prec);
-                $plates = eval('return ' . ($prec - $cars) . '*' . floatval($product['cars2plates']) . ';');
-                $array[] = [
-                    '',
-                    self::$MCS . $product['title'] . self::$MCE,
-                    self::$MCS . $crates . self::$MCE,
-                    self::$MCS . $parts . self::$MCE,
-                    self::$MCS . $kg . self::$MCE,
-                    self::$MCS . $boils . self::$MCE,
-                    self::$MCS . $cars . self::$MCE,
-                    self::$MCS . $plates . self::$MCE,
-                    '',
-                    '',
-                    '',
-                    '',
-                    $product['workers_count'],
-                    $product['started_at'],
-                    $product['ended_at']
-                ];
             }
             $array[] = [];
         }
@@ -429,12 +517,37 @@ class TableController extends Controller
 
         $xlsx = SimpleXLSXGen::fromArray($array)
             // ->setDefaultFont('Times New Roman')
-            ->setDefaultFontSize(14)
-            ->setColWidth(13, 18)
-            ->setColWidth(14, 63)
-            ->setColWidth(1, 12)->setColWidth(2, 73)->setColWidth(4, 26)
+            ->setDefaultFontSize(20)
+            // ->setColWidth(13, 18)
+            // ->setColWidth(14, 63)
+            ->setColWidth(1, 10)
+            ->setColWidth(2, 34)
+            ->setColWidth(3, 8)
+            ->setColWidth(4, 8)
+            ->setColWidth(5, 8)
+            ->setColWidth(6, 8)
+            ->setColWidth(7, 8)
+            ->setColWidth(9, 8)
+            ->setColWidth(11, 0)
+            ->setColWidth(12, 8)
+            ->setColWidth(15, 0)
+            ->setColWidth(16, 0)
+            ->setColWidth(17, 0)
+            ->setColWidth(26, 8)
+            ->setColWidth(29, 20)
             ->mergeCells('A4:A6')
-            ->mergeCells('B4:B6')->mergeCells('C4:J5')->mergeCells('L4:N4')->mergeCells('L5:L6')->mergeCells('M5:N5');
+            ->mergeCells('B4:B6')
+            ->mergeCells('C4:J5')
+            ->mergeCells('L4:N4')
+            ->mergeCells('G6:J6')
+            ->mergeCells('L5:L6')
+            ->mergeCells('V6:Y6')
+            ->mergeCells('Z3:AC3')
+            ->mergeCells('AA5:AB5')
+            ->mergeCells('Z5:Z6')
+            ->mergeCells('R4:AB4')
+            ->mergeCells('AC4:AC6')
+            ->mergeCells('M5:N5');
 
         $name = 'План_' . date('d_m_Y-H:i:s', time()) . '.xlsx';
         $xlsx->saveAs($name);
