@@ -37,7 +37,10 @@ class ProductsPlanController extends Controller
                 $plan->ended_at = $post['ended_at'];
                 $plan->amount = $post['amount'];
                 $plan->hardware = $post['hardware'];
-                $plan->colon = is_array($post['colon']) ? implode(';', $post['colon']) : $post['colon'];
+
+                if (isset($post['colon'])) {
+                    $plan->colon = is_array($post['colon']) ? implode(';', $post['colon']) : $post['colon'];
+                }
                 $plan->save();
                 return true;
             } else {
@@ -52,14 +55,14 @@ class ProductsPlanController extends Controller
         return true;
     }
 
-    public function  changePlan(Request $request) 
+    public function  changePlan(Request $request)
     {
         if ($data = $request->post()) {
             $plan = ProductsPlan::find($data['plan_product_id']);
             $plan->started_at = Carbon::parse($plan->started_at)->addMinutes($data['diff']);
             $plan->ended_at = Carbon::parse($plan->ended_at)->addMinutes($data['diff']);;
             $plan->save();
-            return; 
+            return;
         }
         return -1;
     }

@@ -615,7 +615,7 @@ export default {
                         <Tooltip v-show="line.edit">
                             <template #title>
                                 <ColorPicker theme="light" :color="line.color"
-                                    @changeColor="(ev) => { line.color = ev.hex; console.log(line); }" />
+                                    @changeColor="(ev) => { line.color = ev.hex; }" />
                             </template>
                             <div style="width: 30px; height: 30px;border-radius: 5px; border: 2px solid white"
                                 :style="'background-color:' + line.color" v-show="line.edit">

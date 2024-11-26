@@ -29,11 +29,25 @@ export default {
                 1: "Варка",
                 2: "Упаковка"
             },
+            columnsPack: [{
+                title: 'Линия',
+                dataIndex: 'line_id',
+                width: '40%'
+            }, {
+                title: 'Количество струдников',
+                dataIndex: 'people_count'
+            }, {
+                title: 'Кг в час',
+                dataIndex: 'perfomance'
+            }],
             columns: [{
                 title: 'Линия',
                 dataIndex: 'line_id',
                 width: '40%'
             }, {
+                title: 'Оборудование',
+                dataIndex: 'hardware'
+            },{
                 title: 'Количество струдников',
                 dataIndex: 'people_count'
             }, {
@@ -50,7 +64,12 @@ export default {
                 { title: 'Кг в Варки:',     dataIndex: 'kg2boil',       addon: 'Кг ×'                   },
                 { title: 'Тачки:',          dataIndex: 'cars',          addon: 'Варка ×'                },
                 { title: 'Поддоны:',        dataIndex: 'cars2plates',   addon: '(Варка - Варка(цел)) ×' }
-            ]
+            ],
+            hardwares: {
+                1: 'ТОРНАДО',
+                2: 'Мондомикс',
+                3: 'Китайский Аэрос'
+            }
         }
     },
     methods: {
@@ -59,7 +78,6 @@ export default {
                 axios.get('/api/get_categories')
                     .then((response) => {
                         if (response.data) {
-                            console.log(response.data);
                             this.categories = response.data;
                             resolve();
                         }
@@ -210,12 +228,15 @@ export default {
             <div style="min-width: 60%;">
                 <Tabs v-model:activeKey="activeTab">
                     <TabPane v-for="(v, k) in tabs" :key="k" :tab="v">
-                        <Table :columns="columns" bordered :data-source="slots.filter(el => { return el.type_id == k })"
+                        <Table :columns="k == 1 ? columns : columnsPack" bordered :data-source="slots.filter(el => { return el.type_id == k })"
                             :pagination="false" v-show=slots>
                             <template #emptyText>
                                 <Empty description="Нет данных" style="max-width:100%;" />
                             </template>
                             <template #bodyCell="{ record, column, text }">
+                                <template v-if="!editing && (column.dataIndex == 'hardware')">
+                                    {{ hardwares[text] }}
+                                </template>
                                 <template v-if="loading">
                                     <Skeleton active />
                                 </template>
@@ -224,6 +245,13 @@ export default {
                                         <InputNumber v-model:value="record[column.dataIndex]" /> {{
                                             measures[column.dataIndex]
                                         }}
+                                    </template>
+                                    <template v-else-if="column.dataIndex == 'hardware'">
+                                        <Select v-model:value="record[column.dataIndex]" style="width: 100%;">
+                                            <SelectOption v-for="(v, k) in hardwares" :key="k" :value="k">
+                                                {{ v }}
+                                            </SelectOption>
+                                        </Select>
                                     </template>
                                     <template v-else>
                                         <Select v-model:value="record[column.dataIndex]" style="width: 100%;">

@@ -36,7 +36,8 @@ export default {
                 1: "Варка",
                 2: "Упаковка"
             },
-            isScrolling: false
+            isScrolling: false,
+            showPack: ref(false)
         }
     },
     methods: {
@@ -128,7 +129,6 @@ export default {
             return new Promise((resolve, reject) => {
                 axios.get('/api/get_product_orders')
                     .then((response) => {
-                        console.log(this.products);
                         response.data.forEach(el => {
                             let prod = this.products.find((i) => i.product_id == el.product_id);
                             if (prod) {
@@ -182,12 +182,12 @@ export default {
                             if (!product.active_slots[1] && product.slots[1]) {
                                 for (let i in product.slots[1]) {
                                     console.log(i);
-                                    this.document.querySelector('.line[data-id="' + product.slots[1][i].line_id + '"]').classList.toggle('hidden-hard');
+                                    this.document.querySelector('.line[data-id="' + product.slots[1][i].line_id + '"]').classList.remove('hidden-hard');
                                 }
                             }
                             if (product.active_slots[1] && product.slots[2]) {
                                 for (let i in product.slots[2]) {
-                                    this.document.querySelector('.line[data-id="' + product.slots[2][i].line_id + '"]').classList.toggle('hidden-hard');
+                                    this.document.querySelector('.line[data-id="' + product.slots[2][i].line_id + '"]').classList.remove('hidden-hard');
                                 }
                             }
                         }
@@ -205,7 +205,8 @@ export default {
 
                             this.active.line = ref(this.lines.find(f => f.line_id == line_id));
                             let prod = this.products.find(i => i.product_id == ev.target.dataset.id);
-                            this.active.slot = prod.slots[1].concat(prod.slots[2]).find(n => n.line_id == line_id);
+                            this.active.slot = prod.slots[1].concat(prod.slots[2]).find(n => n.line_id == line_id && n.hardware == null);
+                            // this.active.hwSlot = prod.slots[1].concat(prod.slots[2]).find(n => n.line_id == line_id && n.hardware == 1);
                             this.active.perfomance = this.active.slot.perfomance
                             this.active.amount = prod.order_amount;
                             this.active.order_amount = ref(prod.order_amount);
@@ -223,6 +224,11 @@ export default {
                             }
                             this.active.time = (this.active.amount / this.active.perfomance).toFixed(2);
                             this.active.ended_at = ref(this.active.started_at.add(this.active.time, 'hour'));
+                            if (this.active.slot.type_id == 1) {
+                                this.active.ended_at.add(10, 'minute');
+                            } else if (this.active.slot.type_id == 2) {
+                                this.active.ended_at.add(15, 'minute');
+                            }
                             this.active.showError = (this.active.line.ended_at < this.active.ended_at.format('HH:mm:ss'));
                             this.confirmPlanOpen = true;
                             // this.addPlan(ev.target.closest('.line').dataset.id, ev.target.dataset.id);
@@ -296,13 +302,6 @@ export default {
                                     });
                                 }
                             });
-                            // Получить ID и время работый старой карточки
-                            // Получит ИД и время работы новой карточки
-                            // Посчитать разницу
-                            // Посчитать, сколько карточек изменит время работы
-                            // Отправить на бэкенд, как изменить время работы в карточках и их ИД
-
-                            // Обработка при изменении порядка для планов на линии
                         }
                     }
                 });
@@ -392,6 +391,7 @@ export default {
                 this.initFunc();
                 this.showLoader = false;
             }
+            this.active = ref({});
         },
         deletePlan(id) {
             console.log('ID: ' + id);
@@ -428,7 +428,6 @@ export default {
                         return 1;
                     }
                 });
-            console.log(a);
             return a;
         },
         printPlan() {
@@ -488,6 +487,28 @@ export default {
             await this.getProductSlots();
             await this.getOrders();
             this.showLoader = false;
+        },
+        handleHardware() {
+            let ch = null;
+            if (this.active.hardware == 1) {
+                ch = 1;
+            }
+            console.log(this.active.hardware);
+            let line_id = this.active.slot.line_id;
+            let prod = this.products.find(i => i.product_id == this.active.slot.product_id);
+            this.active.slot = prod.slots[1].concat(prod.slots[2]).find(n => n.line_id == line_id && n.hardware == ch);
+            console.log(this.active.slot);
+            if (this.active.slot) {
+                this.active.perfomance = this.active.slot.perfomance;
+                this.active.time = (this.active.amount / this.active.perfomance).toFixed(2);
+                this.active.ended_at = ref(this.active.started_at.add(this.active.time, 'hour'));
+                if (this.active.slot.type_id == 1) {
+                    this.active.ended_at = this.active.ended_at.add(10, 'minute');
+                } else if (this.active.slot.type_id == 2) {
+                    this.active.ended_at = this.active.ended_at.add(15, 'minute');
+                }
+                this.active.showError = (this.active.line.ended_at < this.active.ended_at.format('HH:mm:ss'));
+            }
         },
         scroll(direction, start) {
             if (start == 1) {
@@ -653,25 +674,31 @@ export default {
             <b style="font-size: 16px">Время начала:</b>
             <TimePicker v-model:value="active.started_at" @change="changeTime" format="HH:mm" />
         </div>
-        <h3>Колонка: </h3>
-        <!-- <RadioGroup v-model:value="active.colon"> -->
-            <!-- <RadioButton value="1">Варочная колонка №1</RadioButton> -->
-            <!-- <RadioButton value="2">Варочная колонка №2</RadioButton> -->
-        <!-- </RadioGroup> -->
-        <CheckboxGroup v-model:value="active.colon">
-            <Checkbox value="1">Варочная колонка №1</Checkbox>
-            <Checkbox value="2">Варочная колонка №2</Checkbox>
-        </CheckboxGroup>
+        <div v-if="active.slot.type_id == 1">
+            <h3>Колонка: </h3>
+            <CheckboxGroup v-model:value="active.colon">
+                <Checkbox value="1">Варочная колонка №1</Checkbox>
+                <Checkbox value="2">Варочная колонка №2</Checkbox>
+            </CheckboxGroup>
+            <br>
+            <h3>Оборудование:</h3>
+            <RadioGroup v-model:value="active.hardware" @change="handleHardware">
+                <RadioButton value="2">Мондомикс</RadioButton>
+                <RadioButton value="1">Торнадо</RadioButton>
+                <RadioButton value="3">Китайский АЭРОС</RadioButton>
+            </RadioGroup>
+            <br>
+            <br>
+            <Checkbox v-model:checked="showPack">
+                Сгененрировать план упаковки
+            </Checkbox>
+            <div v-if="showPack">
+                <h1>Test</h1>
+            </div>
+        </div>
         <br>
-        <h3>Оборудование:</h3>
-        <RadioGroup v-model:value="active.hardware">
-            <RadioButton value="1">Мондомикс</RadioButton>
-            <RadioButton value="2">Торнадо</RadioButton>
-            <RadioButton value="3">Китайский АЭРОС</RadioButton>
-        </RadioGroup>
-        <br>
-        <br>
-        <span>С учётом производительности линии для данного продукта, время изготовления составит <b>{{ active.time }}</b>ч.</span>
+        <span>С учётом производительности линии для данного продукта, время изготовления составит <b>{{ active.time
+                }}</b>ч.</span>
         <br>
         <span>Работа по данной продукции закончится в <b>{{ active.ended_at.format('HH:mm') }}</b></span>
         <br>

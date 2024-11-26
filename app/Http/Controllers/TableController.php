@@ -137,6 +137,7 @@ class TableController extends Controller
 
             $activeCategory = null;
             $activeProduct = null;
+            $lastLine = null;
             foreach ($xlsx->rows() as $k => $row) {
                 if ($row[1] == 'Примечание') {
                     break;
@@ -167,9 +168,15 @@ class TableController extends Controller
                 $line_id = Lines::where('title', '=', $row[4])
                     ->first()->line_id ?? null;
 
+                $isHardware = ($row[4] == 'ТОРНАДО');
+
+                if (!$line_id && $isHardware) {
+                    $line_id = $lastLine;
+                }
                 if ($line_id) {
+                    $lastLine = $line_id;
                     $boil = ProductsSlots::where('product_id', '=', $activeProduct)
-                        ->where('line_id', '=', $line_id)
+                        ->where('line_id', '=', $line_id)->where('hardware', ($isHardware ? '!=' : '='), null)
                         ->first();
                     if (!$boil) {
                         $boil = new ProductsSlots();
@@ -179,6 +186,9 @@ class TableController extends Controller
                     $boil->people_count = ($row[8] != '') ? $row[8] : 0;
                     $boil->perfomance = $row[5] != '' ? doubleval($row[5]) : 0;
                     $boil->type_id = 1;
+                    if($isHardware){
+                        $boil->hardware = 1;
+                    }  
                     $boil->save();
                 }
 
@@ -206,7 +216,7 @@ class TableController extends Controller
                             $slot->save();
                         }
                     } else {
-                        print_r('Not fount line: ' . $el[0]);
+                        print_r('Not found line: ' . $el[0]);
                     }
                 }
             }
@@ -231,7 +241,7 @@ class TableController extends Controller
                     $i->kg2boil = preg_filter('/[A-Z]\d{1,4}./', '', $row[5]['f']);
                 }
                 if ($row[8]['f']) {
-                    $i->cars2plates = preg_filter('/[A-Z]\d{1,4}-[A-Z]\d{1,4}./', '', $row[8]['f']);
+                    $i->cars2plates = preg_filter('/\([A-Z]\d{1,4}-[A-Z]\d{1,4}\)./', '', $row[8]['f']);
                 }
                 if ($row[12]['f']) {
                     $i->cars = preg_filter('/[A-Z]\d{1,4}./', '', $row[12]['f']);

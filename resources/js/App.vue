@@ -49,7 +49,6 @@ export default {
         },
         showLogs() {
             this.openLogs = true;
-            console.log(this.openLogs);
             return;
         },
         showProductsDict() {
@@ -60,7 +59,6 @@ export default {
             this.boardType = !this.boardType;
         },
         closeModal(ev) {
-            console.log(ev);
             this.openStats = false;
             this.openResult = false;
             this.openLogs = false;
