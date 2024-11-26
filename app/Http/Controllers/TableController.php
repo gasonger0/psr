@@ -176,8 +176,8 @@ class TableController extends Controller
                     }
                     $boil->product_id = $activeProduct;
                     $boil->line_id = $line_id;
-                    $boil->people_count = $row[7] != '' ?? 0;
-                    $boil->perfomance = $row[5] != '' ? floatval($row[5]) : 0;
+                    $boil->people_count = ($row[7] != '') ? $row[7] : 0;
+                    $boil->perfomance = $row[5] != '' ? floatval($row[7]) : 0;
                     $boil->type_id = 1;
                     $boil->save();
                 }
