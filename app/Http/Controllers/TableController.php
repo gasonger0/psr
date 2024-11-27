@@ -168,7 +168,7 @@ class TableController extends Controller
                 $line_id = Lines::where('title', '=', $row[4])
                     ->first()->line_id ?? null;
 
-                $isHardware = ($row[4] == 'ТОРНАДО');
+                $isHardware = $row[4] == 'ТОРНАДО';
 
                 if (!$line_id && $isHardware) {
                     $line_id = $lastLine;

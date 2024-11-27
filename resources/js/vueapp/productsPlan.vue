@@ -1,5 +1,5 @@
 <script setup>
-import { Card, Button, Divider, Modal, TimePicker, Tooltip, Popconfirm, Switch, InputNumber, Input, Upload, FloatButton, RadioGroup, RadioButton, CheckboxGroup, Checkbox } from 'ant-design-vue';
+import { Card, Button, Divider, Modal, TimePicker, Tooltip, Popconfirm, Switch, InputNumber, Input, Upload, FloatButton, RadioGroup, RadioButton, CheckboxGroup, Checkbox, SelectOption, Select, Table } from 'ant-design-vue';
 import axios from 'axios';
 import { reactive, ref } from 'vue';
 import dayjs from 'dayjs';
@@ -206,14 +206,14 @@ export default {
                             this.active.line = ref(this.lines.find(f => f.line_id == line_id));
                             let prod = this.products.find(i => i.product_id == ev.target.dataset.id);
                             this.active.slot = prod.slots[1].concat(prod.slots[2]).find(n => n.line_id == line_id && n.hardware == null);
-                            // this.active.hwSlot = prod.slots[1].concat(prod.slots[2]).find(n => n.line_id == line_id && n.hardware == 1);
+                            this.active.pack = prod.slots[2];
+                            this.active.packs = [];
                             this.active.perfomance = this.active.slot.perfomance
                             this.active.amount = prod.order_amount;
                             this.active.order_amount = ref(prod.order_amount);
                             this.active.title = prod.title;
 
                             let lastProd = this.plans.filter((el) => el.line_id == line_id);
-                            console.log(lastProd)
                             if (lastProd.length > 0) {
                                 lastProd = lastProd.reduce((p, c) => p.ended_at > c.ended_at ? p : c);
                                 this.active.started_at = ref(dayjs(lastProd.ended_at, 'HH:mm:ss'));
@@ -363,9 +363,13 @@ export default {
                         slot_id: this.active.slot.product_slot_id,
                         amount: this.active.amount,
                         colon: this.active.colon,
-                        hardware: this.active.hardware
+                        hardware: this.active.hardware,
+                        packs: this.active.packs,
+                        delay: this.active.packTime
                     }
                 ).then(async () => {
+                    // this.active = ref({});
+
                     this.confirmPlanOpen = false;
                     this.listenerSet = false;
                     this.showLoader = true;
@@ -379,6 +383,8 @@ export default {
                     this.showLoader = false;
                 });
             } else {
+                // this.active = ref({});
+
                 this.confirmPlanOpen = false;
                 this.listenerSet = false;
                 this.showLoader = true;
@@ -391,7 +397,6 @@ export default {
                 this.initFunc();
                 this.showLoader = false;
             }
-            this.active = ref({});
         },
         deletePlan(id) {
             console.log('ID: ' + id);
@@ -496,9 +501,13 @@ export default {
             console.log(this.active.hardware);
             let line_id = this.active.slot.line_id;
             let prod = this.products.find(i => i.product_id == this.active.slot.product_id);
-            this.active.slot = prod.slots[1].concat(prod.slots[2]).find(n => n.line_id == line_id && n.hardware == ch);
-            console.log(this.active.slot);
-            if (this.active.slot) {
+            let newSlot = prod.slots[1].find(function(n){
+                return n.line_id == line_id && n.hardware == ch;
+            });
+            // console.log(prod.slots[1].concat(prod.slots[2]));
+            console.log(newSlot);
+            if (newSlot) {
+                this.active.slot =  newSlot;
                 this.active.perfomance = this.active.slot.perfomance;
                 this.active.time = (this.active.amount / this.active.perfomance).toFixed(2);
                 this.active.ended_at = ref(this.active.started_at.add(this.active.time, 'hour'));
@@ -692,8 +701,23 @@ export default {
             <Checkbox v-model:checked="showPack">
                 Сгененрировать план упаковки
             </Checkbox>
+            <br>
+            <br>
             <div v-if="showPack">
-                <h1>Test</h1>
+                <div>
+                    <span>Упаковать через </span>
+                    <Select placeholder="30" v-model:value="active.packTime">
+                        <SelectOption value="30">30</SelectOption>
+                        <SelectOption value="30">60</SelectOption>
+                        <SelectOption value="30">90</SelectOption>
+                    </Select>
+                    <span> мин.</span>
+                    <CheckboxGroup>
+                        <Checkbox v-for="(v, k) in active.pack" :value="v.slot_id" v-model:checked="active.packs[k]">
+                            {{ lines.find(el => el.line_id == v.line_id).title }}
+                        </Checkbox>
+                    </CheckboxGroup>
+                </div>
             </div>
         </div>
         <br>
