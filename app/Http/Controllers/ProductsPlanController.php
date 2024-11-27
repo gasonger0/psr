@@ -24,6 +24,7 @@ class ProductsPlanController extends Controller
 
     public function addPlan(Request $request)
     {
+        return $request;
         if ($post = $request->post()) {
             $old = ProductsPlan::where('slot_id', '=', $post['slot_id'])->get()->toArray();
             if (empty($old)) {

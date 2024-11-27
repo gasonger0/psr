@@ -36,6 +36,14 @@ export default {
                 1: "Варка",
                 2: "Упаковка"
             },
+            packTimeOptions: [{
+                value: 30
+            }, {
+                value: 60
+            }, {
+                value: 90
+            }],
+            packLinesOptions: ref([]),
             isScrolling: false,
             showPack: ref(false)
         }
@@ -207,7 +215,13 @@ export default {
                             let prod = this.products.find(i => i.product_id == ev.target.dataset.id);
                             this.active.slot = prod.slots[1].concat(prod.slots[2]).find(n => n.line_id == line_id && n.hardware == null);
                             this.active.pack = prod.slots[2];
-                            this.active.packs = [];
+                            this.active.packs = ref([]);
+                            this.packLinesOptions = this.active.pack.map(el => {
+                                return {
+                                    label: this.lines.find(el => el.line_id == el.line_id).title,
+                                    value: el.slot_id
+                                }
+                            });
                             this.active.perfomance = this.active.slot.perfomance
                             this.active.amount = prod.order_amount;
                             this.active.order_amount = ref(prod.order_amount);
@@ -706,23 +720,18 @@ export default {
             <div v-if="showPack">
                 <div>
                     <span>Упаковать через </span>
-                    <Select placeholder="30" v-model:value="active.packTime">
-                        <SelectOption value="30">30</SelectOption>
-                        <SelectOption value="30">60</SelectOption>
-                        <SelectOption value="30">90</SelectOption>
+                    <Select v-model:value="active.packTime" :options="packTimeOptions" placeholder="30">
                     </Select>
                     <span> мин.</span>
-                    <CheckboxGroup>
-                        <Checkbox v-for="(v, k) in active.pack" :value="v.slot_id" v-model:checked="active.packs[k]">
-                            {{ lines.find(el => el.line_id == v.line_id).title }}
-                        </Checkbox>
+                    <CheckboxGroup v-model:value="active.packs" :options="packLinesOptions">
                     </CheckboxGroup>
                 </div>
             </div>
         </div>
         <br>
-        <span>С учётом производительности линии для данного продукта, время изготовления составит <b>{{ active.time
-                }}</b>ч.</span>
+        <span>С учётом производительности линии для данного продукта, время изготовления составит 
+            <b>{{ active.time }}</b>ч.
+        </span>
         <br>
         <span>Работа по данной продукции закончится в <b>{{ active.ended_at.format('HH:mm') }}</b></span>
         <br>
