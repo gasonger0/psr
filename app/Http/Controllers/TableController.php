@@ -167,7 +167,6 @@ class TableController extends Controller
                 // Slots
                 $line_id = Lines::where('title', '=', $row[4])
                     ->first()->line_id ?? null;
-
                 $isHardware = $row[4] == 'ТОРНАДО';
 
                 if (!$line_id && $isHardware) {
@@ -489,7 +488,7 @@ class TableController extends Controller
                 $array[] = ['', '<b>', self::$colons[$colon[1]], '</b>'];
             }
 
-            // var_dump($line);
+            $sum = 0;
             foreach ($line['items'] as $hw) {
                 $array[] = ['', '<style bgcolor="#D8E4BC"><b>' . mb_strtoupper($hw['hwTitle']) . '</b></style>'];
                 foreach ($hw['items'] as $product) {
@@ -497,6 +496,7 @@ class TableController extends Controller
                         continue;
                     }
                     $kg = floatval($product['amount']);
+                    $sum += $kg;
                     $parts = eval ('return ' . $kg . '/' . floatval($product['parts2kg']) . ';');
                     $crates = eval ('return ' . $parts . '/' . floatval($product['amount2parts']) . ';');
                     $boils = eval ('return ' . $kg . '*' . floatval($product['kg2boil']) . ';');
@@ -522,6 +522,9 @@ class TableController extends Controller
                 }
             }
             $array[] = [];
+
+            $array[] = ['','<b>Итого зефира</b>', $sum];
+            $sum = 0;
         }
 
 

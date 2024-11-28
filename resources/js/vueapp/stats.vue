@@ -28,7 +28,7 @@ export default {
         processRows() {
             this.workers.forEach(el => {
                 el.break = {
-                    time: ref([dayjs(el.break_started_at, 'hh:mm:ss'), dayjs(el.break_ended_at, 'HH:mm:ss')]),
+                    time: ref([dayjs(el.break_started_at, 'hh:mm'), dayjs(el.break_ended_at, 'HH:mm')]),
                     worker_id: el.worker_id
                 };
 
@@ -41,7 +41,7 @@ export default {
                 if (slots) {
                     slots.forEach(n => {
                         el[n.line_id] = {
-                            time: ref([dayjs(n.started_at, 'hh:mm:ss'), dayjs(n.ended_at, 'HH:mm:ss')]),
+                            time: ref([dayjs(n.started_at, 'hh:mm'), dayjs(n.ended_at, 'HH:mm')]),
                             slot_id: n.slot_id,
                             line_id: n.line_id
                         }
@@ -82,20 +82,20 @@ export default {
                 item = this.updWorkers.find(el => el.worker_id == rec.worker_id);
             }
             if (item) {
-                item.started_at = rec.time[0].format('HH:mm:ss');
-                item.ended_at = rec.time[1].format('HH:mm:ss');
+                item.started_at = rec.time[0].format('HH:mm');
+                item.ended_at = rec.time[1].format('HH:mm');
             } else {
                 if (rec.slot_id) {
                     this.updSlots.push({
                         slot_id: rec.slot_id,
-                        started_at: rec.time[0].format('HH:mm:ss'),
-                        ended_at: rec.time[1].format('HH:mm:ss')
+                        started_at: rec.time[0].format('HH:mm'),
+                        ended_at: rec.time[1].format('HH:mm')
                     });
                 } else if (rec.worker_id) {
                     this.updWorkers.push({
                         worker_id: rec.worker_id,
-                        started_at: rec.time[0].format('HH:mm:ss'),
-                        ended_at: rec.time[1].format('HH:mm:ss')
+                        started_at: rec.time[0].format('HH:mm'),
+                        ended_at: rec.time[1].format('HH:mm')
                     });
                 }
             }

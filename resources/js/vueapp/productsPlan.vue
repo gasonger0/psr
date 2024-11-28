@@ -193,7 +193,7 @@ export default {
                                     this.document.querySelector('.line[data-id="' + product.slots[1][i].line_id + '"]').classList.remove('hidden-hard');
                                 }
                             }
-                            if (product.active_slots[1] && product.slots[2]) {
+                            if ((product.active_slots[1] && product.slots[2]) || (!product.active_slots[1] && product.slots[1].length == 0)) {
                                 for (let i in product.slots[2]) {
                                     this.document.querySelector('.line[data-id="' + product.slots[2][i].line_id + '"]').classList.remove('hidden-hard');
                                 }
@@ -213,15 +213,18 @@ export default {
 
                             this.active.line = ref(this.lines.find(f => f.line_id == line_id));
                             let prod = this.products.find(i => i.product_id == ev.target.dataset.id);
+                            console.log(this.active);
+                            console.log(prod);
                             this.active.slot = prod.slots[1].concat(prod.slots[2]).find(n => n.line_id == line_id && n.hardware == null);
-                            this.active.pack = prod.slots[2];
+                            console.log(prod.slots[1]);
                             this.active.packs = ref([]);
-                            this.packLinesOptions = this.active.pack.map(el => {
+                            this.packLinesOptions = prod.slots[2].map(el => {
                                 return {
-                                    label: this.lines.find(el => el.line_id == el.line_id).title,
-                                    value: el.slot_id
+                                    label: this.lines.find(f => f.line_id == el.line_id).title,
+                                    value: el.product_slot_id
                                 }
                             });
+                            console.log(this.packLinesOptions);
                             this.active.perfomance = this.active.slot.perfomance
                             this.active.amount = prod.order_amount;
                             this.active.order_amount = ref(prod.order_amount);
@@ -230,24 +233,24 @@ export default {
                             let lastProd = this.plans.filter((el) => el.line_id == line_id);
                             if (lastProd.length > 0) {
                                 lastProd = lastProd.reduce((p, c) => p.ended_at > c.ended_at ? p : c);
-                                this.active.started_at = ref(dayjs(lastProd.ended_at, 'HH:mm:ss'));
+                                this.active.started_at = ref(dayjs(lastProd.ended_at, 'HH:mm'));
                             } else if (this.active.line.started_at != null) {
-                                this.active.started_at = ref(dayjs(this.active.line.started_at, 'HH:mm:ss'));
+                                this.active.started_at = ref(dayjs(this.active.line.started_at, 'HH:mm'));
                             } else {
                                 this.active.started_at = ref(dayjs());
                             }
                             this.active.time = (this.active.amount / this.active.perfomance).toFixed(2);
                             this.active.ended_at = ref(this.active.started_at.add(this.active.time, 'hour'));
+                            console.log(this.active.time);
                             if (this.active.slot.type_id == 1) {
-                                this.active.ended_at.add(10, 'minute');
+                                this.active.ended_at = this.active.ended_at.add(10, 'minute');
                             } else if (this.active.slot.type_id == 2) {
-                                this.active.ended_at.add(15, 'minute');
+                                this.active.ended_at = this.active.ended_at.add(15, 'minute');
+                            } else {
+                                console.log(1, this.active.slot.type_id)
                             }
-                            this.active.showError = (this.active.line.ended_at < this.active.ended_at.format('HH:mm:ss'));
+                            this.active.showError = (this.active.line.ended_at < this.active.ended_at.format('HH:mm'));
                             this.confirmPlanOpen = true;
-                            // this.addPlan(ev.target.closest('.line').dataset.id, ev.target.dataset.id);
-                            // this.changeLine(ev.target.closest('.line').dataset.id, ev.target.dataset.id);
-
                         }
                     } else {
                         if (ev.target.classList.contains('selected') && ev.target == this.active.html) {
@@ -269,10 +272,10 @@ export default {
                             let oldd = this.plans.find(el => el.plan_product_id == oldId.dataset.id);
                             let neww = this.plans.find(el => el.plan_product_id == newId.dataset.id);
 
-                            // console.log(dayjs('10:00:00', 'hh:mm:ss'));
+                            // console.log(dayjs('10:00:00', 'hh:mm'));
 
-                            let a = dayjs(oldd.started_at, 'hh:mm:ss');
-                            let b = dayjs(neww.started_at, 'hh:mm:ss');
+                            let a = dayjs(oldd.started_at, 'hh:mm');
+                            let b = dayjs(neww.started_at, 'hh:mm');
                             console.log(a, b);
 
                             let dateDiff = a.diff(b, 'minutes');
@@ -358,11 +361,11 @@ export default {
             this.document.querySelector('.lines-container').scrollTo({ left: 0 });
         },
         changeTime(t, s) {
-            if (t) {
-                this.active.started_at;
-            }
+            // if (t) {
+            //     this.active.started_at;
+            // }
             this.active.ended_at = this.active.started_at.add(this.active.time, 'hour');
-            this.active.showError = this.active.line.ended_at < this.active.ended_at.format('HH:mm:ss');
+            this.active.showError = this.active.line.ended_at < this.active.ended_at.format('HH:mm');
         },
         changeAmount() {
             this.active.time = (this.active.amount / this.active.perfomance).toFixed(2);
@@ -512,25 +515,28 @@ export default {
             if (this.active.hardware == 1) {
                 ch = 1;
             }
-            console.log(this.active.hardware);
             let line_id = this.active.slot.line_id;
             let prod = this.products.find(i => i.product_id == this.active.slot.product_id);
-            let newSlot = prod.slots[1].find(function(n){
+            let newSlot = prod.slots[1].find(function (n) {
                 return n.line_id == line_id && n.hardware == ch;
             });
-            // console.log(prod.slots[1].concat(prod.slots[2]));
+            console.log(line_id);
+            console.log(prod.slots[1]);
             console.log(newSlot);
             if (newSlot) {
-                this.active.slot =  newSlot;
-                this.active.perfomance = this.active.slot.perfomance;
+                console.log("new" ,newSlot);
+                console.log("old", this.active.slot)
+                this.active.slot = newSlot;
+                this.active.perfomance = newSlot.perfomance;
                 this.active.time = (this.active.amount / this.active.perfomance).toFixed(2);
                 this.active.ended_at = ref(this.active.started_at.add(this.active.time, 'hour'));
+                console.log(this.active.time);
                 if (this.active.slot.type_id == 1) {
                     this.active.ended_at = this.active.ended_at.add(10, 'minute');
                 } else if (this.active.slot.type_id == 2) {
                     this.active.ended_at = this.active.ended_at.add(15, 'minute');
                 }
-                this.active.showError = (this.active.line.ended_at < this.active.ended_at.format('HH:mm:ss'));
+                this.active.showError = (this.active.line.ended_at < this.active.ended_at.format('HH:mm'));
             }
         },
         scroll(direction, start) {
@@ -729,7 +735,7 @@ export default {
             </div>
         </div>
         <br>
-        <span>С учётом производительности линии для данного продукта, время изготовления составит 
+        <span>С учётом производительности линии для данного продукта, время изготовления составит
             <b>{{ active.time }}</b>ч.
         </span>
         <br>

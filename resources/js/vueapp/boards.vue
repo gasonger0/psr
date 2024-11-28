@@ -278,10 +278,10 @@ export default {
                             el.color = ref(el.color);
                             el.showDelete = ref(false);
                             el.time = ref([
-                                el.started_at ? dayjs(el.started_at, 'hh:mm:ss') : dayjs(),
-                                el.ended_at ? dayjs(el.ended_at, 'HH:mm:ss') : dayjs()
+                                el.started_at ? dayjs(el.started_at, 'hh:mm') : dayjs(),
+                                el.ended_at ? dayjs(el.ended_at, 'HH:mm') : dayjs()
                             ]);
-                            //el.time = ref(dayjs(el.started_at, 'hh:mm:ss'));
+                            //el.time = ref(dayjs(el.started_at, 'hh:mm'));
                             let curTime = new Date();
 
                             let timeString =
@@ -351,10 +351,10 @@ export default {
             fd.append('line_id', record['line_id']);
 
             // if (record['line_id'] != -1) {
-            //     fd.append('started_at', record.time.format('HH:mm:ss'));
+            //     fd.append('started_at', record.time.format('HH:mm'));
             // } else {
-            fd.append('started_at', record.time[0].format('HH:mm:ss'));
-            fd.append('ended_at', record.time[1].format('HH:mm:ss'));
+            fd.append('started_at', record.time[0].format('HH:mm'));
+            fd.append('ended_at', record.time[1].format('HH:mm'));
             // }
             if (record.workers_count) {
                 fd.append('workers_count', record.workers_count);
@@ -378,8 +378,8 @@ export default {
                 .then((response) => {
                     this.$emit('notify', 'success', 'Сохранено');
                     let i = this.lines.find(el => el.line_id == record['line_id']);
-                    i.started_at = dayjs(record.time[0].format('HH:mm:ss'));
-                    i.ended_at = dayjs(record.time[1].format('HH:mm:ss'));
+                    i.started_at = dayjs(record.time[0].format('HH:mm'));
+                    i.ended_at = dayjs(record.time[1].format('HH:mm'));
                     let arr = [];
                     if (i.master) {
                         let f = this.responsible.find(m => m.responsible_id == i.master);

@@ -202,7 +202,7 @@ export default {
             </div>
             <Divider type="vertical" style="height:unset;" />
             <div style="width:20%">
-                <List :data-source="products" v-if="products.length != 0">
+                <List :data-source="products" v-if="products.length != 0" style="max-height:60vh; overflow: auto;">
                     <template #renderItem="{ item }">
                         <ListItem @click="getProductSlots(item.product_id)" v-if="!editing" class="product_list-item"
                             :class="activeProduct.product_id == item.product_id ? 'active' : ''">

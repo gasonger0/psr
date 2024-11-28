@@ -24,7 +24,6 @@ class ProductsPlanController extends Controller
 
     public function addPlan(Request $request)
     {
-        return $request;
         if ($post = $request->post()) {
             $old = ProductsPlan::where('slot_id', '=', $post['slot_id'])->get()->toArray();
             if (empty($old)) {
@@ -43,6 +42,30 @@ class ProductsPlanController extends Controller
                     $plan->colon = is_array($post['colon']) ? implode(';', $post['colon']) : $post['colon'];
                 }
                 $plan->save();
+
+                if (isset($post['delay']) && isset($post['packs'])) {
+                    foreach ($post['packs'] as $pack) {
+                        $plan = new ProductsPlan();
+                        $slot = ProductsSlots::find($pack)->toArray();
+                        $plan->product_id = $slot['product_id'];
+                        $plan->line_id = $slot['line_id'];
+                        $plan->slot_id = $slot['product_slot_id'];
+                        $plan->workers_count = $slot['people_count'];
+
+                        $start = new \DateTime($post['ended_at']);
+
+                        $start->add(new \DateInterval('PT' . $post['delay'] . 'M'));
+
+                        $plan->started_at = $start->format('H:i:s');
+                        $duration = ceil($post['amount'] / $slot['perfomance'] * 60);
+
+                        $start->add(new \DateInterval('PT' . $duration . 'M'));
+
+                        $plan->ended_at = $start->format('H:i:s');
+                        $plan->amount = $post['amount'];
+                        $plan->save();
+                    }
+                }
                 return true;
             } else {
                 // Уже запланировано, обработать вызовом эдита
@@ -56,12 +79,13 @@ class ProductsPlanController extends Controller
         return true;
     }
 
-    public function  changePlan(Request $request)
+    public function changePlan(Request $request)
     {
         if ($data = $request->post()) {
             $plan = ProductsPlan::find($data['plan_product_id']);
             $plan->started_at = Carbon::parse($plan->started_at)->addMinutes($data['diff']);
-            $plan->ended_at = Carbon::parse($plan->ended_at)->addMinutes($data['diff']);;
+            $plan->ended_at = Carbon::parse($plan->ended_at)->addMinutes($data['diff']);
+            ;
             $plan->save();
             return;
         }
