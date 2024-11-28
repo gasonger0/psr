@@ -524,7 +524,7 @@ export default {
             console.log(prod.slots[1]);
             console.log(newSlot);
             if (newSlot) {
-                console.log("new" ,newSlot);
+                console.log("new", newSlot);
                 console.log("old", this.active.slot)
                 this.active.slot = newSlot;
                 this.active.perfomance = newSlot.perfomance;
@@ -544,33 +544,17 @@ export default {
                 if (!this.isScrolling) {
                     let cont = this.document.querySelector('.lines-container');
                     this.isScrolling = setInterval((el) => {
-                        // cont.scrollLeft += direction ? 200 : -200;
                         cont.scrollTo({
-                            left: cont.scrollLeft + (direction ? 300 : -300),
+                            left: cont.scrollLeft + (direction ? 280 : -280),
                             behavior: "smooth"
                         });
-                        // if (cont.scrollLeft == cont.scrollWidth) {
-                        //     clearInterval(this.isScrolling);
-                        //     this.isScrolling = false;
-                        //     this.showRight = false;
-                        // }
-                    }, 100);
-
+                        // cont.scrollLeft += (direction ? 280 : -280);
+                        console.log('scroll');
+                    }, 450);
                 }
             } else if (start == 2) {
-                console.log(start);
                 clearInterval(this.isScrolling);
                 this.isScrolling = null;
-            } else {
-                let cont = this.document.querySelector('.lines-container');
-                cont.scrollTo({
-                    left: cont.scrollLeft + (direction ? 300 : -300),
-                    behavior: "smooth"
-                });
-                
-                setTimeout(() => {
-                    return;
-                }, 100);
             }
         }
     },
@@ -683,14 +667,14 @@ export default {
             </section>
         </div>
     </div>
-    <FloatButton @dragover="scroll(true, 0)" @mouseover="scroll(true, 1)" @mouseleave="scroll(true, 2)"
-        style="top:50%;">
+    <FloatButton @dragover="scroll(true, 1)" @dragleave="scroll(true, 2)" @mouseover="scroll(true, 1)"
+        @mouseleave="scroll(true, 2)" style="top:50%;">
         <template #icon>
             <RightOutlined />
         </template>
     </FloatButton>
-    <FloatButton @dragover="scroll(false, 0)" @mouseover="scroll(false, 1)" @mouseleave="scroll(false, 2)"
-        style="top:50%;left:1%">
+    <FloatButton @dragover="scroll(false, 1)" @dragleave="scroll(false, 2)" @mouseover="scroll(false, 1)"
+        @mouseleave="scroll(false, 2)" style="top:50%;left:1%">
         <template #icon>
             <LeftOutlined />
         </template>
