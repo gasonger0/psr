@@ -544,16 +544,18 @@ export default {
                 if (!this.isScrolling) {
                     let cont = this.document.querySelector('.lines-container');
                     this.isScrolling = setInterval((el) => {
+                        // cont.scrollLeft += direction ? 200 : -200;
                         cont.scrollTo({
-                            left: cont.scrollLeft + (direction ? 100 : -100),
+                            left: cont.scrollLeft + (direction ? 300 : -300),
                             behavior: "smooth"
                         });
-                        if (cont.scrollLeft == cont.scrollWidth) {
-                            clearInterval(this.isScrolling);
-                            this.isScrolling = false;
-                            this.showRight = false;
-                        }
-                    }, 20);
+                        // if (cont.scrollLeft == cont.scrollWidth) {
+                        //     clearInterval(this.isScrolling);
+                        //     this.isScrolling = false;
+                        //     this.showRight = false;
+                        // }
+                    }, 100);
+
                 }
             } else if (start == 2) {
                 console.log(start);
@@ -562,12 +564,13 @@ export default {
             } else {
                 let cont = this.document.querySelector('.lines-container');
                 cont.scrollTo({
-                    left: cont.scrollLeft + (direction ? 100 : -100),
+                    left: cont.scrollLeft + (direction ? 300 : -300),
                     behavior: "smooth"
                 });
+                
                 setTimeout(() => {
                     return;
-                }, 20);
+                }, 100);
             }
         }
     },

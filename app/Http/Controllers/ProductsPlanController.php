@@ -51,6 +51,7 @@ class ProductsPlanController extends Controller
                         $plan->line_id = $slot['line_id'];
                         $plan->slot_id = $slot['product_slot_id'];
                         $plan->workers_count = $slot['people_count'];
+                        $plan->hardware = $post['hardware'];
 
                         $start = new \DateTime($post['ended_at']);
 

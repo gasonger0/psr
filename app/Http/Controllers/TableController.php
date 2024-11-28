@@ -185,9 +185,9 @@ class TableController extends Controller
                     $boil->people_count = ($row[8] != '') ? $row[8] : 0;
                     $boil->perfomance = $row[5] != '' ? doubleval($row[5]) : 0;
                     $boil->type_id = 1;
-                    if($isHardware){
+                    if ($isHardware) {
                         $boil->hardware = 1;
-                    }  
+                    }
                     $boil->save();
                 }
 
@@ -224,9 +224,11 @@ class TableController extends Controller
 
     public function loadFormulas(Request $request)
     {
+        var_dump(memory_get_usage());
         $xlsx = SimpleXLSX::parse($request->files->get('file')->getRealPath());
         $arr = [];
 
+        var_dump(memory_get_usage());
         foreach ($xlsx->rowsEx() as $k => $row) {
             $i = ProductsDictionary::where('title', '=', $row[1]['value'])->first();
             if ($i) {
@@ -367,32 +369,32 @@ class TableController extends Controller
                 self::$MCS . '<b>ПРИМЕЧАНИЕ</b>' . self::$MCE
             ],
             [
-                '', 
-                '', 
-                '', 
-                '', 
-                '', 
-                '', 
-                '', 
-                '', 
-                '', 
-                '', 
-                '', 
-                self::$MCS . '<wraptext><b>кол-во людей</b></wraptext>' . self::$MCE, 
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                self::$MCS . '<wraptext><b>кол-во людей</b></wraptext>' . self::$MCE,
                 self::$MCS . '<b>Время, ч</b>' . self::$MCE,
-                '', 
-                '', 
-                '', 
-                '', 
-                '', 
-                '', 
-                '', 
-                '', 
-                '', 
-                '', 
-                '', 
-                '', 
-                self::$MCS . '<wraptext><b>кол-во людей</b></wraptext>' . self::$MCE, 
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                self::$MCS . '<wraptext><b>кол-во людей</b></wraptext>' . self::$MCE,
                 self::$MCS . '<b>Время, ч</b>' . self::$MCE
             ],
             [
@@ -409,7 +411,7 @@ class TableController extends Controller
                 '',
                 '',
                 self::$MCS . '<b>начало</b>' . self::$MCE,
-                self::$MCS . '<b>окончание</b>' . self::$MCS, 
+                self::$MCS . '<b>окончание</b>' . self::$MCS,
                 '',
                 '',
                 '',
@@ -478,7 +480,7 @@ class TableController extends Controller
 
             $colon = array_filter(array_unique(array_column($line['items'], 'colon')));
             if (count($colon) >= 2) {
-                $colon = [1,2];
+                $colon = [1, 2];
             }
             if (!empty($colon)) {
                 $array[] = ['', '<b>', self::$colons[$colon[0]], '</b>'];
@@ -523,7 +525,7 @@ class TableController extends Controller
             }
             $array[] = [];
 
-            $array[] = ['','<b>Итого зефира</b>', $sum];
+            $array[] = ['', '<b>Итого зефира</b>', $sum];
             $sum = 0;
         }
 
