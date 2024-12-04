@@ -587,12 +587,12 @@ class TableController extends Controller
             foreach ($data['lines'] as $item) {
                 $i = Lines::find($item['line_id']);
                 if ($i) {
-                    $i->master = $item['master'];
-                    $i->started_at = $item['started_at'];
-                    $i->ended_at = $item['ended_at'];
-                    $i->color = $item['color'];
-                    $i->type_id = $item['type_id'];
-                    $i->engineer = $item['engineer'];
+                    $i->master = $item['master'] ?? null;
+                    $i->started_at = $item['started_at']?? null;
+                    $i->ended_at = $item['ended_at']?? null;
+                    $i->color = $item['color']?? null;
+                    $i->type_id = $item['type_id']?? null;
+                    $i->engineer = $item['engineer']?? null;
                     $i->save();
                 }
             }
