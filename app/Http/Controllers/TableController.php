@@ -221,14 +221,11 @@ class TableController extends Controller
             }
         }
     }
-
     public function loadFormulas(Request $request)
     {
-        var_dump(memory_get_usage());
         $xlsx = SimpleXLSX::parse($request->files->get('file')->getRealPath());
         $arr = [];
 
-        var_dump(memory_get_usage());
         foreach ($xlsx->rowsEx() as $k => $row) {
             $i = ProductsDictionary::where('title', '=', $row[1]['value'])->first();
             if ($i) {
@@ -252,7 +249,6 @@ class TableController extends Controller
         }
         return $arr;
     }
-
     public function dowloadForPrint()
     {
         $plans = json_decode(ProductsPlanController::getList(new Request()), true);
@@ -523,6 +519,7 @@ class TableController extends Controller
                     ];
                 }
             }
+            // $array[] = ['', '<b>Заключительное время</b>', '','','','','','','','','','', end($line['items'])['ended_at']];
             $array[] = [];
 
             $array[] = ['', '<b>Итого зефира</b>', $sum];
@@ -568,7 +565,6 @@ class TableController extends Controller
         $xlsx->saveAs($name);
         return $name;
     }
-
     public function loadPlan(Request $request)
     {
         $path = $request->files->get('file')->getRealPath();
@@ -719,8 +715,9 @@ class TableController extends Controller
                     $ktu = $data[array_search($slot['worker_id'], array_column($data, 'worker_id'))]['ktu'];
                     $columns[] = [
                         $worker['title'],
-                        self::setFloat($slot['time_planned'] / 60),
+                        // self::setFloat($slot['time_planned'] / 60),
                         $workTime,
+                        '',
                         self::setFloat($slot['down_time'] / 60),
                         $workTime + self::setFloat(($slot['down_time'] / 60)),
                         $ktu,

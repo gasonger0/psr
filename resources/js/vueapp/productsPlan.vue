@@ -213,6 +213,7 @@ export default {
 
                             this.active.line = ref(this.lines.find(f => f.line_id == line_id));
                             let prod = this.products.find(i => i.product_id == ev.target.dataset.id);
+                            this.active.kg2boil = prod.kg2boil;
                             console.log(this.active);
                             console.log(prod);
                             this.active.slot = prod.slots[1].concat(prod.slots[2]).find(n => n.line_id == line_id && n.hardware == null);
@@ -524,8 +525,7 @@ export default {
             console.log(prod.slots[1]);
             console.log(newSlot);
             if (newSlot) {
-                console.log("new", newSlot);
-                console.log("old", this.active.slot)
+                this.active.kg2boil = prod.kg2boil;
                 this.active.slot = newSlot;
                 this.active.perfomance = newSlot.perfomance;
                 this.active.time = (this.active.amount / this.active.perfomance).toFixed(2);
@@ -690,6 +690,7 @@ export default {
             <b style="font-size: 16px">Время начала:</b>
             <TimePicker v-model:value="active.started_at" @change="changeTime" format="HH:mm" />
         </div>
+        <span>Количество варок: {{ active.amount * active.kg2boil }}</span>
         <div v-if="active.slot.type_id == 1">
             <h3>Колонка: </h3>
             <CheckboxGroup v-model:value="active.colon">
