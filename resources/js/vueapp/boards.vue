@@ -404,6 +404,8 @@ export default {
                     }
 
                     i.responsibles = arr.join('\n');
+
+                    this.$emit('data-recieved', this.$data);
                 })
                 .catch((err) => {
                     this.$emit('notify', 'error', 'Что-то пошло не так...');
