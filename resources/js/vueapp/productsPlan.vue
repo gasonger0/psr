@@ -51,6 +51,13 @@ export default {
     methods: {
         async getProducts() {
             return new Promise((resolve, reject) => {
+                let forms = [
+                    'amount2parts',
+                    'parts2kg',
+                    'kg2boil',
+                    'cars',
+                    'cars2plates'
+                ];
                 axios.post('/api/get_products', {
                     packaged: this.categorySwitch
                 })
@@ -66,6 +73,13 @@ export default {
                                     1: [],
                                     2: []
                                 };
+                                el.errors = 0;;
+                                for(let k in forms){
+                                    if (el[k] == null || el[k] == '') {
+                                        el.errors +=1;
+                                    }
+                                };
+
                                 el.order_amount = 0;
                                 return el;
                             });
