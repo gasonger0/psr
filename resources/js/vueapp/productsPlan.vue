@@ -4,7 +4,7 @@ import axios from 'axios';
 import { reactive, ref } from 'vue';
 import dayjs from 'dayjs';
 import Loading from './loading.vue';
-import { CloudDownloadOutlined, CloudUploadOutlined, DeleteOutlined, LeftOutlined, PrinterOutlined, RightOutlined } from '@ant-design/icons-vue';
+import { CloudDownloadOutlined, CloudUploadOutlined, DeleteOutlined, LeftOutlined, PrinterOutlined, RightOutlined, InfoCircleOutlined, ExclamationCircleOutlined} from '@ant-design/icons-vue';
 </script>
 <script>
 export default {
@@ -74,11 +74,11 @@ export default {
                                     2: []
                                 };
                                 el.errors = 0;;
-                                for(let k in forms){
+                                forms.forEach(k => {
                                     if (el[k] == null || el[k] == '') {
                                         el.errors +=1;
                                     }
-                                };
+                                });
 
                                 el.order_amount = 0;
                                 return el;
@@ -137,8 +137,7 @@ export default {
                             (String(curTime.getSeconds()).length == 1 ? '0' + String(curTime.getSeconds()) : String(curTime.getSeconds()));
                         this.plans = response.data.map((el) => {
                             let prod = this.products.find((i) => i.product_id == el.product_id);
-
-                            if (el.started_at < timeString && el.ended_at > timeString) {
+                            if (el.started_at < timeString && el.ended_at > timeString && el.line_id != null) {
                                 prod.current_line_id = el.line_id;
                             }
                             return el;
@@ -158,7 +157,9 @@ export default {
                             }
                         });
 
-                        this.products = this.products.filter(el => el.order_amount > 0);
+                        if (this.categorySwitch) {
+                            this.products = this.products.filter(el => el.order_amount > 0);
+                        }
                         resolve(true);
                     })
             })
@@ -229,8 +230,6 @@ export default {
                             let prod = this.products.find(i => i.product_id == ev.target.dataset.id);
                             this.active.kg2boil = prod.kg2boil;
                             console.log('kg2boil', prod.kg2boil);
-                            console.log(this.active);
-                            console.log(prod);
                             this.active.slot = prod.slots[1].concat(prod.slots[2]).find(n => n.line_id == line_id && n.hardware == null);
                             console.log(prod.slots[1]);
                             this.active.packs = ref([]);
@@ -630,6 +629,12 @@ export default {
                         <span style="white-space: break-spaces;">{{ v.title }}</span>
                     </template>
                     <div class="hiding-data">
+                        <span v-if="v.errors >= 3">
+                            <ExclamationCircleOutlined style="font-size:20px;color:#f00d0d;position:absolute;right:10px;"/>
+                        </span>
+                        <span v-else-if="v.errors >= 1">
+                            <InfoCircleOutlined style="font-size:20px;color:#ff8f00;position:absolute;right:10px;"/>
+                        </span>
                         <span>Нужно обеспечить: <b>{{ v.order_amount }}</b></span>
                         <br>
                         <span>Этапы изготовления по линиям:</span>
@@ -706,7 +711,7 @@ export default {
             <TimePicker v-model:value="active.started_at" @change="changeTime" format="HH:mm" />
         </div>
         <div v-if="active.slot.type_id == 1">
-            <span>Количество варок: {{ active.amount * active.kg2boil }}</span>
+            <span>Количество варок: {{ active.amount * eval(active.kg2boil) }}</span>
             <h3>Колонка: </h3>
             <CheckboxGroup v-model:value="active.colon">
                 <Checkbox value="1">Варочная колонка №1</Checkbox>
