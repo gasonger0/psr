@@ -137,8 +137,10 @@ export default {
                             (String(curTime.getSeconds()).length == 1 ? '0' + String(curTime.getSeconds()) : String(curTime.getSeconds()));
                         this.plans = response.data.map((el) => {
                             let prod = this.products.find((i) => i.product_id == el.product_id);
-                            if (el.started_at < timeString && el.ended_at > timeString && el.line_id != null) {
-                                prod.current_line_id = el.line_id;
+                            if (prod) {
+                                if (el.started_at < timeString && el.ended_at > timeString && el.line_id != null) {
+                                    prod.current_line_id = el.line_id;
+                                }
                             }
                             return el;
                         });
@@ -228,7 +230,7 @@ export default {
 
                             this.active.line = ref(this.lines.find(f => f.line_id == line_id));
                             let prod = this.products.find(i => i.product_id == ev.target.dataset.id);
-                            this.active.kg2boil = prod.kg2boil;
+                            this.active.kg2boil = prod.kg2boil ? eval(prod.kg2boil) : 0;
                             console.log('kg2boil', prod.kg2boil);
                             this.active.slot = prod.slots[1].concat(prod.slots[2]).find(n => n.line_id == line_id && n.hardware == null);
                             console.log(prod.slots[1]);
@@ -539,7 +541,7 @@ export default {
             console.log(prod.slots[1]);
             console.log(newSlot);
             if (newSlot) {
-                this.active.kg2boil = prod.kg2boil;
+                this.active.kg2boil = prod.kg2boil ? eval(prod.kg2boil) : 0;
                 this.active.slot = newSlot;
                 this.active.perfomance = newSlot.perfomance;
                 this.active.time = (this.active.amount / this.active.perfomance).toFixed(2);
@@ -711,7 +713,7 @@ export default {
             <TimePicker v-model:value="active.started_at" @change="changeTime" format="HH:mm" />
         </div>
         <div v-if="active.slot.type_id == 1">
-            <span>Количество варок: {{ active.amount * eval(active.kg2boil) }}</span>
+            <span>Количество варок: {{ active.amount * active.kg2boil }}</span>
             <h3>Колонка: </h3>
             <CheckboxGroup v-model:value="active.colon">
                 <Checkbox value="1">Варочная колонка №1</Checkbox>
