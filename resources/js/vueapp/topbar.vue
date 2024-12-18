@@ -6,6 +6,11 @@ import axios from 'axios';
 </script>
 <script>
 export default {
+    props: {
+        boils: {
+            type: Number
+        }
+    },
     data() {
         return {
             uploadedFile: ref(null),
@@ -158,6 +163,9 @@ export default {
                 <TeamOutlined />
                 Журнал
             </Button>
+            <div v-show="$props.boils">
+                <b>Всего варок: {{ $props.boils }}</b>
+            </div>
         </div>
         <div>
             <span style="height:fit-content;font-size: 18px;font-weight: 600;">{{ date }}</span>

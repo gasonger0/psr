@@ -58,6 +58,9 @@ export default {
         changeBoard(){
             this.boardType = !this.boardType;
         },
+        onGetBoils(ev) {
+            this.boils = ev;
+        },
         closeModal(ev) {
             this.openStats = false;
             this.openResult = false;
@@ -100,6 +103,7 @@ export default {
         @close-modal="closeModal"
         @notify="notify"/>
     <TopBar 
+        :boils="boils"
         @showGraph="showGraph" 
         @showResult="showResult"
         @showLogs="showLogs" 
@@ -115,6 +119,7 @@ export default {
         v-if="!boardType"
         :key="prodKey"
         :data="data"
+        @getBoils="onGetBoils"
         @close-modal="closeModal"
         @notify="notify"/>
 </template>

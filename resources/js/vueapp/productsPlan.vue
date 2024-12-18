@@ -4,7 +4,7 @@ import axios from 'axios';
 import { reactive, ref } from 'vue';
 import dayjs from 'dayjs';
 import Loading from './loading.vue';
-import { CloudDownloadOutlined, CloudUploadOutlined, DeleteOutlined, LeftOutlined, PrinterOutlined, RightOutlined, InfoCircleOutlined, ExclamationCircleOutlined} from '@ant-design/icons-vue';
+import { CloudDownloadOutlined, CloudUploadOutlined, DeleteOutlined, LeftOutlined, PrinterOutlined, RightOutlined, InfoCircleOutlined, ExclamationCircleOutlined } from '@ant-design/icons-vue';
 </script>
 <script>
 export default {
@@ -42,6 +42,14 @@ export default {
                 value: 60
             }, {
                 value: 90
+            }, {
+                value: 120
+            }, {
+                value: 180
+            }, {
+                value: 240
+            }, {
+                value: 300
             }],
             packLinesOptions: ref([]),
             isScrolling: false,
@@ -76,10 +84,10 @@ export default {
                                 el.errors = 0;;
                                 forms.forEach(k => {
                                     if (el[k] == null || el[k] == '') {
-                                        el.errors +=1;
+                                        el.errors += 1;
                                     }
                                 });
-
+                                el.amounts_fact = [0, 0];
                                 el.order_amount = 0;
                                 return el;
                             });
@@ -141,6 +149,13 @@ export default {
                                 if (el.started_at < timeString && el.ended_at > timeString && el.line_id != null) {
                                     prod.current_line_id = el.line_id;
                                 }
+                                el.boils = eval(el.kg2boil) * el.amount;
+                                if (el.type_id == 1) {
+                                    prod.amounts_fact[0] = el.amount;
+                                }
+                                if (el.type_id == 2) {
+                                    prod.amounts_fact[1] = el.amount;
+                                }
                             }
                             return el;
                         });
@@ -161,6 +176,8 @@ export default {
 
                         if (this.categorySwitch) {
                             this.products = this.products.filter(el => el.order_amount > 0);
+                        } else {
+                            this.products = this.products.filter(el => el.order_amount > 0 || el.always_show == true);
                         }
                         resolve(true);
                     })
@@ -314,6 +331,13 @@ export default {
                                             await this.getOrders();
                                             this.$forceUpdate();
                                             this.initFunc();
+                                            let sum = this.plans.reduce((accumulator, plan) => {
+                                                if (plan.kg2boil && plan.amount) {
+                                                    return accumulator + plan.amount * eval(plan.kg2boil);
+                                                }
+                                                return accumulator;
+                                            }, 0);
+                                            this.$emit('getBoils', sum.toFixed(2));
                                             this.showLoader = false;
                                         }
                                     });
@@ -331,6 +355,13 @@ export default {
                                             await this.getOrders();
                                             this.$forceUpdate();
                                             this.initFunc();
+                                            let sum = this.plans.reduce((accumulator, plan) => {
+                                                if (plan.kg2boil && plan.amount) {
+                                                    return accumulator + plan.amount * eval(plan.kg2boil);
+                                                }
+                                                return accumulator;
+                                            }, 0);
+                                            this.$emit('getBoils', sum.toFixed(2));
                                             this.showLoader = false;
                                         }
                                     });
@@ -414,6 +445,13 @@ export default {
                     await this.getOrders();
                     this.$forceUpdate();
                     this.initFunc();
+                    let sum = this.plans.reduce((accumulator, plan) => {
+                        if (plan.kg2boil && plan.amount) {
+                            return accumulator + plan.amount * eval(plan.kg2boil);
+                        }
+                        return accumulator;
+                    }, 0);
+                    this.$emit('getBoils', sum.toFixed(2));
                     this.showLoader = false;
                 });
             } else {
@@ -429,6 +467,13 @@ export default {
                 await this.getOrders();
                 this.$forceUpdate();
                 this.initFunc();
+                let sum = this.plans.reduce((accumulator, plan) => {
+                    if (plan.kg2boil && plan.amount) {
+                        return accumulator + plan.amount * eval(plan.kg2boil);
+                    }
+                    return accumulator;
+                }, 0);
+                this.$emit('getBoils', sum.toFixed(2));
                 this.showLoader = false;
             }
         },
@@ -447,6 +492,13 @@ export default {
                 await this.getOrders();
                 this.listenerSet = false;
                 this.initFunc();
+                let sum = this.plans.reduce((accumulator, plan) => {
+                    if (plan.kg2boil && plan.amount) {
+                        return accumulator + plan.amount * eval(plan.kg2boil);
+                    }
+                    return accumulator;
+                }, 0);
+                this.$emit('getBoils', sum.toFixed(2));
                 this.showLoader = false;
             })
         },
@@ -525,6 +577,13 @@ export default {
             await this.getProductPlan();
             await this.getProductSlots();
             await this.getOrders();
+            let sum = this.plans.reduce((accumulator, plan) => {
+                if (plan.kg2boil && plan.amount) {
+                    return accumulator + plan.amount * eval(plan.kg2boil);
+                }
+                return accumulator;
+            }, 0);
+            this.$emit('getBoils', sum.toFixed(2));
             this.showLoader = false;
         },
         handleHardware() {
@@ -559,6 +618,10 @@ export default {
             if (start == 1) {
                 if (!this.isScrolling) {
                     let cont = this.document.querySelector('.lines-container');
+                    cont.scrollTo({
+                        left: cont.scrollLeft + (direction ? 280 : -280),
+                        behavior: "smooth"
+                    });
                     this.isScrolling = setInterval((el) => {
                         cont.scrollTo({
                             left: cont.scrollLeft + (direction ? 280 : -280),
@@ -566,7 +629,7 @@ export default {
                         });
                         // cont.scrollLeft += (direction ? 280 : -280);
                         console.log('scroll');
-                    }, 450);
+                    }, 300);
                 }
             } else if (start == 2) {
                 clearInterval(this.isScrolling);
@@ -581,7 +644,17 @@ export default {
         await this.getProductPlan();
         await this.getProductSlots();
         await this.getOrders();
+
+        let sum = this.plans.reduce((accumulator, plan) => {
+            if (plan.kg2boil && plan.amount) {
+                return accumulator + plan.amount * eval(plan.kg2boil);
+            }
+            return accumulator;
+        }, 0);
+        this.$emit('getBoils', sum.toFixed(2));
+
         this.showLoader = false;
+
     },
     updated() {
         this.initFunc();
@@ -632,10 +705,11 @@ export default {
                     </template>
                     <div class="hiding-data">
                         <span v-if="v.errors >= 3">
-                            <ExclamationCircleOutlined style="font-size:20px;color:#f00d0d;position:absolute;right:10px;"/>
+                            <ExclamationCircleOutlined
+                                style="font-size:20px;color:#f00d0d;position:absolute;right:10px;" />
                         </span>
                         <span v-else-if="v.errors >= 1">
-                            <InfoCircleOutlined style="font-size:20px;color:#ff8f00;position:absolute;right:10px;"/>
+                            <InfoCircleOutlined style="font-size:20px;color:#ff8f00;position:absolute;right:10px;" />
                         </span>
                         <span>Нужно обеспечить: <b>{{ v.order_amount }}</b></span>
                         <br>
@@ -644,13 +718,13 @@ export default {
                             <li v-if="v.slots[1].length > 0">
                                 <span
                                     :style="v.active_slots[1] ? 'background: #50bb50;padding: 5px; color: white;' : ''">
-                                    {{ stages[1] }}
+                                    {{ stages[1] }} ({{ v.amounts_fact[0] }})
                                 </span>
                             </li>
                             <li v-if="v.slots[2].length > 0">
                                 <span
                                     :style="v.active_slots[2] ? 'background: #50bb50;padding: 5px; color: white;' : ''">
-                                    {{ stages[2] }}
+                                    {{ stages[2] }} ({{ v.amounts_fact[1] }})
                                 </span>
                             </li>
                         </ol>
@@ -683,7 +757,10 @@ export default {
                             </Tooltip>
                         </div>
                     </template>
+                    <b>Количество варок: {{ (v.amount * v.kg2boil).toFixed(2) }}</b>
+                    <br>
                     <b style="margin-bottom: 10px;display: block;">Объём изготовления: {{ v.amount }}</b>
+                    <br>
                     <span style="white-space: break-spaces;">{{ v.title }}</span>
                 </Card>
             </section>
@@ -713,7 +790,7 @@ export default {
             <TimePicker v-model:value="active.started_at" @change="changeTime" format="HH:mm" />
         </div>
         <div v-if="active.slot.type_id == 1">
-            <span>Количество варок: {{ active.amount * active.kg2boil }}</span>
+            <span>Количество варок: {{ (active.amount * active.kg2boil).toFixed(2) }}</span>
             <h3>Колонка: </h3>
             <CheckboxGroup v-model:value="active.colon">
                 <Checkbox value="1">Варочная колонка №1</Checkbox>

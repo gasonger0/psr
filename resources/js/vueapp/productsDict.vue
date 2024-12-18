@@ -1,5 +1,5 @@
 <script setup>
-import { Button, Divider, Empty, Input, InputNumber, Keyframes, List, ListItem, Modal, Select, SelectOption, Skeleton, Switch, Table, TableSummary, TableSummaryCell, TableSummaryRow, TabPane, Tabs, Tree } from 'ant-design-vue';
+import { Button, Divider, Empty, Input, InputNumber, Keyframes, List, ListItem, Modal, Select, SelectOption, Skeleton, Switch, Table, TableSummary, TableSummaryCell, TableSummaryRow, TabPane, Tabs, Tree, Checkbox } from 'ant-design-vue';
 import axios from 'axios';
 import { ref, reactive } from 'vue';
 
@@ -47,7 +47,7 @@ export default {
             }, {
                 title: 'Оборудование',
                 dataIndex: 'hardware'
-            },{
+            }, {
                 title: 'Количество струдников',
                 dataIndex: 'people_count'
             }, {
@@ -59,11 +59,12 @@ export default {
                 perfomance: ' кг/ч'
             },
             specColumns: [
-                { title: 'Штук в Ящике:',   dataIndex: 'amount2parts',  addon: ''                       },
-                { title: 'Штуки в Кг:',     dataIndex: 'parts2kg',      addon: 'Шт ×'                   },
-                { title: 'Кг в Варки:',     dataIndex: 'kg2boil',       addon: 'Кг ×'                   },
-                { title: 'Тачки:',          dataIndex: 'cars',          addon: 'Варка ×'                },
-                { title: 'Поддоны:',        dataIndex: 'cars2plates',   addon: '(Варка - Варка(цел)) ×' }
+                { title: 'Штук в Ящике:', dataIndex: 'amount2parts', addon: '' },
+                { title: 'Штуки в Кг:', dataIndex: 'parts2kg', addon: 'Шт ×' },
+                { title: 'Кг в Варки:', dataIndex: 'kg2boil', addon: 'Кг ×' },
+                { title: 'Телеги:', dataIndex: 'cars', addon: 'Варка ×' },
+                { title: 'Поддоны:', dataIndex: 'cars2plates', addon: '(Варка - Варка(цел)) ×' },
+                { title: 'Отображать, даже если нет в анализе', dataIndex: 'always_show', addon: false},
             ],
             hardwares: {
                 1: 'ТОРНАДО',
@@ -228,8 +229,9 @@ export default {
             <div style="min-width: 60%;">
                 <Tabs v-model:activeKey="activeTab">
                     <TabPane v-for="(v, k) in tabs" :key="k" :tab="v">
-                        <Table :columns="k == 1 ? columns : columnsPack" bordered :data-source="slots.filter(el => { return el.type_id == k })"
-                            :pagination="false" v-show=slots>
+                        <Table :columns="k == 1 ? columns : columnsPack" bordered
+                            :data-source="slots.filter(el => { return el.type_id == k })" :pagination="false"
+                            v-show=slots>
                             <template #emptyText>
                                 <Empty description="Нет данных" style="max-width:100%;" />
                             </template>
@@ -281,9 +283,18 @@ export default {
                     <TabPane :key="3" tab="Служебная информация">
                         <div style="display:flex; flex-direction: column; gap: 10px;">
                             <div v-for="(v) in specColumns" style="display: flex;">
-                                <span style="width:20%;">{{ v.title }}</span>
-                                <Input v-if="editing" v-model:value="activeProduct[v.dataIndex]" style="max-width:300px;" :addon-before="v.addon"/>
-                                <span v-else>{{ v.addon }} {{ activeProduct[v.dataIndex] ? activeProduct[v.dataIndex] : '-'}}</span>
+                                <span style="width:20%;padding-right:5%;">{{ v.title }}</span>
+                                <div v-if="v.addon !== false">
+                                    <Input v-if="editing" v-model:value="activeProduct[v.dataIndex]"
+                                        style="max-width:300px;" :addon-before="v.addon" />
+                                    <span v-else>
+                                        {{ v.addon + ' ' + activeProduct[v.dataIndex] ? activeProduct[v.dataIndex] : '-' }}
+                                    </span>
+                                </div>
+                                <div v-else>
+                                    <Checkbox v-model:checked="activeProduct[v.dataIndex]" :disabled="!editing" />
+                                </div>
+
                             </div>
                         </div>
                     </TabPane>
