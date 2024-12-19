@@ -329,8 +329,6 @@ export default {
                                             await this.getProductPlan();
                                             await this.getProductSlots();
                                             await this.getOrders();
-                                            this.$forceUpdate();
-                                            this.initFunc();
                                             let sum = this.plans.reduce((accumulator, plan) => {
                                                 if (plan.kg2boil && plan.amount) {
                                                     return accumulator + plan.amount * eval(plan.kg2boil);
@@ -338,6 +336,8 @@ export default {
                                                 return accumulator;
                                             }, 0);
                                             this.$emit('getBoils', sum.toFixed(2));
+                                            this.$forceUpdate();
+                                            this.initFunc();
                                             this.showLoader = false;
                                         }
                                     });
@@ -426,6 +426,7 @@ export default {
                         started_at: this.active.started_at.format('HH:mm'),
                         ended_at: this.active.ended_at.format('HH:mm'),
                         slot_id: this.active.slot.product_slot_id,
+                        type_id: this.active.slot.type_id,
                         amount: this.active.amount,
                         colon: this.active.colon,
                         hardware: this.active.hardware,

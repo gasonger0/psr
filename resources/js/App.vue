@@ -95,6 +95,7 @@ export default {
         @notify="notify"/>
     <Logs
         :open="openLogs"
+        :lines="data ? data.lines : null"
         @close-modal="closeModal"
         @notify="notify"/>
     <ProductsDict

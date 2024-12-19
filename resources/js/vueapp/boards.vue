@@ -225,7 +225,8 @@ export default {
                         axios.post('/api/add_log', {
                             action: 'Остановка линии ' + f.title,
                             extra: 'Причина: ' + this.cancel_reasons[option - 1].title,
-                            people_count: f.workers_count
+                            people_count: f.workers_count,
+                            line_id: line.line_id
                         });
                     } else {
                         axios.post('/api/add_log', {

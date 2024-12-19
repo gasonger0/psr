@@ -17,6 +17,7 @@ class LogsController extends Controller
         if ($extra = $request->post('extra')) {
             $log->extra = $extra;
         }
+        $log->line_id = $request->post('line_id');
         $log->save();
         return;
     }

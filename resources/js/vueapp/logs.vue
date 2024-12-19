@@ -9,6 +9,9 @@ export default {
     props: {
         open: {
             type: Boolean
+        },
+        lines: {
+            type: Array
         }
     },
     data() {
@@ -26,6 +29,9 @@ export default {
             }, {
                 title: 'Человек на линии',
                 dataIndex: 'people_count'
+            }, {
+                title: 'Линия',
+                dataIndex: 'line'
             }]
         }
     },
@@ -70,6 +76,7 @@ export default {
             .then((response) => {
                 if (response.data) {
                     this.logs = response.data.map(el => {
+                        el.line = this.$props.lines.find((i) => i.line_id == el.line_id);
                         el.created_at = dayjs(el.created_at).format('DD.MM.YYYY HH:mm:ss');
                         return el;
                     });
@@ -88,8 +95,7 @@ export default {
                     <Button>Загрузка остатков</Button>
                 </div> -->
 
-            <Table :columns="columns" :dataSource="logs">
-            </Table>
+            <Table :columns="columns" :dataSource="logs"></Table>
         </div>
     </Modal>
 </template>
