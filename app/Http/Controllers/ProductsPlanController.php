@@ -34,6 +34,7 @@ class ProductsPlanController extends Controller
                 $plan->slot_id = $slot['product_slot_id'];
                 $plan->workers_count = $slot['people_count'];
                 $plan->started_at = $post['started_at'];
+                $plan->type_id = 1;
                 $plan->ended_at = $post['ended_at'];
                 $plan->amount = $post['amount'];
                 $plan->hardware = isset($post['hardware']) ? $post['hardware'] : 0;
@@ -43,7 +44,8 @@ class ProductsPlanController extends Controller
                 }
                 $plan->save();
 
-                $this->checkPlans($slot['line_id'], $post['started_at'], $post['ended_at']);
+
+                $this->checkPlans($slot['line_id'], $plan->plan_product_id, $post['started_at'], $post['ended_at']);
 
                 if (isset($post['delay']) && isset($post['packs'])) {
                     foreach ($post['packs'] as $pack) {
@@ -53,7 +55,8 @@ class ProductsPlanController extends Controller
                         $plan->line_id = $slot['line_id'];
                         $plan->slot_id = $slot['product_slot_id'];
                         $plan->workers_count = $slot['people_count'];
-                        $plan->hardware = $post['hardware'];
+                        // $plan->hardware = $post['hardware'];
+                        $plan->type_id = 2;
 
                         $start = new \DateTime($post['ended_at']);
 
@@ -76,29 +79,37 @@ class ProductsPlanController extends Controller
         }
     }
 
-    public function checkPlans($line_id, $start, $end)
+    public function checkPlans($line_id, $prod_id, $start, $end)
     {
         // Получаем планы, которые внутри нового
         $plans = ProductsPlan::where('line_id', '=', $line_id)
-            ->where('started_at', '>=', $start)
-            ->where('ended_at', '<=', $start)
+            ->whereBetween('started_at', [$start, $end])
+            ->orWhereBetween('ended_at', [$start, $end])
             ->orderBy('started_at', 'ASC')
-            ->get();
-        if ($plans) {
+            ->get()
+            ->toArray();
+        $plans = array_filter($plans, function ($item) use ($prod_id) {
+            return $item['plan_product_id'] != $prod_id;
+        });
+        if (!empty($plans)) {
             // Если есть, считаем разницу между концом нового и началом старого
-            $diff = Carbon::parse($plans[0]->started_at)->diffInMinutes(Carbon::parse($start));
+            $diff = Carbon::parse(reset($plans)['started_at'])->diffInMinutes(Carbon::parse($end));
             $plans = ProductsPlan::where('line_id', '=', $line_id)
                 ->where('started_at', '>=', $start)
+                ->where('plan_product_id', '!=', $prod_id)
                 ->orderBy('started_at', 'ASC')
                 ->get();
-
         }
+        var_dump($diff);
+        var_dump($plans->toArray());
         foreach ($plans as $plan) {
+            var_dump($end);
             // Те, которые надо сдвинуть
             $plan->started_at = $end;
-            $plan->ended_at = Carbon::parse($plan->ended_at)->addMinutes($diff);
+            $end = Carbon::parse($plan->ended_at)->addMinutes($diff)->format('H:i:s');
+            $plan->ended_at = $end;
+            var_dump($end);
             $plan->save();
-            $end = $plan->ended_at;
         }
     }
 

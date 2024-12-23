@@ -9,9 +9,6 @@ export default {
     props: {
         open: {
             type: Boolean
-        },
-        lines: {
-            type: Array
         }
     },
     data() {
@@ -62,21 +59,11 @@ export default {
                 });
         }
     },
-    mounted() {
-        axios.get('/api/get_logs')
-            .then((response) => {
-                if (response.data) {
-                    this.logs = response.data;
-                }
-            })
-    },
     updated() {
-        console.log(this.$props);
         axios.get('/api/get_logs')
             .then((response) => {
                 if (response.data) {
                     this.logs = response.data.map(el => {
-                        el.line = this.$props.lines.find((i) => i.line_id == el.line_id);
                         el.created_at = dayjs(el.created_at).format('DD.MM.YYYY HH:mm:ss');
                         return el;
                     });

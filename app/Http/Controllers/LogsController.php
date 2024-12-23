@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Logs;
 use Carbon\Carbon;
 use Shuchkin\SimpleXLSXGen;
+use App\Models\Lines;
 
 class LogsController extends Controller
 {
@@ -23,12 +24,17 @@ class LogsController extends Controller
     }
 
     static public function getAll(){
-        return Logs::orderBy('created_at', 'DESC')->get()->toJson();
+        $logs = Logs::orderBy('created_at', 'DESC')->get()->toArray();
+        foreach ($logs as &$log) {
+            $log['line'] = Lines::find($log['line_id'])->title;
+        }
+        return json_encode($logs);  
     }
 
     static public function logXlsx(){
         $columns = [[
             'ИД',
+            'Линия',
             'Создан',
             'Действие',
             'Описание',

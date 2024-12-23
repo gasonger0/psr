@@ -259,6 +259,9 @@ class TableController extends Controller
         $productsFromLines = array_unique(array_map(function ($el) {
             return $el['product_id'];
         }, $plans));
+        $slotsFromProducts = array_unique(array_map(function ($el) {
+            return $el['slot_id'];
+        }, $plans));
 
         $r = json_decode(ResponsibleController::getList(), true);
         $responsibles = [];
@@ -268,6 +271,16 @@ class TableController extends Controller
 
         $lines = Lines::whereIn('line_id', $linesFromPlans)->get(['line_id', 'title', 'started_at', 'ended_at', 'master', 'engineer', 'workers_count'])->toArray();
         $products = ProductsDictionary::whereIn('product_id', $productsFromLines)->get(['product_id', 'title', 'amount2parts', 'parts2kg', 'kg2boil', 'cars', 'cars2plates'])->toArray();
+        $slots = ProductsSlots::whereIn('product_slot_id', $slotsFromProducts)->get(['product_slot_id', 'people_count', 'perfomance', 'product_id'])->toArray();
+
+        foreach ($products as &$prod) {
+            $slot = array_filter($slots, function ($el) use ($prod) {
+                return $el['product_id'] === $prod['product_id'];
+            });
+            $slot = reset($slot);
+            $prod['people_count'] = $slot['people_count'];
+            $prod['perfomance'] = $slot['perfomance'];
+        }
 
         $array = [
             [
@@ -422,6 +435,9 @@ class TableController extends Controller
                 '',
                 self::$MCS . '<b>начало</b>' . self::$MCE,
                 self::$MCS . '<b>окончание</b>' . self::$MCS,
+                self::$MCS . '<b>Чел-часов по плану</b>' . self::$MCE,
+                self::$MCS . '<b>Чел-часов по закрытой ГП</b>' . self::$MCE,
+                self::$MCS . '<b>Чел-часов по факту</b>' . self::$MCE
             ]
         ];
 
@@ -438,11 +454,13 @@ class TableController extends Controller
 
                 if ($title !== false) {
                     $el['title'] = $products[$title]['title'];
-                    $el['amount2parts'] = $products[$title]['amount2parts'];
-                    $el['parts2kg'] = $products[$title]['parts2kg'];
-                    $el['kg2boil'] = $products[$title]['kg2boil'];
-                    $el['cars'] = $products[$title]['cars'];
-                    $el['cars2plates'] = $products[$title]['cars2plates'];
+                    $el['amount2parts'] = $products[$title]['amount2parts'] ? $products[$title]['amount2parts'] : 1;
+                    $el['parts2kg'] = $products[$title]['parts2kg'] ? $products[$title]['parts2kg'] : 1;
+                    $el['kg2boil'] = $products[$title]['kg2boil'] ? $products[$title]['kg2boil'] : 1;
+                    $el['cars'] = $products[$title]['cars'] ? $products[$title]['cars'] : 1;
+                    $el['cars2plates'] = $products[$title]['cars2plates'] ? $products[$title]['cars2plates'] : 1;
+                    $el['perfomance'] = $products[$title]['perfomance'] ? $products[$title]['perfomance'] : 1;
+                    $el['people_count'] = $products[$title]['people_count'] ? $products[$title]['people_count'] : 1;
                 }
 
                 return $el;
@@ -451,13 +469,19 @@ class TableController extends Controller
             $line['items'] = [];
             $hardwares = array_filter(array_unique(array_column($linePlans, 'hardware')));
 
-
-            foreach ($hardwares as $hw) {
-                $line['items'][$hw] = [
-                    'hwTitle' => self::$hardware[$hw],
-                    'items' => array_filter($linePlans, function ($el) use ($hw) {
-                        return $el['hardware'] == $hw;
-                    })
+            if (count($hardwares) != 0) {
+                foreach ($hardwares as $hw) {
+                    $line['items'][$hw] = [
+                        'hwTitle' => self::$hardware[$hw],
+                        'items' => array_filter($linePlans, function ($el) use ($hw) {
+                            return $el['hardware'] == $hw;
+                        })
+                    ];
+                }
+            } else {
+                // Упаковка
+                $line['items'][0] = [
+                    'items' => $linePlans
                 ];
             }
 
@@ -488,19 +512,21 @@ class TableController extends Controller
 
             $sum = 0;
             foreach ($line['items'] as $hw) {
-                $array[] = ['', '<style bgcolor="#D8E4BC"><b>' . mb_strtoupper($hw['hwTitle']) . '</b></style>'];
+                if (isset($hw['hwTitle'])) {
+                    $array[] = ['', '<style bgcolor="#D8E4BC"><b>' . mb_strtoupper($hw['hwTitle']) . '</b></style>'];
+                }
                 foreach ($hw['items'] as $product) {
-                    if (!isset($product['amount2parts'])) {
-                        continue;
-                    }
+                    // if (!isset($product['amount2parts'])) {
+                    //     continue;
+                    // }
                     $kg = floatval($product['amount']);
                     $sum += $kg;
-                    $parts = eval ('return ' . $kg . '/' . floatval($product['parts2kg']) . ';');
-                    $crates = eval ('return ' . $parts . '/' . floatval($product['amount2parts']) . ';');
-                    $boils = eval ('return ' . $kg . '*' . floatval($product['kg2boil']) . ';');
-                    $prec = eval ('return ' . $boils . '*' . floatval($product['cars']) . ';');
+                    $parts = eval('return ' . $kg . '/' . floatval($product['parts2kg']) . ';');
+                    $crates = eval('return ' . $parts . '/' . floatval($product['amount2parts']) . ';');
+                    $boils = eval('return ' . $kg . '*' . floatval($product['kg2boil']) . ';');
+                    $prec = eval('return ' . $boils . '*' . floatval($product['cars']) . ';');
                     $cars = ceil($prec);
-                    $plates = eval ('return ' . ($prec - $cars) . '*' . floatval($product['cars2plates']) . ';');
+                    $plates = eval('return ' . ($prec - $cars) . '*' . floatval($product['cars2plates']) . ';');
                     $array[] = [
                         '',
                         $product['title'],
@@ -515,7 +541,24 @@ class TableController extends Controller
                         self::$MCS . '<b>' . $prec . '</b>' . self::$MCE,
                         $product['workers_count'],
                         $product['started_at'],
-                        $product['ended_at']
+                        $product['ended_at'],
+                        '',
+                        '',
+                        '',
+                        '',
+                        '',
+                        '',
+                        '',
+                        '',
+                        '',
+                        '',
+                        '',
+                        '',
+                        '',
+                        '',
+                        '',
+                        $kg / $product['perfomance'] * $product['people_count'],
+                        '<f>=T' . (count($array) + 1) . '/' . $product['perfomance'] . '*' . $product['people_count'] . '</f>'
                     ];
                 }
             }
@@ -588,11 +631,11 @@ class TableController extends Controller
                 $i = Lines::find($item['line_id']);
                 if ($i) {
                     $i->master = $item['master'] ?? null;
-                    $i->started_at = $item['started_at']?? null;
-                    $i->ended_at = $item['ended_at']?? null;
-                    $i->color = $item['color']?? null;
-                    $i->type_id = $item['type_id']?? null;
-                    $i->engineer = $item['engineer']?? null;
+                    $i->started_at = $item['started_at'] ?? null;
+                    $i->ended_at = $item['ended_at'] ?? null;
+                    $i->color = $item['color'] ?? null;
+                    $i->type_id = $item['type_id'] ?? null;
+                    $i->engineer = $item['engineer'] ?? null;
                     $i->save();
                 }
             }
