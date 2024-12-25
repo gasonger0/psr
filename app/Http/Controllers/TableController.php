@@ -622,6 +622,7 @@ class TableController extends Controller
                 $i->slot_id = $item['slot_id'];
                 $i->started_at = $item['started_at'];
                 $i->ended_at = $item['ended_at'];
+                $i->type_id = $item['type_id'];
                 $i->amount = $item['amount'];
                 $i->save();
             }
