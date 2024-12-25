@@ -605,8 +605,9 @@ class TableController extends Controller
             ->mergeCells('M5:N5');
 
         $name = 'План_' . date('d_m_Y-H:i:s', time()) . '.xlsx';
-        $xlsx->saveAs($name);
-        return $name;
+        $xlsx->downloadAs($name);
+         
+        // return $name;
     }
     public function loadPlan(Request $request)
     {

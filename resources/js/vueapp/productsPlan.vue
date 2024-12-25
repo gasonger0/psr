@@ -524,20 +524,32 @@ export default {
             return a;
         },
         printPlan() {
-            axios.get('/api/download_plan')
-                .then(response => {
-                    let url = response.data;
-                    console.log(response);
-                    let a = document.createElement('a');
-                    if (typeof a.download === undefined) {
-                        window.location = url;
-                    } else {
-                        a.href = url;
-                        a.download = response.data;
-                        document.body.appendChild(a);
-                        a.click();
-                    }
-                })
+            window.open('/api/download_plan', '_blank');
+            // axios.get('/api/download_plan')
+            //     .then(response => {
+            //         let data = response.data;
+            //         window.open(data, '_blank');
+                    
+            //         // let url = window.URL.createObjectURL(new Blob([data]));
+            //         // let a = document.createElement('a');
+            //         // a.href = url;
+            //         // a.download = 'plan.xlsx';
+            //         // document.body.appendChild(a);
+            //         // a.click();
+            //         // window.URL.revokeObjectURL(url);
+                    
+
+            //         // console.log(response);
+            //         // let a = document.createElement('a');
+            //         // if (typeof a.download === undefined) {
+            //         //     window.location = url;
+            //         // } else {
+            //         //     a.href = url;
+            //         //     a.download = response.data;
+            //         //     document.body.appendChild(a);
+            //         //     a.click();
+            //         // }
+            //     })
         },
         exportPlan() {
             let jsonString = JSON.stringify({ plans: this.plans, lines: this.lines });
@@ -863,7 +875,7 @@ export default {
             <section class="line_items products">
                 <Card class="draggable-card" v-for="(v, k) in filterPlans(line.line_id)" :data-id="v.plan_product_id"
                     :data-order="k" :key="v.plan_product_id" draggable="true">
-                    <template #title>
+                    <template #title> 
                         <div style="display:flex;align-items: center;justify-content: space-between;">
                             <span>{{ v.started_at }} - {{ v.ended_at }}</span>
                             <Tooltip title="Убрать из плана">
