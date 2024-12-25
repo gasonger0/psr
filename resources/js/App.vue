@@ -26,7 +26,8 @@ export default {
             prod: ref(1),
             boardKey: ref(1),
             statsRef: null,
-            boardType: ref(true)
+            boardType: ref(true),
+            topBarKey: ref(1)
         }
     },
     methods: {
@@ -60,6 +61,7 @@ export default {
         },
         onGetBoils(ev) {
             this.boils = ev;
+            this.topBarKey += 1;
         },
         closeModal(ev) {
             this.openStats = false;
@@ -104,6 +106,7 @@ export default {
         @close-modal="closeModal"
         @notify="notify"/>
     <TopBar 
+        :key="topBarKey"
         :boils="boils"
         @showGraph="showGraph" 
         @showResult="showResult"

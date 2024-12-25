@@ -1,5 +1,5 @@
 <script setup>
-import { Card, Button, Divider, Modal, TimePicker, Tooltip, Popconfirm, Switch, InputNumber, Input, Upload, FloatButton, RadioGroup, RadioButton, CheckboxGroup, Checkbox, SelectOption, Select, Table } from 'ant-design-vue';
+import { Card, Button, Divider, Modal, TimePicker, Tooltip, Popconfirm, Switch, InputNumber, Input, Upload, FloatButton, RadioGroup, RadioButton, CheckboxGroup, Checkbox, SelectOption, Select, TimeRangePicker } from 'ant-design-vue';
 import axios from 'axios';
 import { reactive, ref } from 'vue';
 import dayjs from 'dayjs';
@@ -53,7 +53,8 @@ export default {
             }],
             packLinesOptions: ref([]),
             isScrolling: false,
-            showPack: ref(false)
+            showPack: ref(false),
+            responsible: ref([])
         }
     },
     methods: {
@@ -149,7 +150,7 @@ export default {
                                 if (el.started_at < timeString && el.ended_at > timeString && el.line_id != null) {
                                     prod.current_line_id = el.line_id;
                                 }
-                                el.boils = eval(el.kg2boil) * el.amount;
+                                el.boils = eval(prod.kg2boil) * el.amount;
                                 if (el.type_id == 1) {
                                     prod.amounts_fact[0] = el.amount;
                                 }
@@ -330,8 +331,8 @@ export default {
                                             await this.getProductSlots();
                                             await this.getOrders();
                                             let sum = this.plans.reduce((accumulator, plan) => {
-                                                if (plan.kg2boil && plan.amount) {
-                                                    return accumulator + plan.amount * eval(plan.kg2boil);
+                                                if (plan.boils) {
+                                                    return accumulator + plan.boils;
                                                 }
                                                 return accumulator;
                                             }, 0);
@@ -356,8 +357,8 @@ export default {
                                             this.$forceUpdate();
                                             this.initFunc();
                                             let sum = this.plans.reduce((accumulator, plan) => {
-                                                if (plan.kg2boil && plan.amount) {
-                                                    return accumulator + plan.amount * eval(plan.kg2boil);
+                                                if (plan.boils) {
+                                                    return accumulator + plan.boils;
                                                 }
                                                 return accumulator;
                                             }, 0);
@@ -447,8 +448,8 @@ export default {
                     this.$forceUpdate();
                     this.initFunc();
                     let sum = this.plans.reduce((accumulator, plan) => {
-                        if (plan.kg2boil && plan.amount) {
-                            return accumulator + plan.amount * eval(plan.kg2boil);
+                        if (plan.boils) {
+                            return accumulator + plan.boils;
                         }
                         return accumulator;
                     }, 0);
@@ -469,8 +470,8 @@ export default {
                 this.$forceUpdate();
                 this.initFunc();
                 let sum = this.plans.reduce((accumulator, plan) => {
-                    if (plan.kg2boil && plan.amount) {
-                        return accumulator + plan.amount * eval(plan.kg2boil);
+                    if (plan.boils) {
+                        return accumulator + plan.boils;
                     }
                     return accumulator;
                 }, 0);
@@ -494,8 +495,8 @@ export default {
                 this.listenerSet = false;
                 this.initFunc();
                 let sum = this.plans.reduce((accumulator, plan) => {
-                    if (plan.kg2boil && plan.amount) {
-                        return accumulator + plan.amount * eval(plan.kg2boil);
+                    if (plan.boils) {
+                        return accumulator + plan.boils;
                     }
                     return accumulator;
                 }, 0);
@@ -579,8 +580,8 @@ export default {
             await this.getProductSlots();
             await this.getOrders();
             let sum = this.plans.reduce((accumulator, plan) => {
-                if (plan.kg2boil && plan.amount) {
-                    return accumulator + plan.amount * eval(plan.kg2boil);
+                if (plan.boils) {
+                    return accumulator + plan.boils;
                 }
                 return accumulator;
             }, 0);
@@ -636,19 +637,79 @@ export default {
                 clearInterval(this.isScrolling);
                 this.isScrolling = null;
             }
-        }
+        },
+        saveLine(record) {
+            let fd = new FormData();
+            fd.append('line_id', record['line_id']);
+
+            fd.append('started_at', record.time[0].format('HH:mm'));
+            fd.append('ended_at', record.time[1].format('HH:mm'));
+            // }
+            if (record.workers_count) {
+                fd.append('workers_count', record.workers_count);
+            }
+            fd.append('type_id', record.type_id);
+            if (record.color) {
+                fd.append('color', record.color);
+            }
+            fd.append('title', record.title);
+            if (record.master != null) {
+                fd.append('master', record.master);
+            }
+            if (record.engineer != null) {
+                fd.append('engineer', record.engineer);
+            }
+
+            axios.post('/api/save_line', fd)
+                .then((response) => {
+                    this.$emit('notify', 'success', 'Сохранено');
+                    let i = this.lines.find(el => el.line_id == record['line_id']);
+                    i.started_at = dayjs(record.time[0].format('HH:mm'));
+                    i.ended_at = dayjs(record.time[1].format('HH:mm'));
+                    let arr = [];
+                    if (i.master) {
+                        let f = this.responsible.find(m => m.responsible_id == i.master);
+                        if (f) {
+                            let n = f.name.split(' ');
+                            n = n[0] + ' ' + n[1][0] + '.';
+                            arr.push(n + ', ' + f.position);
+                        }
+                    } else {
+                        delete i.master;
+                    }
+
+                    if (i.engineer) {
+                        let f = this.responsible.find(m => m.responsible_id == i.engineer);
+                        if (f) {
+                            let n = f.name.split(' ');
+                            n = n[0] + ' ' + n[1][0] + '.';
+                            arr.push(n + ', ' + f.position);
+                        }
+                    } else {
+                        delete i.engineer;
+                    }
+
+                    i.responsibles = arr.join('\n');
+
+                    this.$emit('data-recieved', this.$data);
+                })
+                .catch((err) => {
+                    this.$emit('notify', 'error', 'Что-то пошло не так...');
+                })
+        },
     },
     async created() {
         this.showLoader = true;
         this.lines = this.$props.data.lines;
+        this.responsible = this.$props.data.responsible;
         await this.getProducts();
         await this.getProductPlan();
         await this.getProductSlots();
         await this.getOrders();
 
         let sum = this.plans.reduce((accumulator, plan) => {
-            if (plan.kg2boil && plan.amount) {
-                return accumulator + plan.amount * eval(plan.kg2boil);
+            if (plan.boils) {
+                return accumulator + plan.boils;
             }
             return accumulator;
         }, 0);
@@ -739,11 +800,64 @@ export default {
             <Card :bordered="false" class="head"
                 :headStyle="{ 'background-color': (line.color ? line.color : '#1677ff') }">
                 <template #title>
-                    <div class="line_title" :data-id="line.line_id">
+                    <div class="line_title" :data-id="line.line_id" v-show="!line.edit">
                         <b>{{ line.title }}</b>
                     </div>
+                    <Input v-show="line.edit" :data-id="line.line_id" class="line_title" v-model:value="line.title"
+                        style="display: block;color:black;" />
+
+                    <div style="display: flex;justify-content: space-between;align-items: center;">
+                        <Switch v-model:checked="line.edit" checked-children="Редактирование"
+                            un-checked-children="Просмотр" class="title-switch"
+                            @change="(c, e) => { !c ? saveLine(line) : '' }" />
+                        <Tooltip v-show="line.edit">
+                            <template #title>
+                                <ColorPicker theme="light" :color="line.color"
+                                    @changeColor="(ev) => { line.color = ev.hex; }" />
+                            </template>
+                            <div style="width: 30px; height: 30px;border-radius: 5px; border: 2px solid white"
+                                :style="'background-color:' + line.color" v-show="line.edit">
+                            </div>
+                        </Tooltip>
+                    </div>
                 </template>
-                <span>{{ line.started_at }} - {{ line.ended_at }}</span>
+                <template v-if="line.edit">
+                    <div style="width:100%; max-width:400px;">
+                        <span
+                            style="display: flex; justify-content: space-between; margin-bottom:10px;align-items: center;">
+                            <span style="height:fit-content;">Необходимо:&nbsp;&nbsp;</span>
+                            <Input v-model:value="line.workers_count" type="number" placeholder="10 человек" />
+                        </span>
+                        <span>Время работы:</span><br />
+                        <TimeRangePicker v-model:value="line.time" format="HH:mm" :showTime="true" :allowClear="true"
+                            type="time" :showDate="false" style="width:fit-content;" />
+                        <br>
+                        <br>
+                        <RadioGroup v-model:value="line.type_id">
+                            <RadioButton value="1">Варка</RadioButton>
+                            <RadioButton value="2">Упаковка</RadioButton>
+                        </RadioGroup>
+                        <span>Ответственные:</span>
+                        <Select v-model:value="line.master" style="width:100%;">
+                            <SelectOption v-for="i in responsible" v-model:value="i.responsible_id">
+                                {{ i.name }}
+                            </SelectOption>
+                        </Select>
+                        <Select v-model:value="line.engineer" style="width:100%;margin-top:10px;">
+                            <SelectOption v-for="i in responsible" v-model:value="i.responsible_id">
+                                {{ i.name }}
+                            </SelectOption>
+                        </Select>
+                    </div>
+                </template>
+                <template v-else>
+                    <div class="line_sub-title">
+
+                        <span>Время работы: {{ line.time[0].format('HH:mm') }} - {{ line.time[1].format('HH:mm') }}</span>
+                        <br>
+                        <span v-show="line.responsibles">Ответственные: <br />{{ line.responsibles }}</span>
+                    </div>
+                </template>
             </Card>
 
             <section class="line_items products">
@@ -758,7 +872,7 @@ export default {
                             </Tooltip>
                         </div>
                     </template>
-                    <b>Количество варок: {{ (v.amount * v.kg2boil).toFixed(2) }}</b>
+                    <b v-if="line.type_id == 1 && v.boils">Количество варок: {{ (v.boils).toFixed(2) }}</b>
                     <br>
                     <b style="margin-bottom: 10px;display: block;">Объём изготовления: {{ v.amount }}</b>
                     <br>
