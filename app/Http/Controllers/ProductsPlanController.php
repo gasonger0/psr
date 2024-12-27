@@ -25,8 +25,7 @@ class ProductsPlanController extends Controller
     public function addPlan(Request $request)
     {
         if ($post = $request->post()) {
-            $old = ProductsPlan::where('slot_id', '=', $post['slot_id'])->get()->toArray();
-            if (empty($old)) {
+            if ($post['plan_product_id']) {
                 $plan = new ProductsPlan();
                 $slot = ProductsSlots::find($post['slot_id'])->toArray();
                 $plan->product_id = $slot['product_id'];
@@ -34,7 +33,7 @@ class ProductsPlanController extends Controller
                 $plan->slot_id = $slot['product_slot_id'];
                 $plan->workers_count = $slot['people_count'];
                 $plan->started_at = $post['started_at'];
-                $plan->type_id = 1;
+                $plan->type_id = $post['type_id'];
                 $plan->ended_at = $post['ended_at'];
                 $plan->amount = $post['amount'];
                 $plan->hardware = isset($post['hardware']) ? $post['hardware'] : 0;
@@ -74,7 +73,20 @@ class ProductsPlanController extends Controller
                 }
                 return true;
             } else {
-                // Уже запланировано, обработать вызовом эдита
+                $old = ProductsPlan::find($post['plan_product_id'])->get();
+
+                $old->started_at = $post['started_at'];
+                $old->ended_at = $post['ended_at'];
+                $old->amount = $post['amount'];
+                $old->hardware = isset($post['hardware']) ? $post['hardware'] : $old->hardware;
+
+                if (isset($post['colon'])) {
+                    $old->colon = is_array($post['colon']) ? implode(';', $post['colon']) : $post['colon'];
+                }
+                $old->save();
+
+                $this->checkPlans($old->line_id, $old->plan_product_id, $post['started_at'], $post['ended_at']);
+                return true;
             }
         }
     }

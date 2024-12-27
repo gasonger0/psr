@@ -4,7 +4,8 @@ import axios from 'axios';
 import { reactive, ref } from 'vue';
 import dayjs from 'dayjs';
 import Loading from './loading.vue';
-import { CloudDownloadOutlined, CloudUploadOutlined, DeleteOutlined, LeftOutlined, PrinterOutlined, RightOutlined, InfoCircleOutlined, ExclamationCircleOutlined } from '@ant-design/icons-vue';
+import { CloudDownloadOutlined, CloudUploadOutlined, DeleteOutlined, LeftOutlined, PrinterOutlined, RightOutlined, InfoCircleOutlined, ExclamationCircleOutlined, EditOutlined } from '@ant-design/icons-vue';
+import { getKeyThenIncreaseKey } from 'ant-design-vue/es/message';
 </script>
 <script>
 export default {
@@ -424,8 +425,10 @@ export default {
             if (add) {
                 axios.post('/api/add_product_plan',
                     {
+                        plan_product_id: this.active.plan_product_id ? this.active.plan_product_id : null,
                         started_at: this.active.started_at.format('HH:mm'),
                         ended_at: this.active.ended_at.format('HH:mm'),
+                        type_id: this.active.slot.type_id,
                         slot_id: this.active.slot.product_slot_id,
                         type_id: this.active.slot.type_id,
                         amount: this.active.amount,
@@ -529,7 +532,7 @@ export default {
             //     .then(response => {
             //         let data = response.data;
             //         window.open(data, '_blank');
-                    
+
             //         // let url = window.URL.createObjectURL(new Blob([data]));
             //         // let a = document.createElement('a');
             //         // a.href = url;
@@ -537,7 +540,7 @@ export default {
             //         // document.body.appendChild(a);
             //         // a.click();
             //         // window.URL.revokeObjectURL(url);
-                    
+
 
             //         // console.log(response);
             //         // let a = document.createElement('a');
@@ -709,6 +712,32 @@ export default {
                     this.$emit('notify', 'error', 'Что-то пошло не так...');
                 })
         },
+        editPlan(plan_id) {
+            let plan = this.plans.find(el => el.plan_product_id == plan_id);
+            if (plan) {
+                this.active = plan;
+                this.active.line = this.lines.find(el => el.line_id == plan.line_id);
+                let prod = this.products.find(i => i.product_id == plan.product_id);
+                this.active.kg2boil = prod.kg2boil ? eval(prod.kg2boil) : 0;
+                this.active.slot = prod.slots[1].concat(prod.slots[2]).find(n => n.line_id == plan.line_id && n.hardware == plan.hardware);
+                this.active.perfomance = this.active.slot.perfomance
+
+                this.active.title = prod.title;
+                this.active.started_at = dayjs(plan.started_at, 'HH:mm');
+
+                this.active.time = (this.active.amount / this.active.perfomance).toFixed(2);
+                this.active.ended_at = ref(this.active.started_at.add(this.active.time, 'hour'));
+                if (this.active.slot.type_id == 1) {
+                    this.active.ended_at = this.active.ended_at.add(10, 'minute');
+                } else if (this.active.slot.type_id == 2) {
+                    this.active.ended_at = this.active.ended_at.add(15, 'minute');
+                } else {
+                    console.log(1, this.active.slot.type_id)
+                }
+                this.active.showError = (this.active.line.ended_at < this.active.ended_at.format('HH:mm'));
+                this.confirmPlanOpen = true;
+            }
+        }
     },
     async created() {
         this.showLoader = true;
@@ -865,7 +894,8 @@ export default {
                 <template v-else>
                     <div class="line_sub-title">
 
-                        <span>Время работы: {{ line.time[0].format('HH:mm') }} - {{ line.time[1].format('HH:mm') }}</span>
+                        <span>Время работы: {{ line.time[0].format('HH:mm') }} - {{ line.time[1].format('HH:mm')
+                            }}</span>
                         <br>
                         <span v-show="line.responsibles">Ответственные: <br />{{ line.responsibles }}</span>
                     </div>
@@ -875,17 +905,20 @@ export default {
             <section class="line_items products">
                 <Card class="draggable-card" v-for="(v, k) in filterPlans(line.line_id)" :data-id="v.plan_product_id"
                     :data-order="k" :key="v.plan_product_id" draggable="true">
-                    <template #title> 
+                    <template #title>
                         <div style="display:flex;align-items: center;justify-content: space-between;">
                             <span>{{ v.started_at }} - {{ v.ended_at }}</span>
                             <Tooltip title="Убрать из плана">
                                 <DeleteOutlined style="height:fit-content; color:#ff4d4f;"
                                     @click="deletePlan(v.plan_product_id)" />
                             </Tooltip>
+                            <Tooltip title="редактировать">
+                                <EditOutlined style="height: fit-content; color: #1677ff;"
+                                    @click="editPlan(v.plan_product_id)" />
+                            </Tooltip>
                         </div>
                     </template>
-                    <b v-if="line.type_id == 1 && v.boils">Количество варок: {{ (v.boils).toFixed(2) }}</b>
-                    <br>
+                    <b v-if="line.type_id == 1 && v.boils">Количество варок: {{ (v.boils).toFixed(2) }}<br></b>
                     <b style="margin-bottom: 10px;display: block;">Объём изготовления: {{ v.amount }}</b>
                     <br>
                     <span style="white-space: break-spaces;">{{ v.title }}</span>
@@ -932,7 +965,7 @@ export default {
             </RadioGroup>
             <br>
             <br>
-            <Checkbox v-model:checked="showPack">
+            <Checkbox v-model:checked="showPack" v-if="packTimeOptions">
                 Сгененрировать план упаковки
             </Checkbox>
             <br>

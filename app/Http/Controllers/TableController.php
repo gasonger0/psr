@@ -282,6 +282,17 @@ class TableController extends Controller
             $prod['perfomance'] = $slot['perfomance'];
         }
 
+        $linesFiltered = [];
+        // Варка
+        $linesFiltered[0] = array_filter($lines, function ($el) {
+            return $el['type_id'] == 1;
+        });
+        // Упаковка
+        $linesFiltered[1] = array_filter($lines, function ($el) {
+            return $el['type_id'] == 2;
+        });
+        unset($lines);
+
         $array = [
             [
                 '',
@@ -441,132 +452,135 @@ class TableController extends Controller
             ]
         ];
 
-        foreach ($lines as &$line) {
-            $linePlans = array_filter($plans, function ($el) use ($line) {
-                return $el['line_id'] == $line['line_id'];
-            });
 
-            $linePlans = array_map(function ($el) use ($products) {
-                $title = array_search(
-                    $el['product_id'],
-                    array_column($products, 'product_id')
-                );
+        foreach ($linesFiltered as &$lines) {
+            foreach ($lines as &$line) {
+                $linePlans = array_filter($plans, function ($el) use ($line) {
+                    return $el['line_id'] == $line['line_id'];
+                });
 
-                if ($title !== false) {
-                    $el['title'] = $products[$title]['title'];
-                    $el['amount2parts'] = $products[$title]['amount2parts'] ? $products[$title]['amount2parts'] : 1;
-                    $el['parts2kg'] = $products[$title]['parts2kg'] ? $products[$title]['parts2kg'] : 1;
-                    $el['kg2boil'] = $products[$title]['kg2boil'] ? $products[$title]['kg2boil'] : 1;
-                    $el['cars'] = $products[$title]['cars'] ? $products[$title]['cars'] : 1;
-                    $el['cars2plates'] = $products[$title]['cars2plates'] ? $products[$title]['cars2plates'] : 1;
-                    $el['perfomance'] = $products[$title]['perfomance'] ? $products[$title]['perfomance'] : 1;
-                    $el['people_count'] = $products[$title]['people_count'] ? $products[$title]['people_count'] : 1;
-                }
+                $linePlans = array_map(function ($el) use ($products) {
+                    $title = array_search(
+                        $el['product_id'],
+                        array_column($products, 'product_id')
+                    );
 
-                return $el;
-            }, $linePlans);
+                    if ($title !== false) {
+                        $el['title'] = $products[$title]['title'];
+                        $el['amount2parts'] = $products[$title]['amount2parts'] ? $products[$title]['amount2parts'] : 1;
+                        $el['parts2kg'] = $products[$title]['parts2kg'] ? $products[$title]['parts2kg'] : 1;
+                        $el['kg2boil'] = $products[$title]['kg2boil'] ? $products[$title]['kg2boil'] : 1;
+                        $el['cars'] = $products[$title]['cars'] ? $products[$title]['cars'] : 1;
+                        $el['cars2plates'] = $products[$title]['cars2plates'] ? $products[$title]['cars2plates'] : 1;
+                        $el['perfomance'] = $products[$title]['perfomance'] ? $products[$title]['perfomance'] : 1;
+                        $el['people_count'] = $products[$title]['people_count'] ? $products[$title]['people_count'] : 1;
+                    }
 
-            $line['items'] = [];
-            $hardwares = array_filter(array_unique(array_column($linePlans, 'hardware')));
+                    return $el;
+                }, $linePlans);
 
-            if (count($hardwares) != 0) {
-                foreach ($hardwares as $hw) {
-                    $line['items'][$hw] = [
-                        'hwTitle' => self::$hardware[$hw],
-                        'items' => array_filter($linePlans, function ($el) use ($hw) {
-                            return $el['hardware'] == $hw;
-                        })
+                $line['items'] = [];
+                $hardwares = array_filter(array_unique(array_column($linePlans, 'hardware')));
+
+                if (count($hardwares) != 0) {
+                    foreach ($hardwares as $hw) {
+                        $line['items'][$hw] = [
+                            'hwTitle' => self::$hardware[$hw],
+                            'items' => array_filter($linePlans, function ($el) use ($hw) {
+                                return $el['hardware'] == $hw;
+                            })
+                        ];
+                    }
+                } else {
+                    // Упаковка
+                    $line['items'][0] = [
+                        'items' => $linePlans
                     ];
                 }
-            } else {
-                // Упаковка
-                $line['items'][0] = [
-                    'items' => $linePlans
-                ];
-            }
 
-            $line['master'] = $line['master'] ? explode(' ', $responsibles[$line['master']]) : '';
-            $line['engineer'] = $line['engineer'] ? explode(' ', $responsibles[$line['engineer']]) : '';
+                $line['master'] = $line['master'] ? explode(' ', $responsibles[$line['master']]) : '';
+                $line['engineer'] = $line['engineer'] ? explode(' ', $responsibles[$line['engineer']]) : '';
 
-            if (is_array($line['master'])) {
-                $line['master'] = $line['master'][0] . mb_strcut($line['master'][1], 0, 1) . '.';
-            }
-            if (is_array($line['engineer'])) {
-                $line['engineer'] = $line['engineer'][0] . mb_strcut($line['engineer'][1], 0, 1) . '.';
-            }
-
-            $array[] = ['', '<style bgcolor="#B7DEE8"><b>ОТВЕТСТВЕННЫЕ:' . $line['master'] . ',' . $line['engineer'] . '</b></style>'];
-            // $array[] = ['', ]
-
-            $colon = array_filter(array_unique(array_column($line['items'], 'colon')));
-            if (count($colon) >= 2) {
-                $colon = [1, 2];
-            }
-            if (!empty($colon)) {
-                $array[] = ['', '<b>', self::$colons[$colon[0]], '</b>'];
-            }
-            $array[] = ['', '<style bgcolor="#D8E4BC"><b>' . $line['title'] . '</b></style>', '', '', '', '', '', '', '', '', '', $line['workers_count'], $line['started_at'], $line['ended_at']];
-            if (!empty($colon) && count($colon) > 1) {
-                $array[] = ['', '<b>', self::$colons[$colon[1]], '</b>'];
-            }
-
-            $sum = 0;
-            foreach ($line['items'] as $hw) {
-                if (isset($hw['hwTitle'])) {
-                    $array[] = ['', '<style bgcolor="#D8E4BC"><b>' . mb_strtoupper($hw['hwTitle']) . '</b></style>'];
+                if (is_array($line['master'])) {
+                    $line['master'] = $line['master'][0] . mb_strcut($line['master'][1], 0, 1) . '.';
                 }
-                foreach ($hw['items'] as $product) {
-                    // if (!isset($product['amount2parts'])) {
-                    //     continue;
-                    // }
-                    $kg = floatval($product['amount']);
-                    $sum += $kg;
-                    $parts = eval('return ' . $kg . '/' . floatval($product['parts2kg']) . ';');
-                    $crates = eval('return ' . $parts . '/' . floatval($product['amount2parts']) . ';');
-                    $boils = eval('return ' . $kg . '*' . floatval($product['kg2boil']) . ';');
-                    $prec = eval('return ' . $boils . '*' . floatval($product['cars']) . ';');
-                    $cars = ceil($prec);
-                    $plates = eval('return ' . ($prec - $cars) . '*' . floatval($product['cars2plates']) . ';');
-                    $array[] = [
-                        '',
-                        $product['title'],
-                        self::$MCS . $crates . self::$MCE,
-                        self::$MCS . $parts . self::$MCE,
-                        self::$MCS . $kg . self::$MCE,
-                        self::$MCS . $boils . self::$MCE,
-                        self::$MCS . $cars . self::$MCE,
-                        '<b>т</b>',
-                        self::$MCS . $plates . self::$MCE,
-                        '<b>под</b>',
-                        self::$MCS . '<b>' . $prec . '</b>' . self::$MCE,
-                        $product['workers_count'],
-                        $product['started_at'],
-                        $product['ended_at'],
-                        '',
-                        '',
-                        '',
-                        '',
-                        '',
-                        '',
-                        '',
-                        '',
-                        '',
-                        '',
-                        '',
-                        '',
-                        '',
-                        '',
-                        '',
-                        $kg / $product['perfomance'] * $product['people_count'],
-                        '<f>=T' . (count($array) + 1) . '/' . $product['perfomance'] . '*' . $product['people_count'] . '</f>'
-                    ];
+                if (is_array($line['engineer'])) {
+                    $line['engineer'] = $line['engineer'][0] . mb_strcut($line['engineer'][1], 0, 1) . '.';
                 }
-            }
-            // $array[] = ['', '<b>Заключительное время</b>', '','','','','','','','','','', end($line['items'])['ended_at']];
-            $array[] = [];
 
-            $array[] = ['', '<b>Итого зефира</b>', $sum];
-            $sum = 0;
+                $array[] = ['', '<style bgcolor="#B7DEE8"><b>ОТВЕТСТВЕННЫЕ:' . $line['master'] . ',' . $line['engineer'] . '</b></style>'];
+                // $array[] = ['', ]
+
+                $colon = array_filter(array_unique(array_column($line['items'], 'colon')));
+                if (count($colon) >= 2) {
+                    $colon = [1, 2];
+                }
+                if (!empty($colon)) {
+                    $array[] = ['', '<b>', self::$colons[$colon[0]], '</b>'];
+                }
+                $array[] = ['', '<style bgcolor="#D8E4BC"><b>' . $line['title'] . '</b></style>', '', '', '', '', '', '', '', '', '', $line['workers_count'], $line['started_at'], $line['ended_at']];
+                if (!empty($colon) && count($colon) > 1) {
+                    $array[] = ['', '<b>', self::$colons[$colon[1]], '</b>'];
+                }
+
+                $sum = 0;
+                foreach ($line['items'] as $hw) {
+                    if (isset($hw['hwTitle'])) {
+                        $array[] = ['', '<style bgcolor="#D8E4BC"><b>' . mb_strtoupper($hw['hwTitle']) . '</b></style>'];
+                    }
+                    foreach ($hw['items'] as $product) {
+                        // if (!isset($product['amount2parts'])) {
+                        //     continue;
+                        // }
+                        $kg = floatval($product['amount']);
+                        $sum += $kg;
+                        $parts = eval('return ' . $kg . '/' . floatval($product['parts2kg']) . ';');
+                        $crates = eval('return ' . $parts . '/' . floatval($product['amount2parts']) . ';');
+                        $boils = eval('return ' . $kg . '*' . floatval($product['kg2boil']) . ';');
+                        $prec = eval('return ' . $boils . '*' . floatval($product['cars']) . ';');
+                        $cars = ceil($prec);
+                        $plates = eval('return ' . ($prec - $cars) . '*' . floatval($product['cars2plates']) . ';');
+                        $array[] = [
+                            '',
+                            $product['title'],
+                            self::$MCS . $crates . self::$MCE,
+                            self::$MCS . $parts . self::$MCE,
+                            self::$MCS . $kg . self::$MCE,
+                            self::$MCS . $boils . self::$MCE,
+                            self::$MCS . $cars . self::$MCE,
+                            '<b>т</b>',
+                            self::$MCS . $plates . self::$MCE,
+                            '<b>под</b>',
+                            self::$MCS . '<b>' . $prec . '</b>' . self::$MCE,
+                            $product['workers_count'],
+                            $product['started_at'],
+                            $product['ended_at'],
+                            '',
+                            '',
+                            '',
+                            '',
+                            '',
+                            '',
+                            '',
+                            '',
+                            '',
+                            '',
+                            '',
+                            '',
+                            '',
+                            '',
+                            '',
+                            $kg / $product['perfomance'] * $product['people_count'],
+                            '<f>=T' . (count($array) + 1) . '/' . $product['perfomance'] . '*' . $product['people_count'] . '</f>'
+                        ];
+                    }
+                }
+                // $array[] = ['', '<b>Заключительное время</b>', '','','','','','','','','','', end($line['items'])['ended_at']];
+                $array[] = [];
+
+                $array[] = ['', '<b>Итого зефира</b>', $sum];
+                $sum = 0;
+            }
         }
 
 
@@ -606,7 +620,7 @@ class TableController extends Controller
 
         $name = 'План_' . date('d_m_Y-H:i:s', time()) . '.xlsx';
         $xlsx->downloadAs($name);
-         
+
         // return $name;
     }
     public function loadPlan(Request $request)
