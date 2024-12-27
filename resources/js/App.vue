@@ -61,7 +61,7 @@ export default {
         },
         onGetBoils(ev) {
             this.boils = ev;
-            this.topBarKey += 1;
+            // this.topBarKey += 1;
         },
         closeModal(ev) {
             this.openStats = false;
@@ -72,8 +72,9 @@ export default {
             //     this.boardKey += 1;
             // }
             if (ev) {
-                this.prodKey += 1;
+                //this.prodKey += 1;
                 this.boardKey += 1;
+                console.log(this.boardKey);
             }
         },
         getData(ev) {

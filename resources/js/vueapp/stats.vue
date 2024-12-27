@@ -140,6 +140,17 @@ export default {
             a.setHours(spl[0]);
             a.setMinutes(spl[1]);
             return a.toISOString();
+        },
+        addSlotFront(record, line_id) {
+            console.log(line_id);
+            let id = this.workers.find(el => record.worker_id == el.worker_id);
+            if (id) {
+                id[line_id] = {
+                    time: ref([dayjs('00:00', 'HH:mm'), dayjs('00:00', 'HH:mm')]),
+                    worker_id: record.worker_id,
+                    line_id: record.line_id
+                };
+            }
         }
     },
     updated() {
@@ -183,12 +194,13 @@ export default {
                         <template v-else>
                             <TimeRangePicker v-model:value="record[column.dataIndex]['time']"
                                 @change="(ev) => { addUpdate(record[column.dataIndex]); }" format="HH:mm"
-                                :showTime="true" :allowClear="true" type="time" :showDate="false" :size="'small'" />
+                                :showTime="true" :allowClear="true" type="time" :showDate="false" :size="'small'" 
+                                style="border-color: #1677ff"/>
                         </template>
                     </template>
-                    <!-- <template v-else-if="!record[column.dataIndex] && edit">
-                        <Button type="dashed" @click="addSlotFront">+</Button>
-                    </template> -->
+                    <template v-else-if="!record[column.dataIndex] && edit">
+                        <Button type="dashed" @click="addSlotFront(record, column.dataIndex)" style="width: 100%;padding:0;">+</Button>
+                    </template>
                     <template v-else>
                         {{ record[column.dataIndex] }}
                     </template>

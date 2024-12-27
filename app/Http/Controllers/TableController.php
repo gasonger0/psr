@@ -269,7 +269,7 @@ class TableController extends Controller
             $responsibles[$f['responsible_id']] = $f['name'];
         }
 
-        $lines = Lines::whereIn('line_id', $linesFromPlans)->get(['line_id', 'title', 'started_at', 'ended_at', 'master', 'engineer', 'workers_count'])->toArray();
+        $lines = Lines::whereIn('line_id', $linesFromPlans)->get(['line_id', 'title', 'started_at', 'ended_at', 'master', 'engineer', 'workers_count', 'type_id'])->toArray();
         $products = ProductsDictionary::whereIn('product_id', $productsFromLines)->get(['product_id', 'title', 'amount2parts', 'parts2kg', 'kg2boil', 'cars', 'cars2plates'])->toArray();
         $slots = ProductsSlots::whereIn('product_slot_id', $slotsFromProducts)->get(['product_slot_id', 'people_count', 'perfomance', 'product_id'])->toArray();
 
@@ -293,7 +293,7 @@ class TableController extends Controller
         });
         unset($lines);
 
-        $array = [
+        $arrayHeader = [
             [
                 '',
                 '',
@@ -452,8 +452,11 @@ class TableController extends Controller
             ]
         ];
 
+        $arr = [$arrayHeader, $arrayHeader];
 
-        foreach ($linesFiltered as &$lines) {
+
+        foreach ($linesFiltered as $sheet => &$lines) {
+            $array = $arr[$sheet];
             foreach ($lines as &$line) {
                 $linePlans = array_filter($plans, function ($el) use ($line) {
                     return $el['line_id'] == $line['line_id'];
@@ -523,7 +526,7 @@ class TableController extends Controller
                     $array[] = ['', '<b>', self::$colons[$colon[1]], '</b>'];
                 }
 
-                $sum = 0;
+                $sum = [0,0];
                 foreach ($line['items'] as $hw) {
                     if (isset($hw['hwTitle'])) {
                         $array[] = ['', '<style bgcolor="#D8E4BC"><b>' . mb_strtoupper($hw['hwTitle']) . '</b></style>'];
@@ -533,10 +536,11 @@ class TableController extends Controller
                         //     continue;
                         // }
                         $kg = floatval($product['amount']);
-                        $sum += $kg;
+                        $sum[0] += $kg;
                         $parts = eval('return ' . $kg . '/' . floatval($product['parts2kg']) . ';');
                         $crates = eval('return ' . $parts . '/' . floatval($product['amount2parts']) . ';');
                         $boils = eval('return ' . $kg . '*' . floatval($product['kg2boil']) . ';');
+                        $sum[1] += $boils;
                         $prec = eval('return ' . $boils . '*' . floatval($product['cars']) . ';');
                         $cars = ceil($prec);
                         $plates = eval('return ' . ($prec - $cars) . '*' . floatval($product['cars2plates']) . ';');
@@ -556,8 +560,8 @@ class TableController extends Controller
                             $product['started_at'],
                             $product['ended_at'],
                             '',
-                            '',
-                            '',
+                            '<f>=R' . (count($array) + 1) .'*' . $product['amount2parts'],
+                            '<f>=S' . (count($array) + 1) .'*' . $product['parts2kg'],
                             '',
                             '',
                             '',
@@ -578,17 +582,18 @@ class TableController extends Controller
                 // $array[] = ['', '<b>Заключительное время</b>', '','','','','','','','','','', end($line['items'])['ended_at']];
                 $array[] = [];
 
-                $array[] = ['', '<b>Итого зефира</b>', $sum];
-                $sum = 0;
+                $array[] = ['', '<b>Итого зефира</b>', '','',$sum[0],$sum[1] ];
+                $sum = [0,0];
             }
+            // var_dump($array);
+            $arr[$sheet] = $array;
         }
 
+        // die();
 
-        $xlsx = SimpleXLSXGen::fromArray($array)
-            // ->setDefaultFont('Times New Roman')
+
+        $xlsx = SimpleXLSXGen::fromArray($arr[0], 'Варка')
             ->setDefaultFontSize(20)
-            // ->setColWidth(13, 18)
-            // ->setColWidth(14, 63)
             ->setColWidth(1, 10)
             ->setColWidth(2, 34)
             ->setColWidth(3, 8)
@@ -616,9 +621,39 @@ class TableController extends Controller
             ->mergeCells('Z5:Z6')
             ->mergeCells('R4:AB4')
             ->mergeCells('AC4:AC6')
-            ->mergeCells('M5:N5');
+            ->mergeCells('M5:N5')
+            ->addSheet($arr[1], 'Упаковка')
+            ->setDefaultFontSize(20)
+            ->setColWidth(1, 10)
+            ->setColWidth(2, 34)
+            ->setColWidth(3, 8)
+            ->setColWidth(4, 8)
+            ->setColWidth(5, 8)
+            ->setColWidth(6, 8)
+            ->setColWidth(7, 8)
+            ->setColWidth(9, 8)
+            ->setColWidth(11, 0)
+            ->setColWidth(12, 8)
+            ->setColWidth(15, 0)
+            ->setColWidth(16, 0)
+            ->setColWidth(17, 0)
+            ->setColWidth(26, 8)
+            ->setColWidth(29, 20)
+            ->mergeCells('A4:A6')
+            ->mergeCells('B4:B6')
+            ->mergeCells('C4:J5')
+            ->mergeCells('L4:N4')
+            ->mergeCells('G6:J6')
+            ->mergeCells('L5:L6')
+            ->mergeCells('V6:Y6')
+            ->mergeCells('Z3:AC3')
+            ->mergeCells('AA5:AB5')
+            ->mergeCells('Z5:Z6')
+            ->mergeCells('R4:AB4')
+            ->mergeCells('AC4:AC6')
+            ->mergeCells('M5:N5');;
 
-        $name = 'План_' . date('d_m_Y-H:i:s', time()) . '.xlsx';
+        $name = 'План_' . date('d_m_Y', time()) . '.xlsx';
         $xlsx->downloadAs($name);
 
         // return $name;

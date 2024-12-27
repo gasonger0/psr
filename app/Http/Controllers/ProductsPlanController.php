@@ -16,7 +16,7 @@ class ProductsPlanController extends Controller
             return ProductsPlan::join('products_dictionary', 'products_plan.product_id', '=', 'products_dictionary.product_id')
                 ->select('products_plan.*', DB::raw('products_dictionary.title as title'))
                 ->get()->toJson();
-            return ProductsPlan::all()->toJson();
+            // return ProductsPlan::all()->toJson();
         } else {
             return ProductsPlan::where('product_id', '=', $id)->get()->toJson();
         }
@@ -25,7 +25,7 @@ class ProductsPlanController extends Controller
     public function addPlan(Request $request)
     {
         if ($post = $request->post()) {
-            if ($post['plan_product_id']) {
+            if (!$post['plan_product_id']) {
                 $plan = new ProductsPlan();
                 $slot = ProductsSlots::find($post['slot_id'])->toArray();
                 $plan->product_id = $slot['product_id'];
@@ -73,7 +73,7 @@ class ProductsPlanController extends Controller
                 }
                 return true;
             } else {
-                $old = ProductsPlan::find($post['plan_product_id'])->get();
+                $old = ProductsPlan::find($post['plan_product_id']);
 
                 $old->started_at = $post['started_at'];
                 $old->ended_at = $post['ended_at'];
@@ -111,17 +111,15 @@ class ProductsPlanController extends Controller
                 ->where('plan_product_id', '!=', $prod_id)
                 ->orderBy('started_at', 'ASC')
                 ->get();
-        }
-        var_dump($diff);
-        var_dump($plans->toArray());
-        foreach ($plans as $plan) {
-            var_dump($end);
-            // Те, которые надо сдвинуть
-            $plan->started_at = $end;
-            $end = Carbon::parse($plan->ended_at)->addMinutes($diff)->format('H:i:s');
-            $plan->ended_at = $end;
-            var_dump($end);
-            $plan->save();
+            foreach ($plans as $plan) {
+                var_dump($end);
+                // Те, которые надо сдвинуть
+                $plan->started_at = $end;
+                $end = Carbon::parse($plan->ended_at)->addMinutes($diff)->format('H:i:s');
+                $plan->ended_at = $end;
+                var_dump($end);
+                $plan->save();
+            }
         }
     }
 

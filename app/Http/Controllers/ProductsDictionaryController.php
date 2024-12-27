@@ -41,8 +41,11 @@ class ProductsDictionaryController extends Controller
                 $p->save();
             } else {
                 $oldProd = ProductsDictionary::find($prod['product_id']);
-                $updateKeys = array_diff($prod, $oldProd->toArray());
-                var_dump($updateKeys);
+                $updateKeys = array_filter($prod, function($v, $k) use ($oldProd) {
+                    return $v != $oldProd->toArray()[$k];
+                }, ARRAY_FILTER_USE_BOTH);
+                var_dump($oldProd->toArray());
+                var_dump($prod);
                 if ($updateKeys) {
                     foreach ($updateKeys as $k => $v) {
                         $oldProd->$k = $v;
