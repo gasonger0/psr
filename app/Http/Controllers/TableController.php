@@ -504,14 +504,15 @@ class TableController extends Controller
                 $line['master'] = $line['master'] ? explode(' ', $responsibles[$line['master']]) : '';
                 $line['engineer'] = $line['engineer'] ? explode(' ', $responsibles[$line['engineer']]) : '';
 
+
                 if (is_array($line['master'])) {
-                    $line['master'] = $line['master'][0] . mb_strcut($line['master'][1], 0, 1) . '.';
+                    $line['master'] = $line['master'][0] . '.' . mb_substr($line['master'][1], 0, 1) . '.';
                 }
                 if (is_array($line['engineer'])) {
-                    $line['engineer'] = $line['engineer'][0] . mb_strcut($line['engineer'][1], 0, 1) . '.';
+                    $line['engineer'] = $line['engineer'][0] . '.' . mb_substr($line['engineer'][1], 0, 1) . '.';
                 }
 
-                $array[] = ['', '<style bgcolor="#B7DEE8"><b>ОТВЕТСТВЕННЫЕ:' . $line['master'] . ',' . $line['engineer'] . '</b></style>'];
+                $array[] = ['', '<style bgcolor="#B7DEE8"><b>ОТВЕТСТВЕННЫЕ: ' . $line['master'] . ',' . $line['engineer'] . '</b></style>'];
                 // $array[] = ['', ]
 
                 $colon = array_filter(array_unique(array_column($line['items'], 'colon')));
@@ -583,6 +584,9 @@ class TableController extends Controller
                 $array[] = [];
 
                 $array[] = ['', '<b>Итого зефира</b>', '','',$sum[0],$sum[1] ];
+                $array[] = ['', '<b>Итого суфле</b>', '','' ];
+                $array[] = ['', '<b>Итого конфет</b>', '','' ];
+                $array[] = ['', '<b>Отходы</b>'];
                 $sum = [0,0];
             }
             // var_dump($array);

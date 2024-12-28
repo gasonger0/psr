@@ -230,7 +230,9 @@ export default {
                         });
                     } else {
                         axios.post('/api/add_log', {
-                            action: 'Возобновление работы линии ' + f.title
+                            action: 'Возобновление работы линии ' + f.title,
+                            people_count: f.workers_count,
+                            line_id: line.line_id
                         });
                     }
                     if (!f.down_from) {

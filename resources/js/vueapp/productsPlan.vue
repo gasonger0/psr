@@ -261,7 +261,7 @@ export default {
                                 }
                             });
                             console.log(this.packLinesOptions);
-                            this.active.perfomance = this.active.slot.perfomance
+                            this.active.perfomance = (this.active.slot.perfomance ? this.active.slot.perfomance : 1);
                             this.active.amount = prod.order_amount;
                             this.active.order_amount = ref(prod.order_amount);
                             this.active.title = prod.title;
@@ -613,13 +613,10 @@ export default {
             let newSlot = prod.slots[1].find(function (n) {
                 return n.line_id == line_id && n.hardware == ch;
             });
-            console.log(line_id);
-            console.log(prod.slots[1]);
-            console.log(newSlot);
             if (newSlot) {
                 this.active.kg2boil = prod.kg2boil ? eval(prod.kg2boil) : 0;
                 this.active.slot = newSlot;
-                this.active.perfomance = newSlot.perfomance;
+                this.active.perfomance = newSlot.perfomance ? newSlot.perfomance : 1;
                 this.active.time = (this.active.amount / this.active.perfomance).toFixed(2);
                 this.active.ended_at = ref(this.active.started_at.add(this.active.time, 'hour'));
                 console.log(this.active.time);

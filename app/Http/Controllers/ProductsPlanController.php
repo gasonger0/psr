@@ -62,7 +62,7 @@ class ProductsPlanController extends Controller
                         $start->add(new \DateInterval('PT' . $post['delay'] . 'M'));
 
                         $plan->started_at = $start->format('H:i:s');
-                        $duration = ceil($post['amount'] / $slot['perfomance'] * 60);
+                        $duration = ceil($post['amount'] / ($slot['perfomance'] ? $slot['perfomance'] : 1) * 60);
 
                         $start->add(new \DateInterval('PT' . $duration . 'M'));
 
