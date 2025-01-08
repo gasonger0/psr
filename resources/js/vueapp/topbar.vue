@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue';
 import { Upload, Button, Switch, Dropdown, Menu, MenuItem } from 'ant-design-vue';
-import { BarChartOutlined, UploadOutlined, EditOutlined, TeamOutlined, AppstoreOutlined } from '@ant-design/icons-vue';
+import { BarChartOutlined, UploadOutlined, EditOutlined, TeamOutlined, AppstoreOutlined, DatabaseOutlined, FileExcelOutlined, TableOutlined } from '@ant-design/icons-vue';
 import axios from 'axios';
 </script>
 <script>
@@ -9,13 +9,16 @@ export default {
     props: {
         boils: {
             type: Number
+        },
+        boardMode: {
+            type: Boolean
         }
     },
     data() {
         return {
             uploadedFile: ref(null),
             date: (new Date()).toLocaleDateString(),
-            boardMode: ref(false)
+            boardMode: this.$props.boardMode
         }
     },
     methods: {
@@ -103,7 +106,7 @@ export default {
 
             <Dropdown>
                 <Button style="background-color: green; color:white;">
-                    <UploadOutlined />
+                    <FileExcelOutlined />
                     Загрузить
                 </Button>
                 <template #overlay>
@@ -155,12 +158,30 @@ export default {
                 <EditOutlined />
                 Редактировать график
             </Button>
-            <Button type="primary" @click="$emit('showProductsDict')">
-                <AppstoreOutlined />
-                Реестр продукции
-            </Button>
+            <Dropdown>
+                <Button type="primary">
+                    <DatabaseOutlined/>
+                    Реестры
+                </Button>
+                <template #overlay>
+                    <Menu>
+                        <MenuItem>
+                            <Button type="primary" @click="$emit('showProductsDict')">
+                                <AppstoreOutlined />
+                                Реестр продукции
+                            </Button>
+                        </MenuItem>
+                        <MenuItem>
+                            <Button type="primary" @click="$emit('showWorkersDict')">
+                                <TeamOutlined/>
+                                Реестр работников
+                            </Button>
+                        </MenuItem>
+                    </Menu>
+                </template>
+            </Dropdown>
             <Button type="dashed" @click="$emit('showLogs')">
-                <TeamOutlined />
+                <TableOutlined />
                 Журнал
             </Button>
             <div v-show="$props.boils">

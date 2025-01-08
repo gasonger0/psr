@@ -1,4 +1,5 @@
 <script setup>
+import { DeleteOutlined, EditOutlined, SaveOutlined } from '@ant-design/icons-vue';
 import { Button, Divider, Empty, Input, InputNumber, Keyframes, List, ListItem, Modal, Select, SelectOption, Skeleton, Switch, Table, TableSummary, TableSummaryCell, TableSummaryRow, TabPane, Tabs, Tree, Checkbox } from 'ant-design-vue';
 import axios from 'axios';
 import { ref, reactive } from 'vue';
@@ -17,13 +18,13 @@ export default {
     },
     data() {
         return {
-            editing: ref(false),
+            editing: ref([]),
             products: reactive([]),
             categories: reactive([]),
             slots: reactive([]),
             loading: ref(false),
-            activeProduct: ref(-1),
-            activeCategory: ref(-1),
+            activeProduct: ref(null),
+            activeCategory: ref(null),
             activeTab: ref('1'),
             tabs: {
                 1: "Варка",
@@ -64,13 +65,13 @@ export default {
                 { title: 'Кг в Варки:', dataIndex: 'kg2boil', addon: 'Кг ×' },
                 { title: 'Телеги:', dataIndex: 'cars', addon: 'Варка ×' },
                 { title: 'Поддоны:', dataIndex: 'cars2plates', addon: '(Варка - Варка(цел)) ×' },
-                { title: 'Отображать, даже если нет в анализе', dataIndex: 'always_show', addon: false},
+                { title: 'Отображать, даже если нет в анализе', dataIndex: 'always_show', addon: false },
             ],
-            hardwares: {
-                1: 'ТОРНАДО',
-                2: 'Мондомикс',
-                3: 'Китайский Аэрос'
-            }
+            hardwares: [
+                { value: 1, label: 'ТОРНАДО' },
+                { value: 2, label: 'Мондомикс' },
+                { value: 3, label: 'Китайский Аэрос' }
+            ]
         }
     },
     methods: {
@@ -120,9 +121,12 @@ export default {
                 axios.post('/api/get_product_slots', 'product_id=' + product_id)
                     .then((response) => {
                         if (response.data) {
-                            this.slots = response.data;
-
+                            this.slots = response.data.map(el => {
+                                el.hardware = el.hardware ? Number(el.hardware) : null;
+                                return el;
+                            });
                             this.loading = false;
+
                         }
                     })
                     .catch((err) => {
@@ -131,20 +135,20 @@ export default {
                     });
             }, 500);
         },
-        exit(save) {
-            if (save) {
-                if (this.products.find(el => el.product_id == this.activeProduct.product_id)) {
-                    this.addProducts();
-                    this.addProductSlot();
-                    this.getProducts(this.activeCategory);
-                } else {
-                    this.addProductSlot();
-                    this.getProductSlots(this.activeProduct.product_id);
-                }
-                this.editing = false;
-            } else {
-                this.$emit('close-modal', true);
-            }
+        deleteProduct(product_id) {
+            axios.post('/api/delete_product', { product_id: product_id })
+                .then(response => {
+                    // this.products.splice(this.products.indexOf(this.products.find(el => el.product_id == product_id)), 1);
+                    this.$emit('notify', 'success', 'Продукция удалена');
+                })
+                .catch((err) => {
+                    this.$emit('notify', 'error', "Что-то пошло не так: " + err.code);
+                });
+        },
+        exit() {
+            this.activeCategory = null;
+            this.activeProduct = null;
+            this.$emit('close-modal', true);
         },
         addProductFront() {
             this.products.push({
@@ -153,17 +157,17 @@ export default {
                 category_id: this.activeCategory
             });
             this.slots = false;
+            this.editing.push(-1);
         },
-        addProducts() {
-            let index = this.products.find(el => el.product_id == this.activeProduct.product_id);
-            if (index) {
-                this.products[index] = this.activeProduct;
+        saveProduct(product_id) {
+            let product = this.products.find(el => el.product_id == product_id);
+            if (product) {
+                axios.post('/api/save_product', product)
+                    .then(response => {
+                        this.$emit('notify', 'success', 'Продукция сохранена');
+                        this.editing.splice(this.editing.indexOf(product_id), 1);
+                    });
             }
-            console.log(index);
-            axios.post('/api/add_products', this.products)
-                .then(response => {
-                    this.$emit('notify', 'success', 'Продукция добавлена');
-                });
         },
         addSlotFront(k) {
             this.slots.push({
@@ -180,7 +184,9 @@ export default {
             axios.post('/api/add_product_slots',
                 this.slots
             ).then((response) => {
-
+                if (response.data) {
+                    this.$emit('notify', 'success', 'Изменения сохранены');
+                }
             });
         }
     },
@@ -193,8 +199,8 @@ export default {
 <template>
     <Modal v-model:open="$props.open" title="Реестр продукции" style="width: 90vw;height:80vh;" @ok="exit"
         :closable="false">
-        <Switch v-model:checked="editing" checked-children="Редактирование" un-checked-children="Просмотр"
-            class="title-switch" />
+        <!-- <Switch v-model:checked="editing" checked-children="Редактирование" un-checked-children="Просмотр"
+            class="title-switch" /> -->
         <div style="display: flex; justify-content: space-between;">
             <div style="width: 20%;">
                 <Skeleton active v-if="categories.length == 0" />
@@ -205,16 +211,27 @@ export default {
             <div style="width:20%">
                 <List :data-source="products" v-if="products.length != 0" style="max-height:60vh; overflow: auto;">
                     <template #renderItem="{ item }">
-                        <ListItem @click="getProductSlots(item.product_id)" v-if="!editing" class="product_list-item"
-                            :class="activeProduct.product_id == item.product_id ? 'active' : ''">
-                            <a href="#">{{ item.title }}</a>
+                        <ListItem v-if="!editing.find(el => el == item.product_id)" class="product_list-item"
+                            :class="activeProduct && activeProduct.product_id == item.product_id ? 'active' : ''"
+                            style="justify-content: space-between;">
+                            <a href="#" @click="getProductSlots(item.product_id)">{{ item.title }}</a>
+                            <div
+                                style="display: flex; flex-direction: column; min-height: 50px; justify-content: space-between;">
+                                <EditOutlined @click="editing.push(item.product_id)"
+                                    style="color: white; background-color: #1677ff; padding:5px;border-radius: 3px;" />
+                                <DeleteOutlined @click="deleteProduct(item.product_id)"
+                                    style="color: white; background-color: #bd1515; padding:5px;border-radius: 3px;" />
+                            </div>
                         </ListItem>
-                        <ListItem v-else class="product_list-item">
-                            <Input v-model:value="item.title" />
+                        <ListItem v-else class="product_list-item" style="display: flex;">
+                            <Input v-model:value="item.title" style="max-width:88%" />
+                            <SaveOutlined @click="saveProduct(item.product_id)"
+                                style="color: white; background-color: #1677ff; padding:5px;border-radius: 3px;" />
                         </ListItem>
                     </template>
                     <template #footer>
-                        <Button @click="addProductFront" type="primary" style="width:100%" v-if="editing">+</Button>
+                        <Button @click="addProductFront" type="primary" style="width:100%"
+                            v-if="editing.find(el => el != -1) && this.activeCategory != null">+</Button>
                     </template>
                 </List>
                 <template v-else-if="loading">
@@ -222,37 +239,40 @@ export default {
                 </template>
                 <template v-else>
                     <Empty description="Нет данных" style="max-width:100%;" />
-                    <Button @click="addProductFront" type="primary" style="width:100%" v-if="editing">+</Button>
+                    <Button @click="addProductFront" type="primary" style="width:100%"
+                        v-if="this.activeCategory != null">+</Button>
                 </template>
             </div>
             <Divider type="vertical" style="height:unset;" />
             <div style="min-width: 60%;">
                 <Tabs v-model:activeKey="activeTab">
+                    <template #rightExtra>
+                        <Button type="primary" @click="addProductSlot">Сохранить</Button>
+                    </template>
                     <TabPane v-for="(v, k) in tabs" :key="k" :tab="v">
                         <Table :columns="k == 1 ? columns : columnsPack" bordered
-                            :data-source="slots.filter(el => { return el.type_id == k })" :pagination="false"
-                            v-show=slots>
+                            :data-source="slots.filter(el => { return el.type_id == k })" :pagination="false">
                             <template #emptyText>
-                                <Empty description="Нет данных" style="max-width:100%;" />
-                            </template>
-                            <template #bodyCell="{ record, column, text }">
-                                <template v-if="!editing && (column.dataIndex == 'hardware')">
-                                    {{ hardwares[text] }}
-                                </template>
                                 <template v-if="loading">
                                     <Skeleton active />
                                 </template>
-                                <template v-else-if="editing">
+                                <template v-else>
+                                    <Empty description="Нет данных" style="max-width:100%;" />
+                                </template>
+                            </template>
+                            <template #bodyCell="{ record, column, text }">
+                                <template v-if="editing">
                                     <template v-if="['people_count', 'perfomance'].find(el => el == column.dataIndex)">
                                         <InputNumber v-model:value="record[column.dataIndex]" /> {{
                                             measures[column.dataIndex]
                                         }}
                                     </template>
                                     <template v-else-if="column.dataIndex == 'hardware'">
-                                        <Select v-model:value="record[column.dataIndex]" style="width: 100%;">
-                                            <SelectOption v-for="(v, k) in hardwares" :key="k" :value="k">
+                                        <Select v-model:value="record[column.dataIndex]" style="width: 100%;"
+                                            :options="hardwares">
+                                            <!-- <SelectOption v-for="(v, k) in hardwares" :key="k" :value="k">
                                                 {{ v }}
-                                            </SelectOption>
+                                            </SelectOption> -->
                                         </Select>
                                     </template>
                                     <template v-else>
@@ -264,12 +284,12 @@ export default {
                                         </Select>
                                     </template>
                                 </template>
-                                <template v-else-if="column.dataIndex == 'line_id'">
+                                <!-- <template v-else-if="column.dataIndex == 'line_id'">
                                     <span>{{ $props.data.lines.find(el => el.line_id == text).title }}</span>
-                                </template>
+                                </template> -->
                             </template>
                             <template #summary>
-                                <TableSummary v-if="editing">
+                                <TableSummary v-if="this.activeProduct != null">
                                     <TableSummaryRow>
                                         <TableSummaryCell :col-span="4" style="padding:0;">
                                             <Button type="primary" @click="addSlotFront(k)"
@@ -287,9 +307,10 @@ export default {
                                 <div v-if="v.addon !== false">
                                     <Input v-if="editing" v-model:value="activeProduct[v.dataIndex]"
                                         style="max-width:300px;" :addon-before="v.addon" />
-                                    <span v-else>
-                                        {{ v.addon + ' ' + activeProduct[v.dataIndex] ? activeProduct[v.dataIndex] : '-' }}
-                                    </span>
+                                    <!-- <span v-else>
+                                        {{ v.addon + ' ' + activeProduct[v.dataIndex] ? activeProduct[v.dataIndex] : '-'
+                                        }}
+                                    </span> -->
                                 </div>
                                 <div v-else>
                                     <Checkbox v-model:checked="activeProduct[v.dataIndex]" :disabled="!editing" />
@@ -303,8 +324,7 @@ export default {
             </div>
         </div>
         <template #footer>
-            <Button type="primary" @click="exit(true)">Сохранить</Button>
-            <Button type="default" @click="exit(false)">Закрыть</Button>
+            <Button type="default" @click="exit()">Закрыть</Button>
         </template>
     </Modal>
 </template>

@@ -28,6 +28,7 @@ Route::get( '/get_workers',         [WorkersController::class,              'get
 Route::post('/save_worker',         [WorkersController::class,              'save'      ]);
 Route::post('/change_lines',        [WorkersController::class,              'change'    ]);
 Route::post('/add_worker',          [WorkersController::class,              'addFromWeb']);
+Route::post('/edit_workers',        [WorkersController::class,              'edit'      ]);
 
 /*******
  * SLOTS
@@ -42,7 +43,8 @@ Route::post('/replace_worker',      [SlotsController::class,                'rep
  * PRODUCTS_DICTIONARY
  ********************/
 Route::post('/get_products',        [ProductsDictionaryController::class,   'getList'   ]);
-Route::post('/add_products',        [ProductsDictionaryController::class,   'addProduct']);
+Route::post('/save_product',        [ProductsDictionaryController::class,   'saveProduct']);
+Route::post('/delete_product',      [ProductsDictionaryController::class,   'deleteProduct']);
 
 /*********************
  * PRODUCTS_CATEGORIES
@@ -74,6 +76,7 @@ Route::get('/get_product_orders',   [ProductsOrderController::class,        'get
  * RESPONSIBLE
  ************/
 Route::get('/get_responsible',      [ResponsibleController::class,          'getList'   ]);
+Route::post('/edit_responsible',    [ResponsibleController::class,          'edit'      ]);
 
 /******
  * XLSX

@@ -303,7 +303,7 @@ export default {
                             if (el.master) {
                                 let f = this.responsible.find(i => i.responsible_id == el.master);
                                 if (f) {
-                                    let n = f.name.split(' ');
+                                    let n = f.title.split(' ');
                                     n = n[0] + ' ' + n[1][0] + '.';
                                     arr.push(n + ', ' + f.position);
                                 }
@@ -314,7 +314,7 @@ export default {
                             if (el.engineer) {
                                 let f = this.responsible.find(i => i.responsible_id == el.engineer);
                                 if (f) {
-                                    let n = f.name.split(' ');
+                                    let n = f.title.split(' ');
                                     n = n[0] + ' ' + n[1][0] + '.';
                                     arr.push(n + ', ' + f.position);
                                 }
@@ -375,6 +375,7 @@ export default {
             }
             if (record.cancel_reason != null) {
                 fd.append('cancel_reason', record.cancel_reason);
+                fd.append('cancel_reason_extra', this.cancel_reasons[record.cancel_reason - 1].title);
             }
 
             axios.post('/api/save_line', fd)
@@ -387,7 +388,7 @@ export default {
                     if (i.master) {
                         let f = this.responsible.find(m => m.responsible_id == i.master);
                         if (f) {
-                            let n = f.name.split(' ');
+                            let n = f.title.split(' ');
                             n = n[0] + ' ' + n[1][0] + '.';
                             arr.push(n + ', ' + f.position);
                         }
@@ -398,7 +399,7 @@ export default {
                     if (i.engineer) {
                         let f = this.responsible.find(m => m.responsible_id == i.engineer);
                         if (f) {
-                            let n = f.name.split(' ');
+                            let n = f.title.split(' ');
                             n = n[0] + ' ' + n[1][0] + '.';
                             arr.push(n + ', ' + f.position);
                         }
@@ -669,12 +670,12 @@ export default {
                         <span>Ответственные:</span>
                         <Select v-model:value="line.master" style="width:100%;">
                             <SelectOption v-for="i in responsible" v-model:value="i.responsible_id">
-                                {{ i.name }}
+                                {{ i.title }}
                             </SelectOption>
                         </Select>
                         <Select v-model:value="line.engineer" style="width:100%;margin-top:10px;">
                             <SelectOption v-for="i in responsible" v-model:value="i.responsible_id">
-                                {{ i.name }}
+                                {{ i.title }}
                             </SelectOption>
                         </Select>
                     </div>
@@ -763,14 +764,6 @@ export default {
                 <UserAddOutlined />
             </template>
         </FloatButton>
-        <!-- <FloatButton type="default" @click="addResp">
-            <template #tooltip>
-                <div>Добавить ответственного</div>
-            </template>
-            <template #icon>
-                <UserAddOutlined style="color:#1677ff"/>
-            </template>
-        </FloatButton> -->
         <BackTop />
     </FloatButtonGroup>
     <FloatButton @dragover="scroll(true, 1)" @dragleave="scroll(true, 2)" @mouseover="scroll(true, 1)" @mouseleave="scroll(true, 2)"

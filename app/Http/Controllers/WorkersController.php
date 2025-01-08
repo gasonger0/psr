@@ -52,15 +52,16 @@ class WorkersController extends Controller
                 $slot = Slots::find($worker['slot_id']);
                 $slot->line_id = $worker['line_id'];
                 $slot->save();
-            // } else {
-            //     SlotsController::add(
-                    
-            //     )
+                // } else {
+                //     SlotsController::add(
+
+                //     )
             }
         };
     }
 
-    static public function addFromWeb(Request $request) {
+    static public function addFromWeb(Request $request)
+    {
         $tz = new DateTimeZone('Europe/Moscow');
         $b_start = new DateTime($request->post('break')[0]);
         $b_start->setTimezone($tz);
@@ -72,6 +73,35 @@ class WorkersController extends Controller
             $b_start,
             $b_end
         );
+    }
+
+    function edit(Request $request)
+    {
+        $workers = [];
+        foreach (Workers::all(['worker_id', 'title', 'company']) as $worker) {
+            $workers[$worker->worker_id] = $worker;
+        }
+        $data = $request->post();
+        foreach ($data as $worker) {
+            if ($worker['worker_id']) {
+                // Edit
+                $workers[$worker['worker_id']]['company'] = $worker['company'];
+                $workers[$worker['worker_id']]['title'] = $worker['title'];
+                $workers[$worker['worker_id']]->save();
+            } else {
+                // New
+                self::add($worker['company'], $worker['title']);
+            }
+            unset($workers[$worker['worker_id']]);
+        };
+
+        var_dump($workers);
+
+        if (!empty($workers)) {
+            Workers::destroy(array_map(function ($i) {
+                return $i->worker_id;
+            }, $workers));
+        }
     }
 
     static public function dropData()

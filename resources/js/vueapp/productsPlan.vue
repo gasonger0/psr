@@ -5,7 +5,6 @@ import { reactive, ref } from 'vue';
 import dayjs from 'dayjs';
 import Loading from './loading.vue';
 import { CloudDownloadOutlined, CloudUploadOutlined, DeleteOutlined, LeftOutlined, PrinterOutlined, RightOutlined, InfoCircleOutlined, ExclamationCircleOutlined, EditOutlined } from '@ant-design/icons-vue';
-import { getKeyThenIncreaseKey } from 'ant-design-vue/es/message';
 </script>
 <script>
 export default {
@@ -225,13 +224,16 @@ export default {
                         if (product) {
                             if (!product.active_slots[1] && product.slots[1]) {
                                 for (let i in product.slots[1]) {
-                                    console.log(i);
                                     this.document.querySelector('.line[data-id="' + product.slots[1][i].line_id + '"]').classList.remove('hidden-hard');
                                 }
                             }
                             if ((product.active_slots[1] && product.slots[2]) || (!product.active_slots[1] && product.slots[1].length == 0)) {
                                 for (let i in product.slots[2]) {
                                     this.document.querySelector('.line[data-id="' + product.slots[2][i].line_id + '"]').classList.remove('hidden-hard');
+                                }
+                                let ids = [8,9,10,11,12];
+                                for (let i in ids) {
+                                    this.document.querySelector('.line[data-id="' + ids[i] + '"]').classList.remove('hidden-hard');
                                 }
                             }
                         }
@@ -682,7 +684,7 @@ export default {
                     if (i.master) {
                         let f = this.responsible.find(m => m.responsible_id == i.master);
                         if (f) {
-                            let n = f.name.split(' ');
+                            let n = f.title.split(' ');
                             n = n[0] + ' ' + n[1][0] + '.';
                             arr.push(n + ', ' + f.position);
                         }
@@ -693,7 +695,7 @@ export default {
                     if (i.engineer) {
                         let f = this.responsible.find(m => m.responsible_id == i.engineer);
                         if (f) {
-                            let n = f.name.split(' ');
+                            let n = f.title.split(' ');
                             n = n[0] + ' ' + n[1][0] + '.';
                             arr.push(n + ', ' + f.position);
                         }
@@ -878,12 +880,12 @@ export default {
                         <span>Ответственные:</span>
                         <Select v-model:value="line.master" style="width:100%;">
                             <SelectOption v-for="i in responsible" v-model:value="i.responsible_id">
-                                {{ i.name }}
+                                {{ i.title }}
                             </SelectOption>
                         </Select>
                         <Select v-model:value="line.engineer" style="width:100%;margin-top:10px;">
                             <SelectOption v-for="i in responsible" v-model:value="i.responsible_id">
-                                {{ i.name }}
+                                {{ i.title }}
                             </SelectOption>
                         </Select>
                     </div>

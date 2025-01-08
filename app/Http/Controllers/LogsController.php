@@ -19,6 +19,7 @@ class LogsController extends Controller
             $log->extra = $extra;
         }
         $log->line_id = $request->post('line_id');
+        $log->people_count = $request->post('people_count');
         $log->save();
         return;
     }

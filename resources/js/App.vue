@@ -8,6 +8,7 @@ import ProductsPlan from './vueapp/productsPlan.vue';
 import { ref } from 'vue';
 import Result from './vueapp/result.vue';
 import { notification } from 'ant-design-vue';
+import WorkersDict from './vueapp/workersDict.vue';
 </script>
 <script>
 export default {
@@ -22,11 +23,12 @@ export default {
             openResult: ref(false),
             openLogs: ref(false),
             openProductsDict: ref(false),
+            openWorkersDict: ref(false),
             openProductsPlan: ref(false),
             prod: ref(1),
             boardKey: ref(1),
             statsRef: null,
-            boardType: ref(true),
+            boardType: ref(false),
             topBarKey: ref(1)
         }
     },
@@ -56,25 +58,29 @@ export default {
             this.openProductsDict = true;
             return;
         },
+        showWorkersDict(){
+            this.openWorkersDict = true;
+            return;
+        },
         changeBoard(){
             this.boardType = !this.boardType;
         },
         onGetBoils(ev) {
             this.boils = ev;
-            // this.topBarKey += 1;
+            this.topBarKey += 1;
         },
         closeModal(ev) {
             this.openStats = false;
             this.openResult = false;
             this.openLogs = false;
             this.openProductsDict = false;
+            this.openWorkersDict = false;
             // if (ev) {
             //     this.boardKey += 1;
             // }
             if (ev) {
                 //this.prodKey += 1;
                 this.boardKey += 1;
-                console.log(this.boardKey);
             }
         },
         getData(ev) {
@@ -106,22 +112,29 @@ export default {
         :data="data"
         @close-modal="closeModal"
         @notify="notify"/>
+    <WorkersDict
+        :open="openWorkersDict"
+        @close-modal="closeModal"
+        @notify="notify"
+    />
     <TopBar 
         :key="topBarKey"
         :boils="boils"
+        :boardMode="boardType"
         @showGraph="showGraph" 
         @showResult="showResult"
         @showLogs="showLogs" 
         @showProductsDict="showProductsDict"
+        @showWorkersDict="showWorkersDict"
         @change-board="changeBoard"
         @notify="notify"/>
     <Boards 
-        v-if="boardType"
+        v-if="!boardType"
         :key="boardKey"
         @data-recieved="getData"  
         @notify="notify"/>
     <ProductsPlan
-        v-if="!boardType"
+        v-if="boardType"
         :key="prodKey"
         :data="data"
         @getBoils="onGetBoils"

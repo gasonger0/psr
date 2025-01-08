@@ -94,7 +94,15 @@ class LinesController extends Controller
                 );
                 // ProductsController::afterLineUpdate($request->post('line_id'), $request->post('started_at'), $start, $request->post('ended_at'), $end);
                 ProductsPlanController::afterLineUpdate($request->post('line_id'), $request->post('started_at'), $start, $request->post('ended_at'), $end);
-                
+                if($line->cancel_reason != null){
+                    $request = new Request([], [
+                        'line_id' => $line->line_id,
+                        'action' => 'Перенос времени работы линии',
+                        'extra' => 'Причина: ' . $request->post('cancel_reason_extra'),
+                        'people_count' => $line->workers_count
+                    ]);
+                    LogsController::add($request);
+                }
             }
             return json_encode([
                 "success" => true
