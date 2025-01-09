@@ -719,7 +719,7 @@ export default {
                 let prod = this.products.find(i => i.product_id == plan.product_id);
                 this.active.kg2boil = prod.kg2boil ? eval(prod.kg2boil) : 0;
                 this.active.slot = prod.slots[1].concat(prod.slots[2]).find(n => n.line_id == plan.line_id && n.hardware == plan.hardware);
-                this.active.perfomance = this.active.slot.perfomance
+                this.active.perfomance = (this.active.slot && this.active.slot.perfomance) ? this.active.slot.perfomance : 1;
 
                 this.active.title = prod.title;
                 this.active.started_at = dayjs(plan.started_at, 'HH:mm');
