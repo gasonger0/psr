@@ -963,7 +963,8 @@ export default {
             </CheckboxGroup>
             <br>
             <h3>Оборудование:</h3>
-            <RadioGroup v-model:value="active.hardware" @change="handleHardware">
+            <RadioGroup v-model:value="active.hardware" @change="handleHardware" >
+                <RadioButton :value="null">Нет</RadioButton>
                 <RadioButton value="2" :disabled="hardwaresList.find(el => el == 2) == undefined">Мондомикс</RadioButton>
                 <RadioButton value="1" :disabled="hardwaresList.find(el => el == 1) == undefined">Торнадо</RadioButton>
                 <RadioButton value="3" :disabled="hardwaresList.find(el => el == 3) == undefined">Китайский АЭРОС</RadioButton>
