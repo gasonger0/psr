@@ -23,165 +23,169 @@ class TableController extends Controller
     private static $skipPhrases = ['подготовительное время', 'заключительное время'];
     private static $colons = ['', 'Варочная колонка №1', 'Варочная колонка №2'];
     private static $hardware = ['', 'Мондомикс', 'Торнадо', 'Китайский аэрос'];
-    private static $arrayHeader = [
-        [
-            '',
-            '',
-            self::$MCS . '2' . self::$MCE,
-            self::$MCS . '3' . self::$MCE,
-            self::$MCS . '4' . self::$MCE,
-            self::$MCS . '5' . self::$MCE,
-            self::$MCS . '6' . self::$MCE,
-            self::$MCS . '7' . self::$MCE,
-            self::$MCS . '8' . self::$MCE,
-            self::$MCS . '9' . self::$MCE,
-            self::$MCS . '10' . self::$MCE,
-            self::$MCS . '11' . self::$MCE,
-            self::$MCS . '12' . self::$MCE,
-            self::$MCS . '13' . self::$MCE,
-            self::$MCS . '14' . self::$MCE,
-            self::$MCS . '15' . self::$MCE,
-            self::$MCS . '16' . self::$MCE,
-            self::$MCS . '17' . self::$MCE,
-            self::$MCS . '18' . self::$MCE,
-            self::$MCS . '19' . self::$MCE,
-            self::$MCS . '20' . self::$MCE,
-            self::$MCS . '21' . self::$MCE,
-            self::$MCS . '22' . self::$MCE,
-            self::$MCS . '23' . self::$MCE,
-            self::$MCS . '24' . self::$MCE,
-            self::$MCS . '25' . self::$MCE,
-            self::$MCS . '26' . self::$MCE,
-            self::$MCS . '27' . self::$MCE,
-            self::$MCS . '28' . self::$MCE
-        ],
-        [
-            '<style height="52">Дата</style>',
-            '<style height="52">' . date('d_m_Y-H:i:s', time()) . '</style>'
-        ],
-        [
-            '<style height="52">Смена:</style>',
-            '',
-            '',
-            'план:',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            'факт:',
-            '',
-            '',
-            '',
-            '',
-            '',
-            self::$MCS . 'Ген.директор ООО КФ "Сокол"' . self::$MCE
-        ],
-        [
-            self::$MCS . '<b>№</b>' . self::$MCE,
-            '<style border="#000000" font-size="20">' . self::$MCS . '<b>Наименование</b>' . self::$MCE . '</style>',
-            self::$MCS . '<b>Плановое кол-во корпуса</b>' . self::$MCE,
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            self::$MCS . '<b>План</b>' . self::$MCE,
-            '',
-            '',
-            self::$MCS . '<b>Зефирная масска, кг</b>' . self::$MCE,
-            '',
-            self::$MCS . '<b>ПРИМЕЧАНИЕ</b>' . self::$MCE,
-            self::$MCS . '<b>Факт</b>' . self::$MCE,
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            self::$MCS . '<b>ПРИМЕЧАНИЕ</b>' . self::$MCE
-        ],
-        [
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            self::$MCS . '<wraptext><b>кол-во людей</b></wraptext>' . self::$MCE,
-            self::$MCS . '<b>Время, ч</b>' . self::$MCE,
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            self::$MCS . '<wraptext><b>кол-во людей</b></wraptext>' . self::$MCE,
-            self::$MCS . '<b>Время, ч</b>' . self::$MCE
-        ],
-        [
-            '<style height="57"></style>',
-            '',
-            self::$MCS . '<b>ящ</b>' . self::$MCE,
-            self::$MCS . '<b>шт</b>' . self::$MCE,
-            self::$MCS . '<b>кг</b>' . self::$MCE,
-            self::$MCS . '<b>Варка</b>' . self::$MCE,
-            self::$MCS . '<b>Телеги</b>' . self::$MCE,
-            '',
-            '',
-            '',
-            '',
-            '',
-            self::$MCS . '<b>начало</b>' . self::$MCE,
-            self::$MCS . '<b>окончание</b>' . self::$MCS,
-            '',
-            '',
-            '',
-            self::$MCS . '<b>ящ</b>' . self::$MCE,
-            self::$MCS . '<b>шт</b>' . self::$MCE,
-            self::$MCS . '<b>кг</b>' . self::$MCE,
-            self::$MCS . '<b>Варка</b>' . self::$MCE,
-            self::$MCS . '<b>Телеги</b>' . self::$MCE,
-            '',
-            '',
-            '',
-            '',
-            self::$MCS . '<b>начало</b>' . self::$MCE,
-            self::$MCS . '<b>окончание</b>' . self::$MCS,
-            '',
-            self::$MCS . '<b>Чел-часов по плану</b>' . self::$MCE,
-            self::$MCS . '<b>Чел-часов по закрытой ГП</b>' . self::$MCE,
-            self::$MCS . '<b>Чел-часов по факту</b>' . self::$MCE
-        ]
-    ];
+    private static function makeArrayHeader()
+    {
+        return
+            [
+                [
+                    '',
+                    '',
+                    self::$MCS . '2' . self::$MCE,
+                    self::$MCS . '3' . self::$MCE,
+                    self::$MCS . '4' . self::$MCE,
+                    self::$MCS . '5' . self::$MCE,
+                    self::$MCS . '6' . self::$MCE,
+                    self::$MCS . '7' . self::$MCE,
+                    self::$MCS . '8' . self::$MCE,
+                    self::$MCS . '9' . self::$MCE,
+                    self::$MCS . '10' . self::$MCE,
+                    self::$MCS . '11' . self::$MCE,
+                    self::$MCS . '12' . self::$MCE,
+                    self::$MCS . '13' . self::$MCE,
+                    self::$MCS . '14' . self::$MCE,
+                    self::$MCS . '15' . self::$MCE,
+                    self::$MCS . '16' . self::$MCE,
+                    self::$MCS . '17' . self::$MCE,
+                    self::$MCS . '18' . self::$MCE,
+                    self::$MCS . '19' . self::$MCE,
+                    self::$MCS . '20' . self::$MCE,
+                    self::$MCS . '21' . self::$MCE,
+                    self::$MCS . '22' . self::$MCE,
+                    self::$MCS . '23' . self::$MCE,
+                    self::$MCS . '24' . self::$MCE,
+                    self::$MCS . '25' . self::$MCE,
+                    self::$MCS . '26' . self::$MCE,
+                    self::$MCS . '27' . self::$MCE,
+                    self::$MCS . '28' . self::$MCE
+                ],
+                [
+                    '<style height="52">Дата</style>',
+                    '<style height="52">' . date('d_m_Y-H:i:s', time()) . '</style>'
+                ],
+                [
+                    '<style height="52">Смена:</style>',
+                    '',
+                    '',
+                    'план:',
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    'факт:',
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    self::$MCS . 'Ген.директор ООО КФ "Сокол"' . self::$MCE
+                ],
+                [
+                    self::$MCS . '<b>№</b>' . self::$MCE,
+                    '<style border="#000000" font-size="20">' . self::$MCS . '<b>Наименование</b>' . self::$MCE . '</style>',
+                    self::$MCS . '<b>Плановое кол-во корпуса</b>' . self::$MCE,
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    self::$MCS . '<b>План</b>' . self::$MCE,
+                    '',
+                    '',
+                    self::$MCS . '<b>Зефирная масска, кг</b>' . self::$MCE,
+                    '',
+                    self::$MCS . '<b>ПРИМЕЧАНИЕ</b>' . self::$MCE,
+                    self::$MCS . '<b>Факт</b>' . self::$MCE,
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    self::$MCS . '<b>ПРИМЕЧАНИЕ</b>' . self::$MCE
+                ],
+                [
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    self::$MCS . '<wraptext><b>кол-во людей</b></wraptext>' . self::$MCE,
+                    self::$MCS . '<b>Время, ч</b>' . self::$MCE,
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    self::$MCS . '<wraptext><b>кол-во людей</b></wraptext>' . self::$MCE,
+                    self::$MCS . '<b>Время, ч</b>' . self::$MCE
+                ],
+                [
+                    '<style height="57"></style>',
+                    '',
+                    self::$MCS . '<b>ящ</b>' . self::$MCE,
+                    self::$MCS . '<b>шт</b>' . self::$MCE,
+                    self::$MCS . '<b>кг</b>' . self::$MCE,
+                    self::$MCS . '<b>Варка</b>' . self::$MCE,
+                    self::$MCS . '<b>Телеги</b>' . self::$MCE,
+                    '',
+                    '',
+                    '',
+                    '',
+                    '',
+                    self::$MCS . '<b>начало</b>' . self::$MCE,
+                    self::$MCS . '<b>окончание</b>' . self::$MCS,
+                    '',
+                    '',
+                    '',
+                    self::$MCS . '<b>ящ</b>' . self::$MCE,
+                    self::$MCS . '<b>шт</b>' . self::$MCE,
+                    self::$MCS . '<b>кг</b>' . self::$MCE,
+                    self::$MCS . '<b>Варка</b>' . self::$MCE,
+                    self::$MCS . '<b>Телеги</b>' . self::$MCE,
+                    '',
+                    '',
+                    '',
+                    '',
+                    self::$MCS . '<b>начало</b>' . self::$MCE,
+                    self::$MCS . '<b>окончание</b>' . self::$MCS,
+                    '',
+                    self::$MCS . '<b>Чел-часов по плану</b>' . self::$MCE,
+                    self::$MCS . '<b>Чел-часов по закрытой ГП</b>' . self::$MCE,
+                    self::$MCS . '<b>Чел-часов по факту</b>' . self::$MCE
+                ]
+            ];
+    }
 
     public function loadFile(Request $request)
     {
@@ -452,7 +456,7 @@ class TableController extends Controller
         });
         unset($lines);
 
-        $arr = [self::$arrayHeader, self::$arrayHeader];
+        $arr = [self::makeArrayHeader(), self::makeArrayHeader()];
 
 
         foreach ($linesFiltered as $sheet => &$lines) {
@@ -538,14 +542,14 @@ class TableController extends Controller
                     }
                     foreach ($hw['items'] as $product) {
                         $kg = floatval($product['amount']);
-                        $parts = eval('return ' . $kg . '/' . floatval($product['parts2kg']) . ';');
-                        $crates = eval('return ' . $parts . '/' . floatval($product['amount2parts']) . ';');
-                        $boils = eval('return ' . $kg . '*' . floatval($product['kg2boil']) . ';');
+                        $parts = eval ('return ' . $kg . '/' . floatval($product['parts2kg']) . ';');
+                        $crates = eval ('return ' . $parts . '/' . floatval($product['amount2parts']) . ';');
+                        $boils = eval ('return ' . $kg . '*' . floatval($product['kg2boil']) . ';');
 
                         if (mb_strpos(mb_strtolower($product['title']), 'зефир') !== false) {
                             $sum['z'][0] += $kg;
                             $sum['z'][1] += $boils;
-                        }else if (mb_strpos(mb_strtolower($product['title']), 'суфле') !== false) {
+                        } else if (mb_strpos(mb_strtolower($product['title']), 'суфле') !== false) {
                             $sum['s'][0] += $kg;
                             $sum['s'][1] += $boils;
                         } else if (mb_strpos(mb_strtolower($product['title']), 'конфеты') !== false) {
@@ -557,9 +561,9 @@ class TableController extends Controller
                             $sum['z'][1] += $boils;
                         }
 
-                        $prec = eval('return ' . $boils . '*' . floatval($product['cars']) . ';');
+                        $prec = eval ('return ' . $boils . '*' . floatval($product['cars']) . ';');
                         $cars = ceil($prec);
-                        $plates = eval('return ' . ($prec - $cars) . '*' . floatval($product['cars2plates']) . ';');
+                        $plates = eval ('return ' . ($prec - $cars) . '*' . floatval($product['cars2plates']) . ';');
                         $array[] = [
                             '',
                             $product['title'],
@@ -674,7 +678,8 @@ class TableController extends Controller
             ->mergeCells('Z5:Z6')
             ->mergeCells('R4:AB4')
             ->mergeCells('AC4:AC6')
-            ->mergeCells('M5:N5');;
+            ->mergeCells('M5:N5');
+        ;
 
         $name = 'План_' . date('d_m_Y', time()) . '.xlsx';
         $xlsx->downloadAs($name);
