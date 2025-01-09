@@ -231,7 +231,7 @@ export default {
                                 for (let i in product.slots[2]) {
                                     this.document.querySelector('.line[data-id="' + product.slots[2][i].line_id + '"]').classList.remove('hidden-hard');
                                 }
-                                let ids = [8,9,10,11,12];
+                                let ids = [8, 9, 10, 11, 12];
                                 for (let i in ids) {
                                     this.document.querySelector('.line[data-id="' + ids[i] + '"]').classList.remove('hidden-hard');
                                 }
@@ -263,6 +263,7 @@ export default {
                                 }
                             });
                             console.log(this.packLinesOptions);
+                            this.hardwaresList = [...new Set(prod.slots[1].map(s => s.hardware))];
                             this.active.perfomance = (this.active.slot.perfomance ? this.active.slot.perfomance : 1);
                             this.active.amount = prod.order_amount;
                             this.active.order_amount = ref(prod.order_amount);
@@ -717,11 +718,13 @@ export default {
                 this.active = plan;
                 this.active.line = this.lines.find(el => el.line_id == plan.line_id);
                 let prod = this.products.find(i => i.product_id == plan.product_id);
-                console.log(prod);
-                console.log(plan);
-                console.log(this.products);
                 this.active.kg2boil = prod.kg2boil ? eval(prod.kg2boil) : 0;
                 this.active.slot = prod.slots[1].concat(prod.slots[2]).find(n => n.line_id == plan.line_id && n.hardware == plan.hardware);
+                if (!this.active.slot) {
+                    this.active.slot = prod.slots[1].concat(prod.slots[2]).find(n => n.line_id == plan.line_id && n.hardware == null);
+                }
+
+                this.hardwaresList = [...new Set(prod.slots[1].map(s => s.hardware))];
                 this.active.perfomance = (this.active.slot && this.active.slot.perfomance) ? this.active.slot.perfomance : 1;
 
                 this.active.title = prod.title;
@@ -729,12 +732,12 @@ export default {
 
                 this.active.time = (this.active.amount / this.active.perfomance).toFixed(2);
                 this.active.ended_at = ref(this.active.started_at.add(this.active.time, 'hour'));
-                if (this.active.slot.type_id == 1) {
+                if (this.active.type_id == 1) {
                     this.active.ended_at = this.active.ended_at.add(10, 'minute');
-                } else if (this.active.slot.type_id == 2) {
+                } else if (this.active.type_id == 2) {
                     this.active.ended_at = this.active.ended_at.add(15, 'minute');
                 } else {
-                    console.log(1, this.active.slot.type_id)
+                    console.log(1, this.active.type_id)
                 }
                 this.active.showError = (this.active.line.ended_at < this.active.ended_at.format('HH:mm'));
                 this.confirmPlanOpen = true;
@@ -961,9 +964,9 @@ export default {
             <br>
             <h3>Оборудование:</h3>
             <RadioGroup v-model:value="active.hardware" @change="handleHardware">
-                <RadioButton value="2">Мондомикс</RadioButton>
-                <RadioButton value="1">Торнадо</RadioButton>
-                <RadioButton value="3">Китайский АЭРОС</RadioButton>
+                <RadioButton value="2" :disabled="hardwaresList.find(el => el == 2) == undefined">Мондомикс</RadioButton>
+                <RadioButton value="1" :disabled="hardwaresList.find(el => el == 1) == undefined">Торнадо</RadioButton>
+                <RadioButton value="3" :disabled="hardwaresList.find(el => el == 3) == undefined">Китайский АЭРОС</RadioButton>
             </RadioGroup>
             <br>
             <br>
