@@ -231,7 +231,7 @@ export default {
                     </template>
                     <template #footer>
                         <Button @click="addProductFront" type="primary" style="width:100%"
-                            v-if="editing.find(el => el != -1) && this.activeCategory != null">+</Button>
+                            v-if="editing.find(el => el != -1) && activeCategory != null">+</Button>
                     </template>
                 </List>
                 <template v-else-if="loading">
@@ -240,7 +240,7 @@ export default {
                 <template v-else>
                     <Empty description="Нет данных" style="max-width:100%;" />
                     <Button @click="addProductFront" type="primary" style="width:100%"
-                        v-if="this.activeCategory != null">+</Button>
+                        v-if="activeCategory != null">+</Button>
                 </template>
             </div>
             <Divider type="vertical" style="height:unset;" />

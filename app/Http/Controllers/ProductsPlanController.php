@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Lines;
 use App\Models\ProductsPlan;
 use App\Models\ProductsSlots;
 use Carbon\Carbon;
@@ -142,13 +143,19 @@ class ProductsPlanController extends Controller
         return -1;
     }
 
-    static public function clear()
+    public static function clear()
     {
         ProductsPlan::truncate();
+        Lines::all()->each(function ($line) {
+            $line->master = null;
+            $line->engineer = null;
+            $line->cancel_reason = null;
+            $line->save();
+        });
         return;
     }
 
-    static public function afterLineUpdate($line_id, $newStart, $oldStart, $newEnd, $oldEnd)
+    public static function afterLineUpdate($line_id, $newStart, $oldStart, $newEnd, $oldEnd)
     {
         $slots = ProductsPlan::where('line_id', '=', $line_id)->where('started_at', '=', $oldStart)->get();
         foreach ($slots as $slot) {

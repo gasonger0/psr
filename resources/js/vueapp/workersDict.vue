@@ -109,7 +109,7 @@ export default {
 </script>
 <template>
     <Modal v-model:open="$props.open" @close="$emit('close-modal')" :closable="false" style="width:40%;height:80%;">
-        <div style="max-height:74vh;overflow:scroll">
+        <div style="max-height:74vh;overflow:auto;">
             <Tabs v-model:activeKey="activeTab">
                 <TabPane v-for="(v, k) in tabs" :key="k" :tab="v">
                     <Table :dataSource="k == 1 ? workers : responsibles" :columns="k == 1 ? columns[0] : columns[1]"
