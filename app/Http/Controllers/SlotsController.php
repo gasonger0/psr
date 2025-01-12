@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Lines;
 use App\Models\Slots;
+use Carbon\Carbon;
 use DateTime;
 use Illuminate\Http\Request;
 
@@ -83,6 +84,17 @@ class SlotsController extends Controller
         $data = $request->post();
         if (empty($data)) return 0;
         foreach ($data as $r) {
+            if (!isset($r['slot_id']) && $r['new']) {
+                $slot = new Slots();
+                $slot->line_id = $r['line_id'];
+                $slot->started_at = Carbon::parse($r['started_at'])->format('H:i:s'); 
+                $slot->ended_at = Carbon::parse($r['ended_at'])->format('H:i:s');
+                $slot->worker_id = $r['worker_id'];
+                $diff = (new \DateTime($slot->started_at))->diff(new \DateTime($slot->ended_at));
+                $slot->time_planned = $diff->h * 60 + $diff->i;
+                $slot->save();
+                continue;
+            }
             $slot = Slots::find($r['slot_id']);
             $slot->started_at = $r['started_at'];
             $slot->ended_at = $r['ended_at'];

@@ -797,7 +797,7 @@ class TableController extends Controller
 
         $lines = Lines::all();
         foreach ($lines as $line) {
-            $line['slots'] = Slots::where('line_id', '=', $line['line_id'])->get();
+            $line['slots'] = Slots::where('line_id', '=', $line['line_id'])->toArray();
         }
 
         $columns = [
@@ -828,6 +828,7 @@ class TableController extends Controller
                 ];
 
                 $count = count($columns);
+                // $line
                 foreach ($line['slots'] as $slot) {
                     $worker = Workers::find($slot['worker_id']);
                     /**
@@ -835,6 +836,9 @@ class TableController extends Controller
                      */
                     $workTime = self::setFloat(self::getWorkTime($slot['started_at'], $slot['ended_at']));
                     $ktu = $data[array_search($slot['worker_id'], array_column($data, 'worker_id'))]['ktu'];
+                    if (!$worker) {
+                        var_dump($slot);
+                    }
                     $columns[] = [
                         $worker['title'],
                         // self::setFloat($slot['time_planned'] / 60),
@@ -850,7 +854,7 @@ class TableController extends Controller
                 $columns[] = [
                     '<style bgcolor="#FDE9D9">ИТОГО</style>',
                     '<style bgcolor="#FDE9D9">' . self::summarize(array_column($columns, 1), $count, $count1) . '<style bgcolor="#FDE9D9">',
-                    '<style bgcolor="#FDE9D9">' . self::summarize(array_column($columns, 2), $count, $count1) . '<style bgcolor="#FDE9D9">',
+                    '<style bgcolor="#FDE9D9"><style bgcolor="#FDE9D9">',
                     '<style bgcolor="#FDE9D9">' . self::summarize(array_column($columns, 3), $count, $count1) . '<style bgcolor="#FDE9D9">',
                     '<style bgcolor="#FDE9D9">' . self::summarize(array_column($columns, 4), $count, $count1) . '<style bgcolor="#FDE9D9">',
                     '',
@@ -877,7 +881,8 @@ class TableController extends Controller
             $columns[] = [
                 $company->company,
                 array_sum(array_column($arr, 1)),
-                array_sum(array_column($arr, 2)),
+                '',
+                // array_sum(array_column($arr, 2)),
                 array_sum(array_column($arr, 3)),
                 array_sum(array_column($arr, 4)),
                 array_sum(array_column($arr, 5)),
@@ -910,7 +915,7 @@ class TableController extends Controller
         }
         $result = 0;
         for ($i = $start; $i < $end; $i++) {
-            $result += $arr[$i];
+            $result += floatval($arr[$i]);
         }
         return $result;
     }

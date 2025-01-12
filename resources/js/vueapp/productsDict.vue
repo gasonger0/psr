@@ -188,6 +188,7 @@ export default {
                     this.$emit('notify', 'success', 'Изменения сохранены');
                 }
             });
+            this.saveProduct(this.activeProduct.product_id);
         }
     },
     async updated() {
@@ -231,7 +232,7 @@ export default {
                     </template>
                     <template #footer>
                         <Button @click="addProductFront" type="primary" style="width:100%"
-                            v-if="editing.find(el => el != -1) && activeCategory != null">+</Button>
+                            v-if="!editing.find(el => el == -1) && activeCategory != null">+</Button>
                     </template>
                 </List>
                 <template v-else-if="loading">
@@ -289,7 +290,7 @@ export default {
                                 </template> -->
                             </template>
                             <template #summary>
-                                <TableSummary v-if="this.activeProduct != null">
+                                <TableSummary v-if="activeProduct != null">
                                     <TableSummaryRow>
                                         <TableSummaryCell :col-span="4" style="padding:0;">
                                             <Button type="primary" @click="addSlotFront(k)"

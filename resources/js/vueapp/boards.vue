@@ -17,6 +17,7 @@ export default {
             products: reactive([]),
             slots: reactive([]),
             isLoading: ref(true),
+            isScrolling: ref(false),
             document: document,
             listenerSet: false,
             active: null,
@@ -519,6 +520,10 @@ export default {
             if (start == 1) {
                 if (!this.isScrolling) {
                     let cont = this.document.querySelector('.lines-container');
+                    cont.scrollTo({
+                        left: cont.scrollLeft + (direction ? 280 : -280),
+                        behavior: "smooth"
+                    });
                     this.isScrolling = setInterval((el) => {
                         cont.scrollTo({
                             left: cont.scrollLeft + (direction ? 280 : -280),
@@ -526,7 +531,7 @@ export default {
                         });
                         // cont.scrollLeft += (direction ? 280 : -280);
                         console.log('scroll');
-                    }, 450);
+                    }, 300);
                 }
             } else if (start == 2) {
                 clearInterval(this.isScrolling);
@@ -711,7 +716,7 @@ export default {
                                     stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                             </g>
                         </svg>
-                        <span v-show="v.break_started_at && v.break_ended_at" style="height: fit-content;">
+                        <span v-if="v.break_started_at && v.break_ended_at" style="height: fit-content;">
                             Обед: {{ v.break_started_at.substr(0, 5) + ' - ' + v.break_ended_at.substr(0, 5) }}
                         </span>
                         <div style="display: flex; gap:5px;">
@@ -766,14 +771,14 @@ export default {
         </FloatButton>
         <BackTop />
     </FloatButtonGroup>
-    <FloatButton @dragover="scroll(true, 1)" @dragleave="scroll(true, 2)" @mouseover="scroll(true, 1)" @mouseleave="scroll(true, 2)"
-        style="top:50%;">
+    <FloatButton @dragover="scroll(true, 1)" @dragleave="scroll(true, 2)" @mouseover="scroll(true, 1)"
+        @mouseleave="scroll(true, 2)" style="top:50%;">
         <template #icon>
             <RightOutlined />
         </template>
     </FloatButton>
-    <FloatButton @dragover="scroll(false, 1)" @dragleave="scroll(false, 2)" @mouseleave="scroll(false, 2)"
-        style="top:50%;left:1%">
+    <FloatButton @dragover="scroll(false, 1)" @dragleave="scroll(false, 2)" @mouseover="scroll(false, 1)"
+        @mouseleave="scroll(false, 2)" style="top:50%;left:1%">
         <template #icon>
             <LeftOutlined />
         </template>

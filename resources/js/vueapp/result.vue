@@ -63,6 +63,7 @@ export default {
                 return el;
             })
         }
+        console.log(this.workers);
     }
 }
 </script>
@@ -85,7 +86,7 @@ export default {
                         <Input v-model:value="record.ktu" />
                     </template>
                     <template v-if="column.dataIndex == 'check'">
-                        <Checkbox v-model:checked="record.check" />
+                        <Checkbox v-model:checked="record[column.dataIndex]" />
                     </template>
                 </template>
             </Table>

@@ -28,7 +28,10 @@ export default {
         processRows() {
             this.workers.forEach(el => {
                 el.break = {
-                    time: ref([dayjs(el.break_started_at, 'hh:mm'), dayjs(el.break_ended_at, 'HH:mm')]),
+                    time: ref([
+                        el.break_started_at != null ? dayjs(el.break_started_at, 'hh:mm') : dayjs(), 
+                        el.break_ended_at != null ? dayjs(el.break_ended_at, 'hh:mm') : dayjs()
+                    ]),
                     worker_id: el.worker_id
                 };
 
@@ -69,6 +72,7 @@ export default {
             });
         },
         addUpdate(rec) {
+            console.log(rec);
             let item = null;
             if (rec.slot_id) {
                 let i = this.checkTime(rec.slot_id, rec.time[0], rec.time[1]);
@@ -76,18 +80,29 @@ export default {
                     this.$emit('notify', 'warning', 'В это время работник находится на другой линии. Скорректируйте график работника или работу линии.')
                 }
             }
-            if (rec.slot_id) {
+            if(rec.new) {
+                // New slot
+                item = this.updSlots.find(el => el.worker_id == rec.worker_id && el.new == true && el.line_id == rec.line_id);
+                console.log(item);
+            } else if (rec.slot_id && !rec.worker_id) {
+                // Edit slot
                 item = this.updSlots.find(el => el.slot_id == rec.slot_id);
-            } else if (rec.worker_id) {
+            } else if (rec.worker_id && !rec.slot_id) {
+                // Edit worker
                 item = this.updWorkers.find(el => el.worker_id == rec.worker_id);
             }
             if (item) {
+                console.log(rec);
                 item.started_at = rec.time[0].format('HH:mm');
                 item.ended_at = rec.time[1].format('HH:mm');
             } else {
-                if (rec.slot_id) {
+                console.log(item);
+                console.log(rec);
+                if (rec.new) {
+                    console.log('new');
+                } else if (rec.slot_id) {
                     this.updSlots.push({
-                        slot_id: rec.slot_id,
+                        slot_id: rec.slot_id ? rec.slot_id : -1,
                         started_at: rec.time[0].format('HH:mm'),
                         ended_at: rec.time[1].format('HH:mm')
                     });
@@ -118,6 +133,7 @@ export default {
                     });
                 }
             }
+            this.edit = ref(false);
             this.$emit('close-modal', upd);
         },
         checkTime(slot_id, time0, time1) {
@@ -142,14 +158,23 @@ export default {
             return a.toISOString();
         },
         addSlotFront(record, line_id) {
-            console.log(line_id);
             let id = this.workers.find(el => record.worker_id == el.worker_id);
             if (id) {
                 id[line_id] = {
-                    time: ref([dayjs('00:00', 'HH:mm'), dayjs('00:00', 'HH:mm')]),
+                    time: ref([dayjs(), dayjs()]),
                     worker_id: record.worker_id,
-                    line_id: record.line_id
+                    line_id: line_id,
+                    new: true
                 };
+                this.updSlots.push({
+                    worker_id: record.worker_id,
+                    new: true,
+                    line_id: line_id,
+                    started_at: id[line_id].time[0],
+                    ended_at: id[line_id].time[1]
+                });
+
+                console.log(this.updSlots);
             }
         }
     },

@@ -232,8 +232,11 @@ export default {
                                     this.document.querySelector('.line[data-id="' + product.slots[2][i].line_id + '"]').classList.remove('hidden-hard');
                                 }
                                 let ids = [8, 9, 10, 11, 12];
-                                for (let i in ids) {
-                                    this.document.querySelector('.line[data-id="' + ids[i] + '"]').classList.remove('hidden-hard');
+                                let match = product.slots[1].filter(el => 
+                                    ids.find(f => f == el.line_id));
+                                console.log(match);
+                                for (let i in match) {
+                                    this.document.querySelector('.line[data-id="' + match[i].line_id + '"]').classList.remove('hidden-hard');
                                 }
                             }
                         }
