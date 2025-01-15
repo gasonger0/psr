@@ -22,11 +22,14 @@ export default {
             lines: reactive([]),
             listenerSet: ref(false),
             showList: ref(false),
-            active: ref({}),
+            active: ref({
+                selection: ref([])
+            }),
             showLoader: ref(false),
             confirmPlanOpen: ref(false),
             plans: reactive([]),
             key: ref(1),
+            selRadio: ref(1),
             categorySwitch: ref(false),
             // stageSwitch: ref(false),
             // nullOrders: ref(false),
@@ -256,7 +259,13 @@ export default {
                             let prod = this.products.find(i => i.product_id == ev.target.dataset.id);
                             this.active.kg2boil = prod.kg2boil ? eval(prod.kg2boil) : 0;
                             console.log('kg2boil', prod.kg2boil);
-                            this.active.slot = prod.slots[1].concat(prod.slots[2]).find(n => n.line_id == line_id && n.hardware == null);
+                            this.active.slot = prod.slots[1].concat(prod.slots[2]).find(n => n.line_id == line_id);
+                            if (typeof this.active.slot == 'array') {
+                                this.active.selection = this.active.slot;
+                                this.active.slot = this.active.slot[0];
+                                this.selRadio = this.active.slot.product_slot_id
+                            }
+                            this.active.hardware = this.active.slot.hardware;
                             console.log(prod.slots[1]);
                             this.active.packs = ref([]);
                             this.packLinesOptions = prod.slots[2].map(el => {
@@ -266,7 +275,7 @@ export default {
                                 }
                             });
                             console.log(this.packLinesOptions);
-                            this.hardwaresList = [...new Set(prod.slots[1].map(s => s.hardware))];
+                            this.hardwaresList = [...new Set(prod.slots[1].map(s => s.hardware))].concat(null);
                             this.active.perfomance = (this.active.slot.perfomance ? this.active.slot.perfomance : 1);
                             this.active.amount = prod.order_amount;
                             this.active.order_amount = ref(prod.order_amount);
@@ -609,23 +618,29 @@ export default {
             this.$emit('getBoils', sum.toFixed(2));
             this.showLoader = false;
         },
-        handleHardware() {
-            let ch = null;
-            if (this.active.hardware == 1) {
-                ch = 1;
-            }
+        handleHardware(slot_id = null) {
             let line_id = this.active.slot.line_id;
             let prod = this.products.find(i => i.product_id == this.active.slot.product_id);
-            let newSlot = prod.slots[1].find(function (n) {
-                return n.line_id == line_id && n.hardware == ch;
+            let hw = this.active.hardware;
+            let newSlot = prod.slots[1].filter(function (n) {
+                return n.line_id == line_id && n.hardware == hw;
             });
             if (newSlot) {
+                if (newSlot.length > 1 && !slot_id) {
+                    this.active.selection = newSlot; 
+                    newSlot = newSlot[0];
+                    this.selRadio = newSlot.product_slot_id;
+                } else if (slot_id){
+                    newSlot = prod.slots[1].find(el => el.product_slot_id == slot_id.target.value);
+                }
+                console.log(newSlot);
+                console.log(slot_id);
                 this.active.kg2boil = prod.kg2boil ? eval(prod.kg2boil) : 0;
                 this.active.slot = newSlot;
                 this.active.perfomance = newSlot.perfomance ? newSlot.perfomance : 1;
                 this.active.time = (this.active.amount / this.active.perfomance).toFixed(2);
                 this.active.ended_at = ref(this.active.started_at.add(this.active.time, 'hour'));
-                console.log(this.active.time);
+                console.log(this.active.selection);
                 if (this.active.slot.type_id == 1) {
                     this.active.ended_at = this.active.ended_at.add(10, 'minute');
                 } else if (this.active.slot.type_id == 2) {
@@ -719,15 +734,20 @@ export default {
             let plan = this.plans.find(el => el.plan_product_id == plan_id);
             if (plan) {
                 this.active = plan;
+                console.log(plan);
                 this.active.line = this.lines.find(el => el.line_id == plan.line_id);
                 let prod = this.products.find(i => i.product_id == plan.product_id);
                 this.active.kg2boil = prod.kg2boil ? eval(prod.kg2boil) : 0;
-                this.active.slot = prod.slots[1].concat(prod.slots[2]).find(n => n.line_id == plan.line_id && n.hardware == plan.hardware);
-                if (!this.active.slot) {
-                    this.active.slot = prod.slots[1].concat(prod.slots[2]).find(n => n.line_id == plan.line_id && n.hardware == null);
-                }
+                this.active.slot = prod.slots[1].concat(prod.slots[2]).find(n => n.line_id == plan.line_id && n.hardware == plan.hardware && n.product_slot_id == plan.slot_id);
 
-                this.hardwaresList = [...new Set(prod.slots[1].map(s => s.hardware))];
+                let hw = this.active.slot.hardware;
+                this.active.selection = prod.slots[1].filter(n => n.line_id == plan.line_id && n.hardware == hw);
+                console.log(this.active.selection);
+                this.selRadio = this.active.slot.product_slot_id
+                
+
+                this.hardwaresList = [...new Set(prod.slots[1].map(s => s.hardware))].concat(null);
+                this.active.hardware = this.active.slot ? this.active.slot.hardware : null;
                 this.active.perfomance = (this.active.slot && this.active.slot.perfomance) ? this.active.slot.perfomance : 1;
 
                 this.active.title = prod.title;
@@ -762,6 +782,7 @@ export default {
             }
             return accumulator;
         }, 0);
+        console.log(this.plans.boils);
         this.$emit('getBoils', sum.toFixed(2));
 
         this.showLoader = false;
@@ -966,18 +987,22 @@ export default {
             </CheckboxGroup>
             <br>
             <h3>Оборудование:</h3>
-            <RadioGroup v-model:value="active.hardware" @change="handleHardware" >
-                <RadioButton :value="null">Нет</RadioButton>
-                <RadioButton value="2" :disabled="hardwaresList.find(el => el == 2) == undefined">Мондомикс</RadioButton>
-                <RadioButton value="1" :disabled="hardwaresList.find(el => el == 1) == undefined">Торнадо</RadioButton>
-                <RadioButton value="3" :disabled="hardwaresList.find(el => el == 3) == undefined">Китайский АЭРОС</RadioButton>
+            <RadioGroup v-model:value="active.hardware" @change="handleHardware()" >
+                <RadioButton :value="null" :disabled="hardwaresList.find(el => el == null) == undefined">Нет</RadioButton>
+                <RadioButton :value="2" :disabled="hardwaresList.find(el => el == 2) == undefined">Мондомикс</RadioButton>
+                <RadioButton :value="1" :disabled="hardwaresList.find(el => el == 1) == undefined">Торнадо</RadioButton>
+                <RadioButton :value="3" :disabled="hardwaresList.find(el => el == 3) == undefined">Китайский АЭРОС</RadioButton>
+            </RadioGroup>
+            <br>
+            <br>
+            <RadioGroup v-if="active.selection" @change="handleHardware" v-model:value="selRadio">
+                <RadioButton v-for="v in active.selection" :value="v.product_slot_id" :key="v.product_slot_id">{{ v.perfomance }}</RadioButton>
             </RadioGroup>
             <br>
             <br>
             <Checkbox v-model:checked="showPack" v-if="packTimeOptions">
                 Сгененрировать план упаковки
             </Checkbox>
-            <br>
             <br>
             <div v-if="showPack">
                 <div>

@@ -31,7 +31,7 @@ export default {
                 2: "Упаковка"
             },
             columnsPack: [{
-                title: 'ИД',
+                title: '',
                 dataIndex: 'product_slot_id',
             },{
                 title: 'Линия',
@@ -153,6 +153,7 @@ export default {
         },
         exit() {
             this.activeCategory = null;
+            window.location.reload();
             this.activeProduct = null;
             this.$emit('close-modal', true);
         },
@@ -195,6 +196,15 @@ export default {
                 }
             });
             this.saveProduct(this.activeProduct.product_id);
+        },
+        deleteSlot(slot_id) {
+            axios.post('/api/delete_product_slot', { product_slot_id: slot_id })
+                .then(response => {
+                    this.$emit('notify', 'success', 'Изменения сохранены');
+                })
+                .catch((err) => {
+                    this.$emit('notify', 'error', "Что-то пошло не так: " + err.code);
+                });
         }
     },
     async updated() {
@@ -281,6 +291,9 @@ export default {
                                                 {{ v }}
                                             </SelectOption> -->
                                         </Select>
+                                    </template>
+                                    <template v-else-if="column.dataIndex == 'product_slot_id'">
+                                        <DeleteOutlined @click="deleteSlot(record.product_slot_id)"/>
                                     </template>
                                     <template v-else>
                                         <Select v-model:value="record[column.dataIndex]" style="width: 100%;">
