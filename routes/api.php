@@ -65,7 +65,8 @@ Route::delete('/clear_plan',        [ProductsPlanController::class,         'cle
  * PRODUCTS_SLOTS
  ***************/
 Route::post('/get_product_slots',   [ProductsSlotsController::class,        'getList'   ]);
-Route::post('add_product_slots',    [ProductsSlotsController::class,        'addSlots'  ]);
+Route::post('/add_product_slots',   [ProductsSlotsController::class,        'addSlots'  ]);
+Route::post('/delete_product_slot', [ProductsSlotsController::class,        'delete'    ]);
 
 /*****************
  * PRODUCTS_ORDERS

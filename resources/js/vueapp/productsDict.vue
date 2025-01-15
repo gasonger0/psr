@@ -31,6 +31,9 @@ export default {
                 2: "Упаковка"
             },
             columnsPack: [{
+                title: 'ИД',
+                dataIndex: 'product_slot_id',
+            },{
                 title: 'Линия',
                 dataIndex: 'line_id',
                 width: '40%'
@@ -42,6 +45,9 @@ export default {
                 dataIndex: 'perfomance'
             }],
             columns: [{
+                title: 'ИД',
+                dataIndex: 'product_slot_id',
+            },{
                 title: 'Линия',
                 dataIndex: 'line_id',
                 width: '40%'

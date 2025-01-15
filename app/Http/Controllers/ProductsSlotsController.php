@@ -43,6 +43,10 @@ class ProductsSlotsController extends Controller
         }
     }
 
+    public function delete(Request $request) {
+        ProductsSlots::find($request->post('product_slot_id'))->delete();
+    }
+
     static public function clear() {
         ProductsSlots::truncate();
     }
