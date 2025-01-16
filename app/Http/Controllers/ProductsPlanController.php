@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Lines;
 use App\Models\ProductsPlan;
+use App\Models\Slots;
 use App\Models\ProductsSlots;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -150,8 +151,11 @@ class ProductsPlanController extends Controller
             $line->master = null;
             $line->engineer = null;
             $line->cancel_reason = null;
+            $line->started_at = null;
+            $line->ended_at = null;
             $line->save();
         });
+        Slots::truncate();
         return;
     }
 
