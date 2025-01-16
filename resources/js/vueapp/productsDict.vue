@@ -144,7 +144,7 @@ export default {
         deleteProduct(product_id) {
             axios.post('/api/delete_product', { product_id: product_id })
                 .then(response => {
-                    // this.products.splice(this.products.indexOf(this.products.find(el => el.product_id == product_id)), 1);
+                    this.products.splice(this.products.indexOf(this.products.find(el => el.product_id == product_id)), 1);
                     this.$emit('notify', 'success', 'Продукция удалена');
                 })
                 .catch((err) => {
@@ -200,6 +200,7 @@ export default {
         deleteSlot(slot_id) {
             axios.post('/api/delete_product_slot', { product_slot_id: slot_id })
                 .then(response => {
+                    this.slots.splice(this.slots.indexOf(this.slots.find(el => el.product_slot_id == slot_id)), 1);
                     this.$emit('notify', 'success', 'Изменения сохранены');
                 })
                 .catch((err) => {
@@ -311,7 +312,7 @@ export default {
                             <template #summary>
                                 <TableSummary v-if="activeProduct != null">
                                     <TableSummaryRow>
-                                        <TableSummaryCell :col-span="4" style="padding:0;">
+                                        <TableSummaryCell :col-span="5" style="padding:0;">
                                             <Button type="primary" @click="addSlotFront(k)"
                                                 style="width: 100%;border-top-left-radius: 0; border-top-right-radius: 0;">+</Button>
                                         </TableSummaryCell>

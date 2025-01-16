@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Lines;
 use App\Models\ProductsPlan;
+use App\Models\Slots;
 use App\Models\ProductsSlots;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
