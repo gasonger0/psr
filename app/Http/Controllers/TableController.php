@@ -11,6 +11,7 @@ use App\Models\ProductsSlots;
 use App\Models\Responsible;
 use App\Models\Slots;
 use App\Models\Workers;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Shuchkin\SimpleXLSX;
 use Shuchkin\SimpleXLSXGen;
@@ -432,7 +433,7 @@ class TableController extends Controller
             $responsibles[$f['responsible_id']] = $f['title'];
         }
 
-        $lines = Lines::whereIn('line_id', $linesFromPlans)->get(['line_id', 'title', 'started_at', 'ended_at', 'master', 'engineer', 'workers_count', 'type_id'])->toArray();
+        $lines = Lines::whereIn('line_id', $linesFromPlans)->get(['line_id', 'title', 'started_at', 'ended_at', 'master', 'engineer', 'workers_count', 'type_id', 'prep_time', 'after_time'])->toArray();
         $products = ProductsDictionary::whereIn('product_id', $productsFromLines)->get(['product_id', 'title', 'amount2parts', 'parts2kg', 'kg2boil', 'cars', 'cars2plates'])->toArray();
         $slots = ProductsSlots::whereIn('product_slot_id', $slotsFromProducts)->get(['product_slot_id', 'people_count', 'perfomance', 'product_id'])->toArray();
 
@@ -517,8 +518,6 @@ class TableController extends Controller
                 }
 
                 $array[] = ['', '<style bgcolor="#B7DEE8"><b>ОТВЕТСТВЕННЫЕ: ' . $line['master'] . ',' . $line['engineer'] . '</b></style>'];
-                // $array[] = ['', ]
-
                 $colon = array_filter(array_unique(array_column($line['items'], 'colon')));
                 if (count($colon) >= 2) {
                     $colon = [1, 2];
@@ -530,6 +529,9 @@ class TableController extends Controller
                 if (!empty($colon) && count($colon) > 1) {
                     $array[] = ['', '<b>', self::$colons[$colon[1]], '</b>'];
                 }
+                if ($line['prep_time'] != 0) {
+                    $array[] = ['', '<style bgcolor="#FFC263"><b><i>Подготовительное время</i></b></style>', '', '', '', '', '', '', '', '', '', '', $line['started_at'], Carbon::parse($line['started_at'])->addMinutes($line['prep_time'])->format('H:i:s')];
+                }
 
                 $sum = [
                     'z' => [0, 0],
@@ -540,6 +542,7 @@ class TableController extends Controller
                     if (isset($hw['hwTitle'])) {
                         $array[] = ['', '<style bgcolor="#D8E4BC"><b>' . mb_strtoupper($hw['hwTitle']) . '</b></style>'];
                     }
+                    
                     foreach ($hw['items'] as $product) {
                         $kg = floatval($product['amount']);
                         $parts = eval ('return ' . $kg . '/' . floatval($product['parts2kg']) . ';');
@@ -599,7 +602,9 @@ class TableController extends Controller
                         ];
                     }
                 }
-                // $array[] = ['', '<b>Заключительное время</b>', '','','','','','','','','','', end($line['items'])['ended_at']];
+                if ($line['after_time'] != 0) {
+                    $array[] = ['', '<style bgcolor="#FFC263"><b><i>Заключительное время</i></b></style>', '', '', '', '', '', '', '', '', '', '', Carbon::parse($line['ended_at'])->addMinutes($line['after_time'])->format('H:i:s'), $line['ended_at']];
+                }
                 $array[] = [];
 
                 $array[] = ['', '<b>Итого зефира</b>', '', '', $sum['z'][0], $sum['z'][1]];

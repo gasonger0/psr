@@ -146,12 +146,22 @@ class ProductsPlanController extends Controller
     public static function clear()
     {
         ProductsPlan::truncate();
-        Lines::all()->each(function ($line) {
-            $line->master = null;
-            $line->engineer = null;
-            $line->cancel_reason = null;
-            $line->save();
-        });
+        $def = LinesController::getDefaults();
+        foreach ($def as $d) {
+            $line = Lines::where('title', '=', $d['title'])->first();
+            if ($line) {
+                $time = explode('-', $d['time']);
+                $line->started_at = $time[0];
+                $line->ended_at = $time[1];
+                $line->prep_time = $d['prep'];
+                $line->after_time = $d['end'];
+                $line->workers_count = $d['people'];
+                $line->master = null;
+                $line->engineer = null;
+                $line->cancel_reason = null;
+                $line->save();
+            }
+        }
         return;
     }
 

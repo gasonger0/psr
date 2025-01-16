@@ -378,6 +378,12 @@ export default {
                 fd.append('cancel_reason', record.cancel_reason);
                 fd.append('cancel_reason_extra', this.cancel_reasons[record.cancel_reason - 1].title);
             }
+            if (record.prep_time != null) {
+                fd.append('prep_time', record.prep_time);
+            }
+            if(record.after_time != null) {
+                fd.append('after_time', record.after_time);
+            }
 
             axios.post('/api/save_line', fd)
                 .then((response) => {
@@ -666,6 +672,8 @@ export default {
                                 {{ i.title }}
                             </SelectOption>
                         </Select>
+                        <span>Подготовительное время(мин):</span><Input v-model:value="line.prep_time" placeholder="0"/>
+                        <span>Заключительное время(мин):</span><Input v-model:value="line.after_time" placeholder="0"/>
                         <br>
                         <br>
                         <RadioGroup v-model:value="line.type_id">

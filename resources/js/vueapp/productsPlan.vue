@@ -235,7 +235,7 @@ export default {
                                     this.document.querySelector('.line[data-id="' + product.slots[2][i].line_id + '"]').classList.remove('hidden-hard');
                                 }
                                 let ids = [8, 9, 10, 11, 12];
-                                let match = product.slots[1].filter(el => 
+                                let match = product.slots[1].filter(el =>
                                     ids.find(f => f == el.line_id));
                                 console.log(match);
                                 for (let i in match) {
@@ -255,7 +255,7 @@ export default {
                             ev.target.classList.remove(`selected`);
                             let line_id = ev.target.closest('.line').dataset.id;
 
-                            this.active.line = ref(this.lines.find(f => f.line_id == line_id));
+                            this.active.line = this.lines.find(f => f.line_id == line_id);
                             let prod = this.products.find(i => i.product_id == ev.target.dataset.id);
                             this.active.kg2boil = prod.kg2boil ? eval(prod.kg2boil) : 0;
                             console.log('kg2boil', prod.kg2boil);
@@ -275,7 +275,9 @@ export default {
                                 }
                             });
                             console.log(this.packLinesOptions);
-                            this.hardwaresList = [...new Set(prod.slots[1].map(s => s.hardware))].concat(null);
+                            this.hardwaresList = [...new Set(prod.slots[1].filter(el => el.line_id == line_id).map(s => s.hardware))].concat(null);
+                            console.log(this.hardwaresList);
+                            console.log(prod.slots[1]);
                             this.active.perfomance = (this.active.slot.perfomance ? this.active.slot.perfomance : 1);
                             this.active.amount = prod.order_amount;
                             this.active.order_amount = ref(prod.order_amount);
@@ -286,13 +288,15 @@ export default {
                                 lastProd = lastProd.reduce((p, c) => p.ended_at > c.ended_at ? p : c);
                                 this.active.started_at = ref(dayjs(lastProd.ended_at, 'HH:mm'));
                             } else if (this.active.line.started_at != null) {
-                                this.active.started_at = ref(dayjs(this.active.line.started_at, 'HH:mm'));
+                                this.active.started_at = ref(this.active.line.time[0]);
+                                if (this.active.line.prep_time) {
+                                    this.active.started_at = this.active.started_at.add(this.active.line.prep_time, 'minute');
+                                }
                             } else {
                                 this.active.started_at = ref(dayjs());
                             }
                             this.active.time = (this.active.amount / this.active.perfomance).toFixed(2);
                             this.active.ended_at = ref(this.active.started_at.add(this.active.time, 'hour'));
-                            console.log(this.active.time);
                             if (this.active.slot.type_id == 1) {
                                 this.active.ended_at = this.active.ended_at.add(10, 'minute');
                             } else if (this.active.slot.type_id == 2) {
@@ -300,7 +304,10 @@ export default {
                             } else {
                                 console.log(1, this.active.slot.type_id)
                             }
-                            this.active.showError = (this.active.line.ended_at < this.active.ended_at.format('HH:mm'));
+                            let endTime = this.active.line.time[1];
+                            console.log(endTime);
+                            endTime = endTime.add(this.active.line.prep_time, 'minute');
+                            this.active.showError = (endTime.format('HH:mm') < this.active.ended_at.format('HH:mm'));
                             this.confirmPlanOpen = true;
                         }
                     } else {
@@ -430,6 +437,8 @@ export default {
             //     this.active.started_at;
             // }
             this.active.ended_at = this.active.started_at.add(this.active.time, 'hour');
+            let endTime = this.active.line.time[1];
+            endTime = endTime.add(this.active.line.prep_time, 'minute');
             this.active.showError = this.active.line.ended_at < this.active.ended_at.format('HH:mm');
         },
         changeAmount() {
@@ -626,17 +635,17 @@ export default {
                 return n.line_id == line_id && n.hardware == hw;
             });
             if (newSlot) {
+                console.log('newSlot:', newSlot);
                 if (newSlot.length > 1 && !slot_id) {
-                    this.active.selection = newSlot; 
+                    this.active.selection = newSlot;
                     newSlot = newSlot[0];
                     this.selRadio = newSlot.product_slot_id;
-                } else if (slot_id){
+                } else if (slot_id) {
                     newSlot = prod.slots[1].find(el => el.product_slot_id == slot_id.target.value);
                 }
-                console.log(newSlot);
-                console.log(slot_id);
                 this.active.kg2boil = prod.kg2boil ? eval(prod.kg2boil) : 0;
                 this.active.slot = newSlot;
+                console.log("New slot type: " + this.active.slot);
                 this.active.perfomance = newSlot.perfomance ? newSlot.perfomance : 1;
                 this.active.time = (this.active.amount / this.active.perfomance).toFixed(2);
                 this.active.ended_at = ref(this.active.started_at.add(this.active.time, 'hour'));
@@ -693,6 +702,13 @@ export default {
                 fd.append('engineer', record.engineer);
             }
 
+            if (record.prep_time != null) {
+                fd.append('prep_time', record.prep_time);
+            }
+            if (record.after_time != null) {
+                fd.append('after_time', record.after_time);
+            }
+
             axios.post('/api/save_line', fd)
                 .then((response) => {
                     this.$emit('notify', 'success', 'Сохранено');
@@ -744,9 +760,10 @@ export default {
                 this.active.selection = prod.slots[1].filter(n => n.line_id == plan.line_id && n.hardware == hw);
                 console.log(this.active.selection);
                 this.selRadio = this.active.slot.product_slot_id
-                
+
 
                 this.hardwaresList = [...new Set(prod.slots[1].map(s => s.hardware))].concat(null);
+                console.log(this.hardwaresList);
                 this.active.hardware = this.active.slot ? this.active.slot.hardware : null;
                 this.active.perfomance = (this.active.slot && this.active.slot.perfomance) ? this.active.slot.perfomance : 1;
 
@@ -901,6 +918,9 @@ export default {
                         <span>Время работы:</span><br />
                         <TimeRangePicker v-model:value="line.time" format="HH:mm" :showTime="true" :allowClear="true"
                             type="time" :showDate="false" style="width:fit-content;" />
+                        <span>Подготовительное время(мин):</span><Input v-model:value="line.prep_time"
+                            placeholder="0" />
+                        <span>Заключительное время(мин):</span><Input v-model:value="line.after_time" placeholder="0" />
                         <br>
                         <br>
                         <RadioGroup v-model:value="line.type_id">
@@ -987,16 +1007,20 @@ export default {
             </CheckboxGroup>
             <br>
             <h3>Оборудование:</h3>
-            <RadioGroup v-model:value="active.hardware" @change="handleHardware()" >
-                <RadioButton :value="null" :disabled="hardwaresList.find(el => el == null) == undefined">Нет</RadioButton>
-                <RadioButton :value="2" :disabled="hardwaresList.find(el => el == 2) == undefined">Мондомикс</RadioButton>
+            <RadioGroup v-model:value="active.hardware" @change="handleHardware()">
+                <RadioButton :value="null" :disabled="hardwaresList.find(el => el == null) == undefined">Нет
+                </RadioButton>
+                <RadioButton :value="2" :disabled="hardwaresList.find(el => el == 2) == undefined">Мондомикс
+                </RadioButton>
                 <RadioButton :value="1" :disabled="hardwaresList.find(el => el == 1) == undefined">Торнадо</RadioButton>
-                <RadioButton :value="3" :disabled="hardwaresList.find(el => el == 3) == undefined">Китайский АЭРОС</RadioButton>
+                <RadioButton :value="3" :disabled="hardwaresList.find(el => el == 3) == undefined">Китайский АЭРОС
+                </RadioButton>
             </RadioGroup>
             <br>
             <br>
             <RadioGroup v-if="active.selection" @change="handleHardware" v-model:value="selRadio">
-                <RadioButton v-for="v in active.selection" :value="v.product_slot_id" :key="v.product_slot_id">{{ v.perfomance }}</RadioButton>
+                <RadioButton v-for="v in active.selection" :value="v.product_slot_id" :key="v.product_slot_id">{{
+                    v.perfomance }}</RadioButton>
             </RadioGroup>
             <br>
             <br>
