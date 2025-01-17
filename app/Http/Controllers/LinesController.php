@@ -83,7 +83,8 @@ class LinesController extends Controller
             $line->color = $request->post('color');
             $line->master = $request->post('master');
             $line->engineer = $request->post('engineer');
-
+            $line->type_id = $request->post('type_id');
+            $line->title = $request->post('title');
             $line->save();
             // $line->shiftEnd($diff->i + $diff->h * 60);
 
