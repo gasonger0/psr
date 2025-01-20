@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Lines;
+use App\Models\ProductsPlan;
 use App\Models\Slots;
 use DB;
 use Illuminate\Http\Request;
@@ -69,7 +70,6 @@ class LinesController extends Controller
             // $time = new \DateTime($oldStart);
             // $tmie2 = new \DateTime($request->post('started_at'));
             // $diff = $time->diff($tmie2);
-
             $start = $line->started_at;
             $end = $line->ended_at;
             $line->workers_count = $request->post('workers_count');
@@ -91,22 +91,27 @@ class LinesController extends Controller
 
             if ($request->post('started_at')) {
                 // $total = $diff->i + $diff->h * 60;
-                $start = $line->started_at;
                 SlotsController::afterLineUpdate(
                     $request->post('line_id'),
                     $request->post('started_at'),
-                    $start,
+                    $line->started_at,
                     $request->post('ended_at'),
                     $end
                 );
                 // ProductsController::afterLineUpdate($request->post('line_id'), $request->post('started_at'), $start, $request->post('ended_at'), $end);
                 ProductsPlanController::afterLineUpdate($request->post('line_id'), $request->post('started_at'), $start, $request->post('ended_at'), $end);
                 if ($line->cancel_reason != null) {
+                    $d = Slots::where('line_id', '=', $line->line_id)->where('started_at', '<=', $line->started_at)->get('worker_id')->toArray();
+                    $d = array_map(function ($a) {
+                        return $a['worker_id'];
+                    }, $d);
                     $request = new Request([], [
                         'line_id' => $line->line_id,
                         'action' => 'Перенос времени работы линии',
-                        'extra' => 'Причина: ' . $request->post('cancel_reason_extra'),
-                        'people_count' => $line->workers_count
+                        'extra' => 'Причина: ' . $request->post('cancel_reason_extra') . PHP_EOL . 'Старое время: ' . $start,
+                        'people_count' => $line->workers_count,
+                        'type' => 3,
+                        'workers' => implode(',', $d),
                     ]);
                     LogsController::add($request);
                 }

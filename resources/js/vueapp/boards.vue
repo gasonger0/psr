@@ -228,6 +228,7 @@ export default {
                             extra: 'Причина: ' + this.cancel_reasons[option - 1].title,
                             people_count: f.workers_count,
                             line_id: line.line_id,
+                            type: 1,
                             workers: this.workers.filter(el => el.current_line_id == line.line_id).map(el => {
                                 return el.worker_id
                             }).join(';')
@@ -237,6 +238,7 @@ export default {
                             action: 'Возобновление работы линии ' + f.title,
                             people_count: f.workers_count,
                             line_id: line.line_id,
+                            type: 2,
                             workers: this.workers.filter(el => el.current_line_id == line.line_id).map(el => {
                                 return el.worker_id
                             }).join(';')
