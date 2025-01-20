@@ -47,24 +47,24 @@ export default {
             columns: [{
                 title: 'ИД',
                 dataIndex: 'product_slot_id',
-            },{
+                width: '5%'
+            },{ 
                 title: 'Линия',
                 dataIndex: 'line_id',
                 width: '40%'
             }, {
                 title: 'Оборудование',
-                dataIndex: 'hardware'
+                dataIndex: 'hardware',
+                width: '15%'
             }, {
                 title: 'Количество струдников',
-                dataIndex: 'people_count'
+                dataIndex: 'people_count',
+                width: '10%'
             }, {
                 title: 'Кг в час',
-                dataIndex: 'perfomance'
+                dataIndex: 'perfomance',
+                width: '10%'
             }],
-            measures: {
-                people_count: ' человек',
-                perfomance: ' кг/ч'
-            },
             specColumns: [
                 { title: 'Штук в Ящике:', dataIndex: 'amount2parts', addon: '' },
                 { title: 'Штуки в Кг:', dataIndex: 'parts2kg', addon: 'Шт ×' },
@@ -281,9 +281,7 @@ export default {
                             <template #bodyCell="{ record, column, text }">
                                 <template v-if="editing">
                                     <template v-if="['people_count', 'perfomance'].find(el => el == column.dataIndex)">
-                                        <InputNumber v-model:value="record[column.dataIndex]" /> {{
-                                            measures[column.dataIndex]
-                                        }}
+                                        <InputNumber v-model:value="record[column.dataIndex]" />
                                     </template>
                                     <template v-else-if="column.dataIndex == 'hardware'">
                                         <Select v-model:value="record[column.dataIndex]" style="width: 100%;"
@@ -297,7 +295,7 @@ export default {
                                         <DeleteOutlined @click="deleteSlot(record.product_slot_id)"/>
                                     </template>
                                     <template v-else>
-                                        <Select v-model:value="record[column.dataIndex]" style="width: 100%;">
+                                        <Select v-model:value="record[column.dataIndex]" style="width:100%; max-width:23vw;">
                                             <SelectOption v-for="i in $props.data.lines" :key="i.line_id"
                                                 :value="i.line_id">
                                                 {{ i.title }}

@@ -87,7 +87,7 @@ Route::post('/load_xlsx',           [TableController::class,                'loa
 Route::post('/load_order',          [TableController::class,                'loadOrder' ]);
 Route::post('/load_defaults',       [TableController::class,                'loadDefaults']);
 Route::post('/get_xlsx',            [TableController::class,                'getFile'   ]);
-Route::post('load_plan_json',       [TableController::class,                'loadPlan'  ]);
+Route::post('/load_plan_json',      [TableController::class,                'loadPlan'  ]);
 Route::get('/download_plan',        [TableController::class,                'dowloadForPrint']);
 Route::post('/load_formulas',       [TableController::class,                'loadFormulas']);
 

@@ -227,13 +227,19 @@ export default {
                             action: 'Остановка линии ' + f.title,
                             extra: 'Причина: ' + this.cancel_reasons[option - 1].title,
                             people_count: f.workers_count,
-                            line_id: line.line_id
+                            line_id: line.line_id,
+                            workers: this.workers.filter(el => el.current_line_id == line.line_id).map(el => {
+                                return el.worker_id
+                            }).join(';')
                         });
                     } else {
                         axios.post('/api/add_log', {
                             action: 'Возобновление работы линии ' + f.title,
                             people_count: f.workers_count,
-                            line_id: line.line_id
+                            line_id: line.line_id,
+                            workers: this.workers.filter(el => el.current_line_id == line.line_id).map(el => {
+                                return el.worker_id
+                            }).join(';')
                         });
                     }
                     if (!f.down_from) {

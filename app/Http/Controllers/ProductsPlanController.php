@@ -88,6 +88,35 @@ class ProductsPlanController extends Controller
                 $old->save();
 
                 $this->checkPlans($old->line_id, $old->plan_product_id, $post['started_at'], $post['ended_at']);
+
+                if (isset($post['delay']) && isset($post['packs'])) {
+                    foreach ($post['packs'] as $pack) {
+                        $plan = ProductsPlan::where('product_slot_id', '=', $pack);
+                        if (!$plan) {
+                            $plan = new ProductsPlan();
+                        }
+                        $slot = ProductsSlots::find($pack)->toArray();
+                        $plan->product_id = $slot['product_id'];
+                        $plan->line_id = $slot['line_id'];
+                        $plan->slot_id = $slot['product_slot_id'];
+                        $plan->workers_count = $slot['people_count'];
+                        // $plan->hardware = $post['hardware'];
+                        $plan->type_id = 2;
+
+                        $start = new \DateTime($post['ended_at']);
+
+                        $start->add(new \DateInterval('PT' . $post['delay'] . 'M'));
+
+                        $plan->started_at = $start->format('H:i:s');
+                        $duration = ceil($post['amount'] / ($slot['perfomance'] ? $slot['perfomance'] : 1) * 60);
+
+                        $start->add(new \DateInterval('PT' . $duration . 'M'));
+
+                        $plan->ended_at = $start->format('H:i:s');
+                        $plan->amount = $post['amount'];
+                        $plan->save();
+                    }
+                }
                 return true;
             }
         }
@@ -163,6 +192,7 @@ class ProductsPlanController extends Controller
                 $line->save();
             }
         }
+        LogsController::clear();
         return;
     }
 

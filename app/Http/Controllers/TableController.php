@@ -724,6 +724,8 @@ class TableController extends Controller
                 }
             }
         }
+        LogsController::clear();
+        return;
     }
 
     private function processProducts()
@@ -802,7 +804,7 @@ class TableController extends Controller
 
         $lines = Lines::all();
         foreach ($lines as $line) {
-            $line['slots'] = Slots::where('line_id', '=', $line['line_id'])->toArray();
+            $line['slots'] = Slots::where('line_id', '=', $line['line_id'])->get()->toArray();
         }
 
         $columns = [

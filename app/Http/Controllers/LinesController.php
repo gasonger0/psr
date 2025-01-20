@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Lines;
+use App\Models\Slots;
 use DB;
 use Illuminate\Http\Request;
 use Carbon\Carbon;

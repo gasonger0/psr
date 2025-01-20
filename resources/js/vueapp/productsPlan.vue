@@ -275,8 +275,6 @@ export default {
                                 }
                             });
                             console.log(this.packLinesOptions);
-                            this.hardwaresList = [...new Set(prod.slots[1].filter(el => el.line_id == line_id).map(s => s.hardware))].concat(null);
-                            console.log(this.hardwaresList);
                             console.log(prod.slots[1]);
                             this.active.perfomance = (this.active.slot.perfomance ? this.active.slot.perfomance : 1);
                             this.active.amount = prod.order_amount;
@@ -634,6 +632,13 @@ export default {
             let newSlot = prod.slots[1].filter(function (n) {
                 return n.line_id == line_id && n.hardware == hw;
             });
+            console.log(prod.slots[1]);
+            console.log(prod);
+            if (!newSlot || newSlot.length == 0) {
+                newSlot = prod.slots[1].filter(function (n) {
+                    return n.line_id == line_id && n.hardware == null;
+                });
+            }
             if (newSlot) {
                 console.log('newSlot:', newSlot);
                 if (newSlot.length > 1 && !slot_id) {
@@ -642,10 +647,11 @@ export default {
                     this.selRadio = newSlot.product_slot_id;
                 } else if (slot_id) {
                     newSlot = prod.slots[1].find(el => el.product_slot_id == slot_id.target.value);
+                } else {
+                    newSlot = newSlot[0];
                 }
                 this.active.kg2boil = prod.kg2boil ? eval(prod.kg2boil) : 0;
                 this.active.slot = newSlot;
-                console.log("New slot type: " + this.active.slot);
                 this.active.perfomance = newSlot.perfomance ? newSlot.perfomance : 1;
                 this.active.time = (this.active.amount / this.active.perfomance).toFixed(2);
                 this.active.ended_at = ref(this.active.started_at.add(this.active.time, 'hour'));
@@ -761,9 +767,6 @@ export default {
                 console.log(this.active.selection);
                 this.selRadio = this.active.slot.product_slot_id
 
-
-                this.hardwaresList = [...new Set(prod.slots[1].map(s => s.hardware))].concat(null);
-                console.log(this.hardwaresList);
                 this.active.hardware = this.active.slot ? this.active.slot.hardware : null;
                 this.active.perfomance = (this.active.slot && this.active.slot.perfomance) ? this.active.slot.perfomance : 1;
 
@@ -780,6 +783,16 @@ export default {
                     console.log(1, this.active.type_id)
                 }
                 this.active.showError = (this.active.line.ended_at < this.active.ended_at.format('HH:mm'));
+
+                this.packLinesOptions = prod.slots[2].map(el => {
+                    return {
+                        label: this.lines.find(f => f.line_id == el.line_id).title,
+                        value: el.product_slot_id
+                    }
+                });
+                this.active.packs = this.plans.filter(el => this.packLinesOptions.find(f => f.value == el.slot_id)).map(el => el.slot_id);
+                console.log(this.active.packs);
+                console.log(this.packLinesOptions);
                 this.confirmPlanOpen = true;
             }
         }
@@ -1008,13 +1021,10 @@ export default {
             <br>
             <h3>Оборудование:</h3>
             <RadioGroup v-model:value="active.hardware" @change="handleHardware()">
-                <RadioButton :value="null" :disabled="hardwaresList.find(el => el == null) == undefined">Нет
-                </RadioButton>
-                <RadioButton :value="2" :disabled="hardwaresList.find(el => el == 2) == undefined">Мондомикс
-                </RadioButton>
-                <RadioButton :value="1" :disabled="hardwaresList.find(el => el == 1) == undefined">Торнадо</RadioButton>
-                <RadioButton :value="3" :disabled="hardwaresList.find(el => el == 3) == undefined">Китайский АЭРОС
-                </RadioButton>
+                <RadioButton :value="null">Нет</RadioButton>
+                <RadioButton :value="2">Мондомикс</RadioButton>
+                <RadioButton :value="1">Торнадо</RadioButton>
+                <RadioButton :value="3">Китайский АЭРОС</RadioButton>
             </RadioGroup>
             <br>
             <br>

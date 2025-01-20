@@ -37,26 +37,7 @@ export default {
             this.$emit('close-modal');
         },
         loadLog() {
-            axios.get('/api/load_logs')
-                .then(response => {
-                    if (response.data) {
-                        let url = response.data;
-                        console.log(response);
-                        let a = document.createElement('a');
-                        if (typeof a.download === undefined) {
-                            window.location = url;
-                        } else {
-                            a.href = url;
-                            a.download = response.data;
-                            document.body.appendChild(a);
-                            a.click();
-                        }
-                    }
-                })
-                .catch((err) => {
-                    console.log(err);
-                    this.$emit('notify', 'error', "Что-то пошло не так: " + err.code);
-                });
+            window.open('/api/load_logs', '_blank');
         }
     },
     updated() {
@@ -64,7 +45,7 @@ export default {
             .then((response) => {
                 if (response.data) {
                     this.logs = response.data.map(el => {
-                        el.created_at = dayjs(el.created_at).format('DD.MM.YYYY HH:mm:ss');
+                        el.created_at = dayjs(el.created_at).subtract(3, 'hour').format('HH:mm:ss');
                         return el;
                     });
                 }
