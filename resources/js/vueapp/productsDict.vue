@@ -38,6 +38,9 @@ export default {
                 dataIndex: 'line_id',
                 width: '40%'
             }, {
+                title: 'Оборудование',
+                dataIndex: 'hardware'
+            }, {
                 title: 'Количество струдников',
                 dataIndex: 'people_count'
             }, {
@@ -77,6 +80,10 @@ export default {
                 { value: 1, label: 'ТОРНАДО' },
                 { value: 2, label: 'Мондомикс' },
                 { value: 3, label: 'Китайский Аэрос' }
+            ],
+            packHardwares: [
+                { value: 4, label: 'ЗМ №1'},
+                { value: 5, label: 'ЗМ №2'},
             ]
         }
     },
@@ -189,7 +196,16 @@ export default {
         },
         addProductSlot() {
             axios.post('/api/add_product_slots',
-                this.slots
+                this.slots.map(el => {
+                    if (typeof el.hardware == 'object') {
+                        if (el.hardware.length > 1) {
+                            el.hardware = el.hardware.join(',');
+                        } else {
+                            el.hardware = el.hardware[0];
+                        }
+                    }
+                    return el;
+                })
             ).then((response) => {
                 if (response.data) {
                     this.$emit('notify', 'success', 'Изменения сохранены');
@@ -285,7 +301,7 @@ export default {
                                     </template>
                                     <template v-else-if="column.dataIndex == 'hardware'">
                                         <Select v-model:value="record[column.dataIndex]" style="width: 100%;"
-                                            :options="hardwares">
+                                            :options="k == 1 ? hardwares : packHardwares" :mode="k == 1 ? '' : 'multiple'">
                                             <!-- <SelectOption v-for="(v, k) in hardwares" :key="k" :value="k">
                                                 {{ v }}
                                             </SelectOption> -->

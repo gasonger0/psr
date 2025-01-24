@@ -83,7 +83,7 @@ class WorkersController extends Controller
         }
         $data = $request->post();
         foreach ($data as $worker) {
-            if ($worker['worker_id']) {
+            if (isset($worker['worker_id'])) {
                 // Edit
                 $workers[$worker['worker_id']]['company'] = $worker['company'];
                 $workers[$worker['worker_id']]['title'] = $worker['title'];

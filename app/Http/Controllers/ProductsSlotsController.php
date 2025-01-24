@@ -30,6 +30,7 @@ class ProductsSlotsController extends Controller
                 $s->line_id             = $slot['line_id'];
                 $s->people_count        = $slot['people_count'];
                 $s->perfomance          = $slot['perfomance'];
+                $s->hardware            = $slot['hardware'];
                 // $s->order               = $slot['order'];
                 $s->type_id             = $slot['type_id'];
                 $s->save();
