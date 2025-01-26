@@ -31,7 +31,7 @@ export default {
                 2: "Упаковка"
             },
             columnsPack: [{
-                title: '',
+                title: 'ИД',
                 dataIndex: 'product_slot_id',
             },{
                 title: 'Линия',
@@ -84,6 +84,7 @@ export default {
             packHardwares: [
                 { value: 4, label: 'ЗМ №1'},
                 { value: 5, label: 'ЗМ №2'},
+                { value: 6, label: 'ЗМ №1, №2'},
             ]
         }
     },
@@ -196,7 +197,8 @@ export default {
         },
         addProductSlot() {
             axios.post('/api/add_product_slots',
-                this.slots.map(el => {
+                this.slots
+                /*.map(el => {
                     if (typeof el.hardware == 'object') {
                         if (el.hardware.length > 1) {
                             el.hardware = el.hardware.join(',');
@@ -205,7 +207,7 @@ export default {
                         }
                     }
                     return el;
-                })
+                })*/
             ).then((response) => {
                 if (response.data) {
                     this.$emit('notify', 'success', 'Изменения сохранены');
@@ -301,7 +303,7 @@ export default {
                                     </template>
                                     <template v-else-if="column.dataIndex == 'hardware'">
                                         <Select v-model:value="record[column.dataIndex]" style="width: 100%;"
-                                            :options="k == 1 ? hardwares : packHardwares" :mode="k == 1 ? '' : 'multiple'">
+                                            :options="k == 1 ? hardwares : packHardwares">
                                             <!-- <SelectOption v-for="(v, k) in hardwares" :key="k" :value="k">
                                                 {{ v }}
                                             </SelectOption> -->

@@ -1049,10 +1049,11 @@ export default {
                 </div>
             </div>
         </div>
-        <div v-if="active.line.line_id == 31">
+        <div v-if="active.line.type_id == 2">
             <RadioGroup v-model:value="active.hardware" @change="handleHardware()">
-                <RadioButton :value="4" v-if="active.line.line_id == 31"><Tooltip title="Завёрточная машина №1">ЗМ №1</Tooltip></RadioButton>
-                <RadioButton :value="5" v-if="active.line.line_id == 31"><Tooltip title="Завёрточная машина №1">ЗМ №2</Tooltip></RadioButton>
+                <RadioButton :value="4"><Tooltip title="Завёрточная машина №1">ЗМ №1</Tooltip></RadioButton>
+                <RadioButton :value="5"><Tooltip title="Завёрточная машина №1">ЗМ №2</Tooltip></RadioButton>
+                <RadioButton :value="6"><Tooltip title="Завёрточные машины №1 и №2">ЗМ №1 и №2</Tooltip></RadioButton>
             </RadioGroup>
         </div>
         <br>
