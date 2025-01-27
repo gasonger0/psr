@@ -453,7 +453,7 @@ export default {
             if (add) {
                 axios.post('/api/add_product_plan',
                     {
-                        plan_product_id: isNewPlan ? null :this.active.plan_product_id,
+                        plan_product_id: this.isNewPlan ? null :this.active.plan_product_id,
                         started_at: this.active.started_at.format('HH:mm'),
                         ended_at: this.active.ended_at.format('HH:mm'),
                         type_id: this.active.slot.type_id,
