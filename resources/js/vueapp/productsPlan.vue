@@ -761,9 +761,11 @@ export default {
                 let prod = this.products.find(i => i.product_id == plan.product_id);
                 this.active.kg2boil = prod.kg2boil ? eval(prod.kg2boil) : 0;
                 this.active.slot = prod.slots[1].concat(prod.slots[2]).find(n => n.line_id == plan.line_id && n.hardware == plan.hardware && n.product_slot_id == plan.slot_id);
-
+                if (!this.active.slot) {
+                    this.active.slot = prod.slots[1].concat(prod.slots[2]).find(n => n.line_id == plan.line_id && n.product_slot_id == plan.slot_id);
+                }
                 let hw = this.active.slot.hardware;
-                this.active.selection = prod.slots[1].filter(n => n.line_id == plan.line_id && n.hardware == hw);
+                this.active.selection = prod.slots[1].concat(prod.slots[2]).filter(n => n.line_id == plan.line_id && n.hardware == hw);
                 console.log(this.active.selection);
                 this.selRadio = this.active.slot.product_slot_id
 
