@@ -293,7 +293,7 @@ export default {
                             } else {
                                 this.active.started_at = ref(dayjs());
                             }
-                            this.active.time = (this.active.amount / this.active.perfomance).toFixed(2);
+                            this.active.time = (this.active.amount * prod.amount2parts * prod.parts2kg / this.active.perfomance).toFixed(2);
                             this.active.ended_at = ref(this.active.started_at.add(this.active.time, 'hour'));
                             if (this.active.slot.type_id == 1) {
                                 this.active.ended_at = this.active.ended_at.add(10, 'minute');
@@ -445,14 +445,15 @@ export default {
             this.active.showError = this.active.line.ended_at < this.active.ended_at.format('HH:mm');
         },
         changeAmount() {
-            this.active.time = (this.active.amount / this.active.perfomance).toFixed(2);
+            let prod = this.products.find(i => i.product_id == this.active.slot.product_id);
+            this.active.time = (this.active.amount * prod.amount2parts * prod.parts2kg / this.active.perfomance).toFixed(2);
             this.changeTime()
         },
         async addPlan(add) {
             if (add) {
                 axios.post('/api/add_product_plan',
                     {
-                        plan_product_id: this.active.plan_product_id ? this.active.plan_product_id : null,
+                        plan_product_id: isNewPlan ? null :this.active.plan_product_id,
                         started_at: this.active.started_at.format('HH:mm'),
                         ended_at: this.active.ended_at.format('HH:mm'),
                         type_id: this.active.slot.type_id,
@@ -633,7 +634,7 @@ export default {
                 this.active.kg2boil = prod.kg2boil ? eval(prod.kg2boil) : 0;
                 this.active.slot = newSlot;
                 this.active.perfomance = newSlot.perfomance ? newSlot.perfomance : 1;
-                this.active.time = (this.active.amount / this.active.perfomance).toFixed(2);
+                this.active.time = (this.active.amount * prod.amount2parts * prod.parts2kg / this.active.perfomance).toFixed(2);
                 this.active.ended_at = ref(this.active.started_at.add(this.active.time, 'hour'));
                 console.log(this.active.selection);
                 if (this.active.slot.type_id == 1) {
@@ -754,7 +755,7 @@ export default {
                 this.active.title = prod.title;
                 this.active.started_at = dayjs(plan.started_at, 'HH:mm');
 
-                this.active.time = (this.active.amount / this.active.perfomance).toFixed(2);
+                this.active.time = (this.active.amount * prod.amount2parts * prod.parts2kg / this.active.perfomance).toFixed(2);
                 this.active.ended_at = ref(this.active.started_at.add(this.active.time, 'hour'));
                 if (this.active.type_id == 1) {
                     this.active.ended_at = this.active.ended_at.add(10, 'minute');
