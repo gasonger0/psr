@@ -437,6 +437,11 @@ export default {
             this.active.ended_at = this.active.started_at.add(this.active.time, 'hour');
             let endTime = this.active.line.time[1];
             endTime = endTime.add(this.active.line.prep_time, 'minute');
+            if (this.active.slot.type_id == 1) {
+                this.active.ended_at = this.active.ended_at.add(10, 'minute');
+            } else if (this.active.slot.type_id == 2) {
+                this.active.ended_at = this.active.ended_at.add(15, 'minute');
+            }
             this.active.showError = this.active.line.ended_at < this.active.ended_at.format('HH:mm');
         },
         changeAmount() {
@@ -550,31 +555,6 @@ export default {
         },
         printPlan() {
             window.open('/api/download_plan', '_blank');
-            // axios.get('/api/download_plan')
-            //     .then(response => {
-            //         let data = response.data;
-            //         window.open(data, '_blank');
-
-            //         // let url = window.URL.createObjectURL(new Blob([data]));
-            //         // let a = document.createElement('a');
-            //         // a.href = url;
-            //         // a.download = 'plan.xlsx';
-            //         // document.body.appendChild(a);
-            //         // a.click();
-            //         // window.URL.revokeObjectURL(url);
-
-
-            //         // console.log(response);
-            //         // let a = document.createElement('a');
-            //         // if (typeof a.download === undefined) {
-            //         //     window.location = url;
-            //         // } else {
-            //         //     a.href = url;
-            //         //     a.download = response.data;
-            //         //     document.body.appendChild(a);
-            //         //     a.click();
-            //         // }
-            //     })
         },
         exportPlan() {
             let jsonString = JSON.stringify({ plans: this.plans, lines: this.lines });
@@ -756,7 +736,6 @@ export default {
             let plan = this.plans.find(el => el.plan_product_id == plan_id);
             if (plan) {
                 this.active = plan;
-                console.log(plan);
                 this.active.line = this.lines.find(el => el.line_id == plan.line_id);
                 let prod = this.products.find(i => i.product_id == plan.product_id);
                 this.active.kg2boil = prod.kg2boil ? eval(prod.kg2boil) : 0;
@@ -1009,6 +988,10 @@ export default {
             <b style="font-size: 16px">Объём изготовления:</b>
             <InputNumber v-model:value="active.amount" @change="changeAmount" />
         </div>
+        <div style="display:flex;justify-content: space-between;margin: 14px 0px;">
+            <div><b style="font-size: 16px">Подготовительное время:</b> {{ active.line.prep_time }} мин.</div>
+            <div><b style="font-size: 16px">Заключительное время:</b> {{ active.line.after_time }} мин.</div>
+        </div>
         <div style="display: flex;justify-content: space-between;margin: 14px 0px;">
             <b style="font-size: 16px">Время начала:</b>
             <TimePicker v-model:value="active.started_at" @change="changeTime" format="HH:mm" />
@@ -1051,11 +1034,17 @@ export default {
                 </div>
             </div>
         </div>
-        <div v-if="active.line.type_id == 2">
+        <div v-if="active.slot.type_id == 2">
             <RadioGroup v-model:value="active.hardware" @change="handleHardware()">
-                <RadioButton :value="4"><Tooltip title="Завёрточная машина №1">ЗМ №1</Tooltip></RadioButton>
-                <RadioButton :value="5"><Tooltip title="Завёрточная машина №1">ЗМ №2</Tooltip></RadioButton>
-                <RadioButton :value="6"><Tooltip title="Завёрточные машины №1 и №2">ЗМ №1 и №2</Tooltip></RadioButton>
+                <RadioButton :value="4">
+                    <Tooltip title="Завёрточная машина №1">ЗМ №1</Tooltip>
+                </RadioButton>
+                <RadioButton :value="5">
+                    <Tooltip title="Завёрточная машина №1">ЗМ №2</Tooltip>
+                </RadioButton>
+                <RadioButton :value="6">
+                    <Tooltip title="Завёрточные машины №1 и №2">ЗМ №1 и №2</Tooltip>
+                </RadioButton>
             </RadioGroup>
         </div>
         <br>
