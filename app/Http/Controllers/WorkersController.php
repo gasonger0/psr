@@ -88,14 +88,12 @@ class WorkersController extends Controller
                 $workers[$worker['worker_id']]['company'] = $worker['company'];
                 $workers[$worker['worker_id']]['title'] = $worker['title'];
                 $workers[$worker['worker_id']]->save();
+                unset($workers[$worker['worker_id']]);
             } else {
                 // New
                 self::add($worker['company'], $worker['title']);
             }
-            unset($workers[$worker['worker_id']]);
         };
-
-        var_dump($workers);
 
         if (!empty($workers)) {
             Workers::destroy(array_map(function ($i) {
