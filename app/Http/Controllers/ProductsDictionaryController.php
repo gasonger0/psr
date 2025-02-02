@@ -14,7 +14,7 @@ class ProductsDictionaryController extends Controller
             return ProductsDictionary::where('category_id', '=', $id)->get()->toJson();
         } else if (($pack = $request->post('packaged')) !== null) {
             $pack =
-                $pack ? [4] : [3, 5];
+                $pack ? [4, 25, 26, 27, 28, 29] : [3, 5, 17, 25, 26, 27, 28, 29];
 
             $categories = ProductsCategoriesController::getList();
             $children = array_filter($categories, function ($el) use ($pack) {

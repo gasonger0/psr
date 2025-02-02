@@ -102,7 +102,7 @@ class WorkersController extends Controller
         }
     }
 
-    static public function dropData()
+    static public function clear()
     {
         return Workers::truncate();
     }

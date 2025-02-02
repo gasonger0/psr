@@ -12,6 +12,9 @@ use Illuminate\Support\Facades\DB;
 
 class ProductsPlanController extends Controller
 {
+    static public function getAll() {
+        return ProductsPlan::all()->toJson();
+    }
     static public function getList(Request $request)
     {
         if (!($id = $request->post('product_id'))) {
@@ -59,7 +62,7 @@ class ProductsPlanController extends Controller
                         // $plan->hardware = $post['hardware'];
                         $plan->type_id = 2;
 
-                        $start = new \DateTime($post['ended_at']);
+                        $start = new \DateTime($post['started_at']);
 
                         $start->add(new \DateInterval('PT' . $post['delay'] . 'M'));
 
@@ -71,6 +74,8 @@ class ProductsPlanController extends Controller
                         $plan->ended_at = $start->format('H:i:s');
                         $plan->amount = $post['amount'];
                         $plan->save();
+
+                        $this->checkPlans($slot['line_id'], $plan->plan_product_id, $plan->started_at, $plan->ended_at);
                     }
                 }
                 return true;
@@ -88,39 +93,43 @@ class ProductsPlanController extends Controller
                 $old->save();
 
                 $this->checkPlans($old->line_id, $old->plan_product_id, $post['started_at'], $post['ended_at']);
-
-                if (isset($post['delay']) && isset($post['packs'])) {
-                    foreach ($post['packs'] as $pack) {
-                        $plans = ProductsPlan::where('slot_id', '=', $pack)->get();
-                        if (!$plans) {
-                            $plans = new ProductsPlan();
-                        }
-                        foreach ($plans as $plan) {
-                            $slot = ProductsSlots::find($pack)->toArray();
-                            $plan->product_id = $slot['product_id'];
-                            $plan->line_id = $slot['line_id'];
-                            $plan->slot_id = $slot['product_slot_id'];
-                            $plan->workers_count = $slot['people_count'];
-                            $plan->hardware = $post['hardware'];
-                            $plan->type_id = 2;
-
-                            $start = new \DateTime($post['ended_at']);
-
-                            $start->add(new \DateInterval('PT' . $post['delay'] . 'M'));
-
-                            $plan->started_at = $start->format('H:i:s');
-                            $duration = ceil($post['amount'] / ($slot['perfomance'] ? $slot['perfomance'] : 1) * 60);
-
-                            $start->add(new \DateInterval('PT' . $duration . 'M'));
-
-                            $plan->ended_at = $start->format('H:i:s');
-                            $plan->amount = $post['amount'];
-                            $plan->save();
-                        }
-                    }
-                }
-                return true;
             }
+            if (isset($post['delay']) && isset($post['packs'])) {
+                foreach ($post['packs'] as $pack) {
+                    // $plans = ProductsPlan::where('slot_id', '=', $pack)->get();
+                    // if (!$plans) {
+                        // $plans = new ProductsPlan();
+                    // }
+                    // foreach ($plans as $plan) {
+                    $plan = ProductsPlan::where('slot_id', '=', $pack)->first();
+                    if (!$plan) {
+                        $plan = new ProductsPlan();
+                    }
+                    $slot = ProductsSlots::find($pack)->toArray();
+                    $plan->product_id = $slot['product_id'];
+                    $plan->line_id = $slot['line_id'];
+                    $plan->slot_id = $slot['product_slot_id'];
+                    $plan->workers_count = $slot['people_count'];
+                    $plan->hardware = $post['hardware'];
+                    $plan->type_id = 2;
+                    $start = new \DateTime($post['ended_at']);
+                    $start->add(new \DateInterval('PT' . $post['delay'] . 'M'));
+                    $plan->started_at = $start->format('H:i:s');
+                    $duration = ceil($post['amount'] / ($slot['perfomance'] ? $slot['perfomance'] : 1) * 60);
+                    $start->add(new \DateInterval('PT' . $duration . 'M'));
+                    $start->add(new \DateInterval('PT15M'));        // 15 минут на упаковку
+                    $plan->ended_at = $start->format('H:i:s');
+                    $plan->amount = $post['amount'];
+                    $plan->save();
+
+                    $this->checkPackPlans($old->line_id, $old->plan_product_id, $post['started_at'], $post['ended_at']);
+                    // Добавка про 15 минут и проверка на конфликты каждый раз
+                    // Узнать у натальи, ставим ли мы упааковку после текущей или вместо (скорее всего первое)
+                    //}
+                }
+            }
+            return true;
+            
         }
     }
 
@@ -153,6 +162,22 @@ class ProductsPlanController extends Controller
                 var_dump($end);
                 $plan->save();
             }
+        }
+    }
+
+    public function checkPackPlans($line_id, $prod_id, $start, $end)
+    {
+        $plans = ProductsPlan::where('line_id', '=', $line_id)
+            ->whereBetween('started_at', [$start, $end])
+            ->orWhereBetween('ended_at', [$start, $end])
+            ->orderBy('started_at', 'ASC')
+            ->get()
+            ->toArray();
+        $plans = array_filter($plans, function ($item) use ($prod_id) {
+            return $item['plan_product_id'] != $prod_id;
+        });
+        if (!empty($plans)) {
+            // Если есть, считаем разницу между концом нового и началом старого
         }
     }
 
@@ -195,6 +220,7 @@ class ProductsPlanController extends Controller
             }
         }
         LogsController::clear();
+        SlotsController::clear();
         return;
     }
 

@@ -138,7 +138,7 @@ class LinesController extends Controller
         }
     }
 
-    static public function dropData()
+    static public function clear()
     {
         Lines::truncate();
     }

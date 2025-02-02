@@ -40,7 +40,7 @@ class ProductsController extends Controller
         }
     }
 
-    static public function dropData()
+    static public function clear()
     {
         return Products::truncate();
     }

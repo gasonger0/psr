@@ -90,6 +90,7 @@ Route::post('/get_xlsx',            [TableController::class,                'get
 Route::post('/load_plan_json',      [TableController::class,                'loadPlan'  ]);
 Route::get('/download_plan',        [TableController::class,                'dowloadForPrint']);
 Route::post('/load_formulas',       [TableController::class,                'loadFormulas']);
+Route::get('/download_json_plan',   [TableController::class,                'downloadPlanJson']);
 
 /******
  * LOGS

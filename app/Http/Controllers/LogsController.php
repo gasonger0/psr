@@ -95,10 +95,12 @@ class LogsController extends Controller
                                 $buf[$line_id][$comp->company] = 1;
                             }
                         }
-                        $buf[$line_id] = array_map(function ($val) use ($diff) {
-                            return $val * $diff;
-                        }, $buf[$line_id]);
-                        $companies[$line_id][] = $buf[$line_id];
+                        if (isset($buf[$line_id])) {
+                            $buf[$line_id] = array_map(function ($val) use ($diff) {
+                                return $val * $diff;
+                            }, $buf[$line_id]);
+                            $companies[$line_id][] = $buf[$line_id];
+                        }
                         $i += 1;
                     }
                 } else if ($f[$i]['type'] == 1 and $f[$i + 1]['type'] == 2) {
@@ -148,7 +150,6 @@ class LogsController extends Controller
     }
     static public function clear()
     {
-        Logs::truncate();
-        return;
+        return Logs::truncate();
     }
 }

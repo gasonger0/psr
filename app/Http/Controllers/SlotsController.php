@@ -10,7 +10,7 @@ use Illuminate\Http\Request;
 
 class SlotsController extends Controller
 {
-    public function getList()
+    static public function getList()
     {
         return Slots::all()->toJson();
     }
@@ -171,7 +171,7 @@ class SlotsController extends Controller
         );
     }
 
-    static public function dropData()
+    static public function clear()
     {
         return Slots::truncate();
     }

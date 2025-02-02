@@ -199,10 +199,10 @@ class TableController extends Controller
             $this->file['workers'] = $xlsx->rows(1);
         }
 
-        LinesController::dropData();
-        ProductsController::dropData();
-        WorkersController::dropData();
-        SlotsController::dropData();
+        LinesController::clear();
+        ProductsController::clear();
+        WorkersController::clear();
+        SlotsController::clear();
 
         if ($this->file['products'] != []) {
             $this->processProducts();
@@ -900,7 +900,8 @@ class TableController extends Controller
 
 
         $xlsx = SimpleXLSXGen::fromArray($columns);
-        $name = 'Отчёт_' . date('d_m_Y-H:i:s', time()) . '.xlsx';
+        $name = 'Отчёт_' . date('d_m_Y-H_i_s', time()) . '.xlsx';
+
         $xlsx->saveAs($name);
         return $name;
         // return $xlsx->download();
@@ -926,5 +927,14 @@ class TableController extends Controller
             $result += floatval($arr[$i]);
         }
         return $result;
+    }
+    static public function downloadPlanJson(Request $request)
+    {
+        $array = [
+            'lines' => LinesController::getList(),
+            'plans' => ProductsPlanController::getAll(),
+            'workersSlots' => SlotsController::getList()
+        ];
+        return json_encode($array);
     }
 }

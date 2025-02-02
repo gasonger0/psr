@@ -153,7 +153,9 @@ export default {
                                 if (el.started_at < timeString && el.ended_at > timeString && el.line_id != null) {
                                     prod.current_line_id = el.line_id;
                                 }
-                                el.boils = eval(prod.kg2boil) * el.amount;
+                                if (el.type_id == 1) {
+                                    el.boils = eval(prod.kg2boil) * el.amount;
+                                }
                                 if (el.type_id == 1) {
                                     prod.amounts_fact[0] = el.amount;
                                 }
@@ -453,7 +455,7 @@ export default {
             if (add) {
                 axios.post('/api/add_product_plan',
                     {
-                        plan_product_id: this.isNewPlan ? null :this.active.plan_product_id,
+                        plan_product_id: this.isNewPlan ? null : this.active.plan_product_id,
                         started_at: this.active.started_at.format('HH:mm'),
                         ended_at: this.active.ended_at.format('HH:mm'),
                         type_id: this.active.slot.type_id,
@@ -558,19 +560,21 @@ export default {
             window.open('/api/download_plan', '_blank');
         },
         exportPlan() {
-            let jsonString = JSON.stringify({ plans: this.plans, lines: this.lines });
-            const blob = new Blob([jsonString], { type: 'application/json' });
+            axios.get('/api/download_json_plan', '_blank')
+                .then((response) => {
+                    let jsonString = response.data;
+                    const blob = new Blob([jsonString], { type: 'application/json' });
 
-            // Trigger download
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `${this.exportFileName}.json`;
-            a.click();
+                    // Trigger download
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `${this.exportFileName}.json`;
+                    a.click();
 
-            // Clean up
-            URL.revokeObjectURL(url);
-
+                    // Clean up
+                    URL.revokeObjectURL(url);
+                });
         },
         importPlan(file) {
             console.log(file);
@@ -877,8 +881,7 @@ export default {
             </section>
         </div>
         <Divider type="vertical" v-show="showList" style="height: unset; width: 5px;" />
-        <div class="line" v-for="line in lines" :data-id="line.line_id" :class="line.done ? 'done-line' : ''"
-            :key="line.line_id">
+        <div class="line" v-for="line in lines" :data-id="line.line_id" :key="line.line_id">
             <Card :bordered="false" class="head"
                 :headStyle="{ 'background-color': (line.color ? line.color : '#1677ff') }">
                 <template #title>
@@ -962,7 +965,7 @@ export default {
                             </Tooltip>
                         </div>
                     </template>
-                    <b v-if="line.type_id == 1 && v.boils">Количество варок: {{ (v.boils).toFixed(2) }}<br></b>
+                    <b v-if="v.boils">Количество варок: {{ (v.boils).toFixed(2) }}<br></b>
                     <b style="margin-bottom: 10px;display: block;">Объём изготовления: {{ v.amount }}</b>
                     <br>
                     <span style="white-space: break-spaces;">{{ v.title }}</span>
@@ -1018,6 +1021,9 @@ export default {
                 <RadioButton v-for="v in active.selection" :value="v.product_slot_id" :key="v.product_slot_id">{{
                     v.perfomance }}</RadioButton>
             </RadioGroup>
+            <br>
+            <br>
+            <div>Выбранная производительность: {{ active.perfomance }}</div>
             <br>
             <br>
             <Checkbox v-model:checked="showPack" v-if="packTimeOptions">
