@@ -18,7 +18,7 @@ class ProductsDictionaryController extends Controller
 
             $categories = ProductsCategoriesController::getList();
             $children = array_filter($categories, function ($el) use ($pack) {
-                return (array_search($el['parent'], $pack) !== false);
+                return (array_search($el['parent'], $pack) !== false || array_search($el['category_id'], $pack) !== false);
             });
             $children = array_map(function ($el) {
                 return $el['category_id'];

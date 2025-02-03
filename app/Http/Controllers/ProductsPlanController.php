@@ -183,7 +183,11 @@ class ProductsPlanController extends Controller
 
     public function delPlan(Request $request)
     {
-        ProductsPlan::find($request->post('product_plan_id'))->delete();
+        $plan = ProductsPlan::find($request->post('product_plan_id'))->get();
+        if ($plan) {
+            ProductsPlan::where('product_id', '=', $plan[0]->product_id)->delete();
+        }
+        $plan->delete();
         return true;
     }
 

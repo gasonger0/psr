@@ -1021,10 +1021,7 @@ export default {
                 <RadioButton v-for="v in active.selection" :value="v.product_slot_id" :key="v.product_slot_id">{{
                     v.perfomance }}</RadioButton>
             </RadioGroup>
-            <br>
-            <br>
             <div>Выбранная производительность: {{ active.perfomance }}</div>
-            <br>
             <br>
             <Checkbox v-model:checked="showPack" v-if="packTimeOptions">
                 Сгененрировать план упаковки

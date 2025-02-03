@@ -545,9 +545,9 @@ class TableController extends Controller
                     
                     foreach ($hw['items'] as $product) {
                         $kg = floatval($product['amount']);
-                        $parts = eval ('return ' . $kg . '/' . floatval($product['parts2kg']) . ';');
-                        $crates = eval ('return ' . $parts . '/' . floatval($product['amount2parts']) . ';');
-                        $boils = eval ('return ' . $kg . '*' . floatval($product['kg2boil']) . ';');
+                        $parts = eval ('return ceil(' . $kg . '/' . floatval($product['parts2kg']) . ');');
+                        $crates = eval ('return ceil(' . $parts . '/' . floatval($product['amount2parts']) . ');');
+                        $boils = eval ('return ceil(' . $kg . '*' . floatval($product['kg2boil']) . ');');
 
                         if (mb_strpos(mb_strtolower($product['title']), 'зефир') !== false) {
                             $sum['z'][0] += $kg;
@@ -565,7 +565,7 @@ class TableController extends Controller
                         }
 
                         $prec = eval ('return ' . $boils . '*' . floatval($product['cars']) . ';');
-                        $cars = ceil($prec);
+                        $cars = round($prec, 0, PHP_ROUND_HALF_DOWN);
                         $plates = eval ('return ' . ($prec - $cars) . '*' . floatval($product['cars2plates']) . ';');
                         $array[] = [
                             '',
