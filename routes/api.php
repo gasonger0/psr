@@ -39,6 +39,7 @@ Route::post('/change_slot',         [SlotsController::class,                'cha
 Route::post('/edit_slot',           [SlotsController::class,                'edit'      ]);
 Route::post('/delete_slot',         [SlotsController::class,                'delete'    ]);
 Route::post('/replace_worker',      [SlotsController::class,                'replace'   ]);
+Route::get('/print_slots',          [SlotsController::class,                'print'     ]);
 
 /*********************
  * PRODUCTS_DICTIONARY

@@ -4,9 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\Lines;
 use App\Models\Slots;
+use App\Models\Workers;
 use Carbon\Carbon;
 use DateTime;
 use Illuminate\Http\Request;
+use Shuchkin\SimpleXLSXGen;
 
 class SlotsController extends Controller
 {
@@ -174,5 +176,60 @@ class SlotsController extends Controller
     static public function clear()
     {
         return Slots::truncate();
+    }
+
+    static function print(Request $resuest) {
+        $lines = Lines::all()->toArray();
+        $titles = call_user_func_array('array_merge', array_map(function($line){
+            return [$line['title'], ''];
+        }, $lines));
+        $columns = [array_merge(['Работник'], $titles)];
+        Workers::all()->each(function($worker) use($lines, &$columns){
+            $row = [$worker->title];
+            foreach ($lines as $line) {
+                $slot = Slots::where('worker_id', '=', $worker->worker_id)
+                    ->where('line_id', '=', $line['line_id'])
+                    ->first();
+                if ($slot) {
+                    $row[] = $slot->started_at;
+                    $row[] = $slot->ended_at;
+                } else {
+                    $row[] = '';
+                    $row[] = '';
+                }
+            }
+            $itemsCount = array_filter(array_slice($row, 1), function($value) {
+                return $value != '';
+            });
+            if (count($itemsCount) > 0){
+                $columns[] = $row;
+            }
+        });
+        
+        // Post-processing columns
+        $i = 1;
+        while ($i < count($columns[0])) {
+            $isEmpty = array_filter(array_column($columns, $i), function($value) {
+                return $value != '';
+            });
+            if (count($isEmpty) <= 1) {
+                array_walk($columns, function(&$row) use($i) {
+                    array_splice($row, $i, 2);
+                });
+            } else {
+                $i+=2;
+            }
+        }
+        $file = SimpleXLSXGen::fromArray($columns);
+        $i = 1;
+        $a = 95; // Заглавная А
+        // var_dump(count($columns[0]));
+        while ($i < count($columns[0])) {
+            $mergeRange = chr($a + $i) . "1:". chr($a + $i + 1) . '1';
+            $file->mergeCells($mergeRange);
+            // var_dump($mergeRange);
+            $i+=2;
+        }
+        $file->downloadAs('График.xlsx');
     }
 }

@@ -11,7 +11,7 @@ use Carbon\Carbon;
 
 class LinesController extends Controller
 {
-    static public function getList($columns = ['*'])
+    static public function getList()
     {
         return Lines::all()->toJson();
     }
