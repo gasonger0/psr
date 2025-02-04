@@ -386,4 +386,9 @@ class LinesController extends Controller
             ]
         ];
     }
+
+    public function delete($line_id) {
+        Lines::where('line_id', $line_id)->delete();
+        return true;
+    }
 }

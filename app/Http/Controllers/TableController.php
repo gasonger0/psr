@@ -468,20 +468,21 @@ class TableController extends Controller
                 });
 
                 $linePlans = array_map(function ($el) use ($products) {
-                    $title = array_search(
+                    $prod_id = array_search(
                         $el['product_id'],
                         array_column($products, 'product_id')
                     );
 
-                    if ($title !== false) {
-                        $el['title'] = $products[$title]['title'];
-                        $el['amount2parts'] = $products[$title]['amount2parts'] ? $products[$title]['amount2parts'] : 1;
-                        $el['parts2kg'] = $products[$title]['parts2kg'] ? $products[$title]['parts2kg'] : 1;
-                        $el['kg2boil'] = $products[$title]['kg2boil'] ? $products[$title]['kg2boil'] : 1;
-                        $el['cars'] = $products[$title]['cars'] ? $products[$title]['cars'] : 1;
-                        $el['cars2plates'] = $products[$title]['cars2plates'] ? $products[$title]['cars2plates'] : 1;
-                        $el['perfomance'] = $products[$title]['perfomance'] ? $products[$title]['perfomance'] : 1;
-                        $el['people_count'] = $products[$title]['people_count'] ? $products[$title]['people_count'] : 1;
+                    if ($prod_id !== false) {
+                        $el['title'] = $products[$prod_id]['title'];
+                        $el['amount2parts'] = $products[$prod_id]['amount2parts'] ? $products[$prod_id]['amount2parts'] : 1;
+                        $el['parts2kg'] = $products[$prod_id]['parts2kg'] ? $products[$prod_id]['parts2kg'] : 1;
+                        $el['kg2boil'] = $products[$prod_id]['kg2boil'] ? $products[$prod_id]['kg2boil'] : 1;
+                        $el['cars'] = $products[$prod_id]['cars'] ? $products[$prod_id]['cars'] : 1;
+                        $el['cars2plates'] = $products[$prod_id]['cars2plates'] ? $products[$prod_id]['cars2plates'] : 1;
+                        $el['perfomance'] = $products[$prod_id]['perfomance'] ? $products[$prod_id]['perfomance'] : 1;
+                        $el['people_count'] = $products[$prod_id]['people_count'] ? $products[$prod_id]['people_count'] : 1;
+                        $el['colon'] = $products[$prod_id]['colon'] ? $products[$prod_id]['colon'] : 1;
                     }
 
                     return $el;
@@ -500,7 +501,6 @@ class TableController extends Controller
                         ];
                     }
                 } else {
-                    // Упаковка
                     $line['items'][0] = [
                         'items' => $linePlans
                     ];
@@ -517,18 +517,9 @@ class TableController extends Controller
                     $line['engineer'] = $line['engineer'][0] . '.' . mb_substr($line['engineer'][1], 0, 1) . '.';
                 }
 
-                $array[] = ['', '<style bgcolor="#B7DEE8"><b>ОТВЕТСТВЕННЫЕ: ' . $line['master'] . ',' . $line['engineer'] . '</b></style>'];
-                $colon = array_filter(array_unique(array_column($line['items'], 'colon')));
-                if (count($colon) >= 2) {
-                    $colon = [1, 2];
-                }
-                if (!empty($colon)) {
-                    $array[] = ['', '<b>', self::$colons[$colon[0]], '</b>'];
-                }
                 $array[] = ['', '<style bgcolor="#D8E4BC"><b>' . $line['title'] . '</b></style>', '', '', '', '', '', '', '', '', '', $line['workers_count'], $line['started_at'], $line['ended_at']];
-                if (!empty($colon) && count($colon) > 1) {
-                    $array[] = ['', '<b>', self::$colons[$colon[1]], '</b>'];
-                }
+
+                $array[] = ['', '<style bgcolor="#B7DEE8"><b>ОТВЕТСТВЕННЫЕ: ' . $line['master'] . ',' . $line['engineer'] . '</b></style>'];
                 if ($line['prep_time'] != 0) {
                     $array[] = ['', '<style bgcolor="#FFC263"><b><i>Подготовительное время</i></b></style>', '', '', '', '', '', '', '', '', '', '', $line['started_at'], Carbon::parse($line['started_at'])->addMinutes($line['prep_time'])->format('H:i:s')];
                 }
@@ -538,15 +529,28 @@ class TableController extends Controller
                     's' => [0, 0],
                     'k' => [0, 0]
                 ];
-                foreach ($line['items'] as $hw) {
+                foreach ($line['items'] as &$hw) {
                     if (isset($hw['hwTitle'])) {
                         $array[] = ['', '<style bgcolor="#D8E4BC"><b>' . mb_strtoupper($hw['hwTitle']) . '</b></style>'];
                     }
+                    $colon = array_filter(array_unique(array_column($hw['items'], 'colon')));
+                    if (count($colon) >= 2) {
+                        $colon = [1, 2];
+                    }
+                    if (!empty($colon)) {
+                        $array[] = ['', '<b>', self::$colons[$colon[0]] . (isset($colon[1]) ? ', ' . self::$colons[$colon[1]] : ''), '</b>'];
+                        array_shift($colon);
+                    }
+
+                    
+                    usort($hw['items'], function ($a, $b) {
+                        return strtotime($a['started_at']) <=> strtotime($b['started_at']);
+                    });                   
                     
                     foreach ($hw['items'] as $product) {
-                        $kg = floatval($product['amount']);
-                        $parts = eval ('return ceil(' . $kg . '/' . floatval($product['parts2kg']) . ');');
-                        $crates = eval ('return ceil(' . $parts . '/' . floatval($product['amount2parts']) . ');');
+                        $crates = intval($product['amount']);
+                        $parts = eval ('return ceil(' . $crates . '*' . floatval($product['amount2parts']) . ');');
+                        $kg = eval ('return ceil(' . $parts . '*' . floatval($product['parts2kg']) . ');');
                         $boils = eval ('return ceil(' . $kg . '*' . floatval($product['kg2boil']) . ');');
 
                         if (mb_strpos(mb_strtolower($product['title']), 'зефир') !== false) {
@@ -603,7 +607,8 @@ class TableController extends Controller
                     }
                 }
                 if ($line['after_time'] != 0) {
-                    $array[] = ['', '<style bgcolor="#FFC263"><b><i>Заключительное время</i></b></style>', '', '', '', '', '', '', '', '', '', '', Carbon::parse($line['ended_at'])->addMinutes($line['after_time'])->format('H:i:s'), $line['ended_at']];
+                    $lastTime = Carbon::parse($array[count($array)-1][13]);
+                    $array[] = ['', '<style bgcolor="#FFC263"><b><i>Заключительное время</i></b></style>', '', '', '', '', '', '', '', '', '', '', $lastTime->format('H:i:s'), $lastTime->addMinutes($line['after_time'])->format('H:i:s')];
                 }
                 $array[] = [];
 

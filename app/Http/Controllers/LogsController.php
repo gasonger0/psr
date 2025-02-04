@@ -76,7 +76,7 @@ class LogsController extends Controller
             $sorter = array_column($f, 'created_at');
             array_multisort($sorter, SORT_ASC, $f);
             $i = 0;
-            $companies[$line_id] = [];
+            if (!isset($companies[$line_id])) $companies[$line_id] = [];
             while ($i < count($f)) {
                 if ($f[$i]['type'] == 3) {
                     // Перестановка начального времени
@@ -87,22 +87,25 @@ class LogsController extends Controller
                         $diff = abs($newTime->diffInHours(Carbon::createFromFormat('H:i:s', $oldTime)));
 
                         $comps = Workers::whereIn('worker_id', explode(',', $f[$i]['workers']))->get(['worker_id','company']);
-                        $buf = [];
-                        foreach ($comps as $comp) {
-                            if (isset($buf[$line_id][$comp->company])) {
-                                $buf[$line_id][$comp->company] += 1;
-                            } else {
-                                $buf[$line_id][$comp->company] = 1;
+                        if ($comps) {
+                            $buf = [];
+                            foreach ($comps as $comp) {
+                                if (!isset($buf[$line_id])) $buf[$line_id] = [];
+                                if (isset($buf[$line_id][$comp->company])) {
+                                    $buf[$line_id][$comp->company] += 1;
+                                } else {
+                                    $buf[$line_id][$comp->company] = 1;
+                                }
+                            }
+                            if (isset($buf[$line_id])) {
+                                $buf[$line_id] = array_map(function ($val) use ($diff) {
+                                    return $val * $diff;
+                               }, $buf[$line_id]);
+                                $companies[$line_id][] = $buf[$line_id];
                             }
                         }
-                        if (isset($buf[$line_id])) {
-                            $buf[$line_id] = array_map(function ($val) use ($diff) {
-                                return $val * $diff;
-                            }, $buf[$line_id]);
-                            $companies[$line_id][] = $buf[$line_id];
-                        }
-                        $i += 1;
                     }
+                    $i += 1;
                 } else if ($f[$i]['type'] == 1 and $f[$i + 1]['type'] == 2) {
                     $newTime = Carbon::parse($f[$i]['created_at']);
                     $oldTime = Carbon::parse($f[$i + 1]['created_at']);
@@ -110,24 +113,27 @@ class LogsController extends Controller
                     $diff = abs($newTime->diffInHours($oldTime));
 
                     $comps = Workers::whereIn('worker_id', explode(',',$f[$i]['workers']))->get('company');
-                    $buf = [];
-                    foreach ($comps as $comp) {
-                        if (isset($buf[$line_id][$comp->company])) {
-                            $buf[$line_id][$comp->company] += 1;
-                        } else {
-                            $buf[$line_id][$comp->company] = 1;
+                    if($comps){
+                        $buf = [];
+                        foreach ($comps as $comp) {
+                            if (!isset($buf[$line_id])) $buf[$line_id] = [];
+                            if (isset($buf[$line_id][$comp->company])) {
+                                $buf[$line_id][$comp->company] += 1;
+                            } else {
+                                $buf[$line_id][$comp->company] = 1;
+                            }
                         }
+                        $buf[$line_id] = array_map(function ($val) use ($diff) {
+                            return $val * $diff;
+                        }, $buf[$line_id]);
+                        $companies[$line_id][] = $buf[$line_id];
                     }
-                    $buf[$line_id] = array_map(function ($val) use ($diff) {
-                        return $val * $diff;
-                    }, $buf[$line_id]);
-                    $companies[$line_id][] = $buf[$line_id];
                     $i += 2;
                 }
             }
         }
         foreach ($companies as $line => $v) {
-            $columns[] = [Lines::find($line)->get('title')->first()->title];
+            $columns[] = [Lines::find($line)->first()->title];
 
             $arr = [];
             foreach ($v as $item) {

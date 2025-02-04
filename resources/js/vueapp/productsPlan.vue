@@ -256,7 +256,7 @@ export default {
                         if (ev.target.classList.contains('selected') && ev.target == this.active.html) {
                             ev.target.classList.remove(`selected`);
                             let line_id = ev.target.closest('.line').dataset.id;
-
+                            this.active.selection = ref([]);
                             this.active.line = this.lines.find(f => f.line_id == line_id);
                             let prod = this.products.find(i => i.product_id == ev.target.dataset.id);
                             this.active.kg2boil = prod.kg2boil ? eval(prod.kg2boil) : 0;
@@ -610,17 +610,18 @@ export default {
             this.$emit('getBoils', sum.toFixed(2));
             this.showLoader = false;
         },
-        handleHardware(slot_id = null) {
+        handleHardware(slot_id = null, isPack = false) {
+            this.active.selection = ref([]);
             let line_id = this.active.slot.line_id;
             let prod = this.products.find(i => i.product_id == this.active.slot.product_id);
             let hw = this.active.hardware;
-            let newSlot = prod.slots[1].filter(function (n) {
+            let newSlot = (isPack ? prod.slots[2] : prod.slots[1]).filter(function (n) {
                 return n.line_id == line_id && n.hardware == hw;
             });
             console.log(prod.slots[1]);
             console.log(prod);
             if (!newSlot || newSlot.length == 0) {
-                newSlot = prod.slots[1].filter(function (n) {
+                newSlot = (isPack ? prod.slots[2] : prod.slots[1]).filter(function (n) {
                     return n.line_id == line_id && n.hardware == null;
                 });
             }
@@ -737,6 +738,18 @@ export default {
                     this.$emit('notify', 'error', 'Что-то пошло не так...');
                 })
         },
+        deleteLine(line_id) {
+            axios.post('/api/delete_line', {
+                line_id: line_id
+            })
+                .then((response) => {
+                    this.$emit('notify', 'success', 'Сохранено');
+                    this.lines = this.lines.filter(el => el.line_id != line_id);
+                })
+                .catch((err) => {
+                    this.$emit('notify', 'error', 'Что-то пошло не так...');
+                })
+        },
         editPlan(plan_id) {
             let plan = this.plans.find(el => el.plan_product_id == plan_id);
             if (plan) {
@@ -750,7 +763,7 @@ export default {
                 }
                 let hw = this.active.slot.hardware;
                 this.active.selection = prod.slots[1].concat(prod.slots[2]).filter(n => n.line_id == plan.line_id && n.hardware == hw);
-                console.log(this.active.selection);
+                
                 this.selRadio = this.active.slot.product_slot_id
 
                 this.active.hardware = this.active.slot ? this.active.slot.hardware : null;
@@ -904,6 +917,7 @@ export default {
                                 :style="'background-color:' + line.color" v-show="line.edit">
                             </div>
                         </Tooltip>
+                        <DeleteOutlined style="height:fit-content; color:#ff4d4f;" @click="deleteLine(line.line_id)" />
                     </div>
                 </template>
                 <template v-if="line.edit">
@@ -1039,7 +1053,7 @@ export default {
             </div>
         </div>
         <div v-if="active.slot.type_id == 2">
-            <RadioGroup v-model:value="active.hardware" @change="handleHardware()">
+            <RadioGroup v-model:value="active.hardware" @change="handleHardware(null, true)">
                 <RadioButton :value="4">
                     <Tooltip title="Завёрточная машина №1">ЗМ №1</Tooltip>
                 </RadioButton>

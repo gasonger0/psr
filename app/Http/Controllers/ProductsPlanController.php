@@ -188,6 +188,8 @@ class ProductsPlanController extends Controller
             ProductsPlan::where('product_id', '=', $plan[0]->product_id)->delete();
         }
         $plan->delete();
+
+        // Автоматом подтягивать время продукции в линиях, чтобы само вставало друг за другом, без промежутков ???
         return true;
     }
 

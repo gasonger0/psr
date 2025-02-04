@@ -464,6 +464,7 @@ export default {
                 draggable.forEach(line => {
                     line.addEventListener(`dragstart`, (ev) => {
                         ev.target.classList.add(`selected`);
+                        let x = this.document.querySelector('.lines-container');
                         setTimeout(() => {
                             x.scrollTo(
                                 { top: 0, behavior: 'smooth' }
