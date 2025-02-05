@@ -575,7 +575,7 @@ export default {
 }
 </script>
 <template>
-    <div style="height: fit-content; margin-left: 1vw;">
+    <div style="height: fit-content; margin-left: 1vw;gap:15pc;display: flex;">
         <Button type="dashed" @click="() => showList = !showList">{{ !showList ? 'Показать список рабочих' : 'Скрыть'
             }}</Button>
         <Button type="default"@click="print_graph">
