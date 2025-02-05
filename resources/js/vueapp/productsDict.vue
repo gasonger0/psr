@@ -41,7 +41,7 @@ export default {
                 title: 'Оборудование',
                 dataIndex: 'hardware'
             }, {
-                title: 'Количество струдников',
+                title: 'Кол-во сотрудников',
                 dataIndex: 'people_count'
             }, {
                 title: 'Кг в час',
@@ -60,13 +60,13 @@ export default {
                 dataIndex: 'hardware',
                 width: '15%'
             }, {
-                title: 'Количество струдников',
+                title: 'Кол-во сотрудников',
                 dataIndex: 'people_count',
-                width: '10%'
+                width: '5%'
             }, {
                 title: 'Кг в час',
                 dataIndex: 'perfomance',
-                width: '10%'
+                width: '5%'
             }],
             specColumns: [
                 { title: 'Штук в Ящике:', dataIndex: 'amount2parts', addon: '' },
@@ -286,7 +286,7 @@ export default {
                         <Button type="primary" @click="addProductSlot">Сохранить</Button>
                     </template>
                     <TabPane v-for="(v, k) in tabs" :key="k" :tab="v">
-                        <Table :columns="k == 1 ? columns : columnsPack" bordered
+                        <Table :columns="k == 1 ? columns : columnsPack" bordered small
                             :data-source="slots.filter(el => { return el.type_id == k })" :pagination="false">
                             <template #emptyText>
                                 <template v-if="loading">

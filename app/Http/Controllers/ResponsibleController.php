@@ -19,11 +19,12 @@ class ResponsibleController extends Controller
         }
         $data = $request->post();
         foreach($data as $r) {
-            if ($r['responsible_id']) {
+            if (isset($r['responsible_id'])) {
                 // Edit
-                $resps[$r['responsible_id']]['position'] = $r['position'];
-                $resps[$r['responsible_id']]['title'] = $r['title'];
+                $resps[$r['responsible_id']]->position = $r['position'];
+                $resps[$r['responsible_id']]->title = $r['title'];
                 $resps[$r['responsible_id']]->save();
+                unset($resps[$r['responsible_id']]);
             } else {
                 // New
                 $n = new Responsible;
@@ -31,11 +32,7 @@ class ResponsibleController extends Controller
                 $n->position = $r['position'];
                 $n->save();
             }
-            unset($resps[$r['responsible_id']]);
-        };
-
-        var_dump($resps);
-
+        }
         if (!empty($data)) {
             Responsible::destroy(array_map(function ($i) {
                 return $i->responsible_id;
