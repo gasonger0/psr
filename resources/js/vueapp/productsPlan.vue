@@ -273,7 +273,7 @@ export default {
                             this.packLinesOptions = prod.slots[2].map(el => {
                                 return {
                                     label: this.lines.find(f => f.line_id == el.line_id).title,
-                                    value: el.product_slot_id
+                                    value: el.product_slot_id + ' (' + el.perfomance + 'кг/ч)'
                                 }
                             });
                             console.log(this.packLinesOptions);
@@ -511,6 +511,8 @@ export default {
                 this.$emit('getBoils', sum.toFixed(2));
                 this.showLoader = false;
             }
+            this.packLinesOptions = [];
+            this.isNewPlan = ref(false);
         },
         deletePlan(id) {
             console.log('ID: ' + id);
@@ -1035,7 +1037,7 @@ export default {
                 <RadioButton v-for="v in active.selection" :value="v.product_slot_id" :key="v.product_slot_id">{{
                     v.perfomance }}</RadioButton>
             </RadioGroup>
-            <div>Выбранная производительность: {{ active.perfomance }}</div>
+            <!-- <div>Выбранная производительность: {{ active.perfomance }}</div> -->
             <br>
             <Checkbox v-model:checked="showPack" v-if="packTimeOptions">
                 Сгененрировать план упаковки

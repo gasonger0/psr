@@ -167,17 +167,17 @@ class ProductsPlanController extends Controller
 
     public function checkPackPlans($line_id, $prod_id, $start, $end)
     {
-        $plans = ProductsPlan::where('line_id', '=', $line_id)
-            ->whereBetween('started_at', [$start, $end])
-            ->orWhereBetween('ended_at', [$start, $end])
-            ->orderBy('started_at', 'ASC')
-            ->get()
-            ->toArray();
-        $plans = array_filter($plans, function ($item) use ($prod_id) {
-            return $item['plan_product_id'] != $prod_id;
-        });
-        if (!empty($plans)) {
-            // Если есть, считаем разницу между концом нового и началом старого
+        $lastPlan = ProductsPlan::where('line_id', '=', $line_id)
+            ->where('plan_product_id', '!=', $prod_id)
+            ->where('ended_at', '>=', $start)
+            ->orderBy('ended_at', 'DESC')
+            ->first()->get();
+        if ($lastPlan) {
+            $plan = ProductsPlan::where('plan_product_id', '=', $prod_id)->get();
+            $diff = Carbon::parse($plan->started_at)->diff(Carbon::parse($lastPlan->ended_at));
+            $plan->started_at = $lastPlan->ended_at;
+            $plan->ended_at = Carbon::parse($plan->started_at)->addMinutes($diff)->format('H:i:s');
+            $plan->save();
         }
     }
 
@@ -185,7 +185,10 @@ class ProductsPlanController extends Controller
     {
         $plan = ProductsPlan::find($request->post('product_plan_id'))->get();
         if ($plan) {
-            ProductsPlan::where('product_id', '=', $plan[0]->product_id)->delete();
+            ProductsPlan::where('product_id', '=', $plan[0]->product_id)->get()->each(function ($item) {
+                $item->delete();
+            });
+            //delete();
         }
         $plan->delete();
 
@@ -211,7 +214,7 @@ class ProductsPlanController extends Controller
         ProductsPlan::truncate();
         $def = LinesController::getDefaults();
         foreach ($def as $d) {
-            $line = Lines::where('title', '=', $d['title'])->first();
+            $line = Lines::where('line_id', '=', $d['line_id'])->first()->get();
             if ($line) {
                 $time = explode('-', $d['time']);
                 $line->started_at = $time[0];
@@ -219,6 +222,7 @@ class ProductsPlanController extends Controller
                 $line->prep_time = $d['prep'];
                 $line->after_time = $d['end'];
                 $line->workers_count = $d['people'];
+                $line->title = $d['title'];
                 $line->master = null;
                 $line->engineer = null;
                 $line->cancel_reason = null;

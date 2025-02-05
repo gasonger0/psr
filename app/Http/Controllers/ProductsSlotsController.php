@@ -23,6 +23,7 @@ class ProductsSlotsController extends Controller
     public function addSlots(Request $request)
     {
         $keys = ['hardware', 'people_count', 'perfomance'];
+        $ret = [];
         foreach ($request->post() as $slot) {
             if ($slot['product_slot_id'] == -1) {
                 $s = new ProductsSlots();
@@ -34,6 +35,7 @@ class ProductsSlotsController extends Controller
                 // $s->order               = $slot['order'];
                 $s->type_id             = $slot['type_id'] ?? 1;
                 $s->save();
+                $ret[] = $s->product_slot_id;
             } else {
                 $oldSlot = ProductsSlots::find($slot['product_slot_id']);
                 foreach ($keys as $k) {
@@ -42,8 +44,10 @@ class ProductsSlotsController extends Controller
                     }
                 }
                 $oldSlot->save();
+                $ret[] = $oldSlot->product_slot_id;
             }
         }
+        return json_encode($ret); 
     }
 
     public function delete(Request $request)

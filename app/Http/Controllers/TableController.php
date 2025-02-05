@@ -23,7 +23,7 @@ class TableController extends Controller
     static $MCE = '</middle></center>';
     private static $skipPhrases = ['подготовительное время', 'заключительное время'];
     private static $colons = ['', 'Варочная колонка №1', 'Варочная колонка №2'];
-    private static $hardware = ['', 'Мондомикс', 'Торнадо', 'Китайский аэрос'];
+    private static $hardware = ['', 'Мондомикс', 'Торнадо', 'Китайский аэрос', 'Завёрточная машина №1', 'Завёрточная машина №2', 'Завёрточные машины №1, №2'];
     private static function makeArrayHeader()
     {
         return
@@ -482,12 +482,18 @@ class TableController extends Controller
                         $el['cars2plates'] = $products[$prod_id]['cars2plates'] ? $products[$prod_id]['cars2plates'] : 1;
                         $el['perfomance'] = $products[$prod_id]['perfomance'] ? $products[$prod_id]['perfomance'] : 1;
                         $el['people_count'] = $products[$prod_id]['people_count'] ? $products[$prod_id]['people_count'] : 1;
-                        $el['colon'] = $products[$prod_id]['colon'] ? $products[$prod_id]['colon'] : 1;
                     }
 
                     return $el;
                 }, $linePlans);
-
+                
+                array_multisort(
+                    array_column($linePlans, 'started_at'),
+                    SORT_ASC,
+                    $linePlans
+                );
+                $line['started_at'] = $linePlans[0]['started_at'];
+                $line['ended_at'] = (last($linePlans))['ended_at'];
                 $line['items'] = [];
                 $hardwares = array_filter(array_unique(array_column($linePlans, 'hardware')));
 
@@ -517,7 +523,7 @@ class TableController extends Controller
                     $line['engineer'] = $line['engineer'][0] . '.' . mb_substr($line['engineer'][1], 0, 1) . '.';
                 }
 
-                $array[] = ['', '<style bgcolor="#D8E4BC"><b>' . $line['title'] . '</b></style>', '', '', '', '', '', '', '', '', '', $line['workers_count'], $line['started_at'], $line['ended_at']];
+                $array[] = ['', '<style bgcolor="#D8E4BC"><b>' . $line['title'] . '</b></style>', '', '', '', '', '', '', '', '', '', $line['workers_count'], $line['started_at'], Carbon::parse($line['ended_at'])->addMinutes($line['after_time'])->format('H:i:s')];
 
                 $array[] = ['', '<style bgcolor="#B7DEE8"><b>ОТВЕТСТВЕННЫЕ: ' . $line['master'] . ',' . $line['engineer'] . '</b></style>'];
                 if ($line['prep_time'] != 0) {
@@ -536,7 +542,9 @@ class TableController extends Controller
                     $colon = array_filter(array_unique(array_column($hw['items'], 'colon')));
                     if (count($colon) >= 2) {
                         $colon = [1, 2];
-                    }
+                    } else {
+			            $colon = array_values($colon);
+		            }
                     if (!empty($colon)) {
                         $array[] = ['', '<b>', self::$colons[$colon[0]] . (isset($colon[1]) ? ', ' . self::$colons[$colon[1]] : ''), '</b>'];
                         array_shift($colon);

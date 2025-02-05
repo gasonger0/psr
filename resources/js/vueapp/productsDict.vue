@@ -211,6 +211,9 @@ export default {
             ).then((response) => {
                 if (response.data) {
                     this.$emit('notify', 'success', 'Изменения сохранены');
+                    for(let i = 0; i < response.data; i++) {
+                        this.slots[$i]['product_slot_id'] = response.data[i];
+                    }
                 }
             });
             this.saveProduct(this.activeProduct.product_id);
