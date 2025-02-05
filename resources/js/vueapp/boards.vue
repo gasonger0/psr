@@ -6,7 +6,7 @@ import Loading from './loading.vue';
 import dayjs from 'dayjs';
 import { ColorPicker } from 'vue-color-kit';
 import 'vue-color-kit/dist/vue-color-kit.css'
-import { ForwardOutlined, LoginOutlined, PlusCircleOutlined, StopOutlined, InfoCircleOutlined, UserDeleteOutlined, UserSwitchOutlined, UserAddOutlined, RightOutlined, LeftOutlined } from '@ant-design/icons-vue';
+import { ForwardOutlined, LoginOutlined, PlusCircleOutlined, StopOutlined, InfoCircleOutlined, UserDeleteOutlined, UserSwitchOutlined, UserAddOutlined, RightOutlined, LeftOutlined, PrinterOutlined } from '@ant-design/icons-vue';
 </script>
 <script>
 export default {
@@ -552,6 +552,9 @@ export default {
                 clearInterval(this.isScrolling);
                 this.isScrolling = null;
             }
+        },
+        print_graph() {
+            window.open('/api/print_slots', '_blank');
         }
     },
     async created() {
@@ -575,6 +578,9 @@ export default {
     <div style="height: fit-content; margin-left: 1vw;">
         <Button type="dashed" @click="() => showList = !showList">{{ !showList ? 'Показать список рабочих' : 'Скрыть'
             }}</Button>
+        <Button type="default"@click="print_graph">
+            <PrinterOutlined />
+            Распечатать график</Button>
     </div>
     <div class="lines-container" :key="contKey" ref="linesContainer">
         <div class="line" :data-id="-1" v-show="showList">
