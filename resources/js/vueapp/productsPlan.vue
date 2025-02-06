@@ -191,15 +191,22 @@ export default {
         },
         getNextElement(cursorPosition, currentElement) {
             // Получаем объект с размерами и координатами
-            const currentElementCoord = currentElement.getBoundingClientRect();
+            const card = currentElement.closest(".draggable-card");
+            let currentElementCoord = null;
+            if (card) {
+                console.log(card);
+                currentElementCoord = card.getBoundingClientRect();
+            } else {
+                currentElementCoord = currentElement.getBoundingClientRect();
+            }
             // Находим вертикальную координату центра текущего элемента
             const currentElementCenter = currentElementCoord.y + currentElementCoord.height / 2;
-
+            
             // Если курсор выше центра элемента, возвращаем текущий элемент
             // В ином случае — следующий DOM-элемент
             const nextElement = (cursorPosition < currentElementCenter) ?
-                currentElement :
-                currentElement.nextElementSibling;
+                card :
+                card.nextElementSibling;
             return nextElement;
         },
         initFunc() {
@@ -272,8 +279,8 @@ export default {
                             this.active.packs = ref([]);
                             this.packLinesOptions = prod.slots[2].map(el => {
                                 return {
-                                    label: this.lines.find(f => f.line_id == el.line_id).title,
-                                    value: el.product_slot_id + ' (' + el.perfomance + 'кг/ч)'
+                                    label: this.lines.find(f => f.line_id == el.line_id).title + ' (' + el.perfomance + 'кг/ч)',
+                                    value: el.product_slot_id 
                                 }
                             });
                             console.log(this.packLinesOptions);
@@ -396,6 +403,7 @@ export default {
                 });
 
                 line.addEventListener('dragover', (ev) => {
+                    console.log('dragover');
                     ev.preventDefault();
                     const activeElement = document.querySelector('.selected');
                     const currentElement = ev.target;
@@ -414,7 +422,7 @@ export default {
                     ) {
                         // Если нет, выходим из функции, чтобы избежать лишних изменений в DOM
                         return;
-                    }
+                    } 
 
                     const lastElement = line.lastElementChild;
                     if (nextElement == null) {
@@ -428,7 +436,6 @@ export default {
                     }
                 })
             });
-            // }
             this.listenerSet = true;
             this.document.querySelector('.lines-container').scrollTo({ left: 0 });
         },
@@ -1049,7 +1056,7 @@ export default {
                     <Select v-model:value="active.packTime" :options="packTimeOptions" placeholder="30">
                     </Select>
                     <span> мин.</span>
-                    <CheckboxGroup v-model:value="active.packs" :options="packLinesOptions">
+                    <CheckboxGroup v-model:value="active.packs" :options="packLinesOptions" style="flex-direction:column">
                     </CheckboxGroup>
                 </div>
             </div>

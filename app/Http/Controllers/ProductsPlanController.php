@@ -30,7 +30,7 @@ class ProductsPlanController extends Controller
     public function addPlan(Request $request)
     {
         if ($post = $request->post()) {
-            if (!$post['plan_product_id']) {
+            if (!isset($post['plan_product_id'])) {
                 $plan = new ProductsPlan();
                 $slot = ProductsSlots::find($post['slot_id'])->toArray();
                 $plan->product_id = $slot['product_id'];
@@ -137,29 +137,37 @@ class ProductsPlanController extends Controller
     {
         // Получаем планы, которые внутри нового
         $plans = ProductsPlan::where('line_id', '=', $line_id)
-            ->whereBetween('started_at', [$start, $end])
-            ->orWhereBetween('ended_at', [$start, $end])
+            // ->whereBetween('started_at', [$start, $end])
+            // ->orWhereBetween('ended_at', [$start, $end])
+            ->where('started_at', '<=', $start)
+            ->where('ended_at', '>=', $start)
             ->orderBy('started_at', 'ASC')
             ->get()
             ->toArray();
-        $plans = array_filter($plans, function ($item) use ($prod_id) {
-            return $item['plan_product_id'] != $prod_id;
-        });
-        if (!empty($plans)) {
-            // Если есть, считаем разницу между концом нового и началом старого
-            $diff = Carbon::parse(reset($plans)['started_at'])->diffInMinutes(Carbon::parse($end));
+        if (count($plans) > 1) {
+            $plans = array_filter($plans, function ($item) use ($prod_id) {
+                return $item['plan_product_id'] != $prod_id;
+            });
+            var_dump($plans);
+            $planOne = $plans[0];
+            // Если есть, то ставим новую ГП после той, внутрь которой попадаем и ставим новые ГП
+            $diff = Carbon::parse($planOne['ended_at'])->diffInMinutes(Carbon::parse($start));
+            $pl = ProductsPlan::where('plan_product_id', '=', $prod_id)->first();
+            $pl->started_at = $planOne['ended_at'];
+            $pl->ended_at = Carbon::parse($end)->addMinutes($diff)->format('H:i:s');
+            $pl->save();
             $plans = ProductsPlan::where('line_id', '=', $line_id)
                 ->where('started_at', '>=', $start)
                 ->where('plan_product_id', '!=', $prod_id)
                 ->orderBy('started_at', 'ASC')
                 ->get();
+            $end = $pl->ended_at;
             foreach ($plans as $plan) {
                 var_dump($end);
                 // Те, которые надо сдвинуть
                 $plan->started_at = $end;
                 $end = Carbon::parse($plan->ended_at)->addMinutes($diff)->format('H:i:s');
                 $plan->ended_at = $end;
-                var_dump($end);
                 $plan->save();
             }
         }
@@ -183,9 +191,9 @@ class ProductsPlanController extends Controller
 
     public function delPlan(Request $request)
     {
-        $plan = ProductsPlan::find($request->post('product_plan_id'))->get();
+        $plan = ProductsPlan::find($request->post('product_plan_id'));
         if ($plan) {
-            ProductsPlan::where('product_id', '=', $plan[0]->product_id)->get()->each(function ($item) {
+            ProductsPlan::where('product_id', '=', $plan->product_id)->get()->each(function ($item) {
                 $item->delete();
             });
             //delete();
