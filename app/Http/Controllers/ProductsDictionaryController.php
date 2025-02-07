@@ -23,7 +23,18 @@ class ProductsDictionaryController extends Controller
             $children = array_map(function ($el) {
                 return $el['category_id'];
             }, $children);
-            return ProductsDictionary::whereIn('category_id', $children)->get()->toJson();
+            $show = ProductsDictionary::whereIn('category_id', $children)->get()->toArray();
+            $hide = ProductsDictionary::whereNotIn('category_id', $children)->get()->toArray();
+            $ret = array_merge(
+                array_map(function ($el) { 
+                    $el['hide'] = false; 
+                    return $el; 
+                }, $show), 
+                array_map(function ($el) { 
+                    $el['hide'] = true; 
+                    return $el; 
+                }, $hide));
+            return json_encode($ret);
         } else {
             return ProductsDictionary::all()->toJson();
         }
