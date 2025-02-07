@@ -39,21 +39,6 @@ export default {
                 1: "Варка",
                 2: "Упаковка"
             },
-            packTimeOptions: [{
-                value: 30
-            }, {
-                value: 60
-            }, {
-                value: 90
-            }, {
-                value: 120
-            }, {
-                value: 180
-            }, {
-                value: 240
-            }, {
-                value: 300
-            }],
             packLinesOptions: ref([]),
             isScrolling: false,
             showPack: ref(false),
@@ -1063,15 +1048,14 @@ export default {
             </RadioGroup>
         </div>
         <br>
-            <Checkbox v-model:checked="showPack" v-if="packTimeOptions">
+            <Checkbox v-model:checked="showPack" v-if="packLinesOptions">
                 Сгененрировать план упаковки
             </Checkbox>
             <br>
             <div v-if="showPack">
                 <div>
                     <span>Упаковать через </span>
-                    <Select v-model:value="active.packTime" :options="packTimeOptions" placeholder="30">
-                    </Select>
+                    <InputNumber v-model:value="active.packTime" placeholder="30"/>
                     <span> мин.</span>
                     <CheckboxGroup v-model:value="active.packs" :options="packLinesOptions" style="flex-direction:column">
                     </CheckboxGroup>
