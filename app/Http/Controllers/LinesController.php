@@ -16,7 +16,20 @@ class LinesController extends Controller
         return Lines::all()->toJson();
     }
 
-    static public function add($title = null, $workers_count = null, $started_at = null, $ended_at = null, $color = null, $master = null, $engineer = null, $type_id = null, $prep_time = null, $after_time = null)
+    static public function add(
+        $title = null, 
+        $workers_count = null, 
+        $started_at = null,
+        $ended_at = null, 
+        $color = null, 
+        $master = null, 
+        $engineer = null, 
+        $type_id = null, 
+        $prep_time = null, 
+        $after_time = null,
+        $has_detector = null,
+        $detector_start = null,
+        $detector_end = null)
     {
         if (empty($title))
             return;
@@ -33,6 +46,9 @@ class LinesController extends Controller
         $line->type_id = $type_id;
         $line->prep_time = $prep_time;
         $line->after_time = $after_time;
+        $line->has_detector = $has_detector;
+        $line->detector_start = $detector_start;
+        $line->detector_end = $detector_end;
         $line->save();
         return $line->line_id;
     }
@@ -50,7 +66,10 @@ class LinesController extends Controller
                 $request->post('engineer'),
                 $request->post('type_id'),
                 $request->post('prep_time'),
-                $request->post('after_time')
+                $request->post('after_time'),
+                $request->post('has_detector'),
+                $request->post('detector_start'),
+                $request->post('detector_end')
             );
             if ($id) {
                 return json_encode([
@@ -86,6 +105,9 @@ class LinesController extends Controller
             $line->engineer = $request->post('engineer');
             $line->type_id = $request->post('type_id');
             $line->title = $request->post('title');
+            $line->has_detector = $request->post('has_detector');
+            $line->detector_start = $request->post('detector_start');
+            $line->detector_end = $request->post('detector_end');
             $line->save();
             // $line->shiftEnd($diff->i + $diff->h * 60);
 

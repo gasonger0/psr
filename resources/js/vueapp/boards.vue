@@ -1,5 +1,5 @@
 <script setup>
-import { BackTop, Card, FloatButton, Input, Switch, TimeRangePicker, FloatButtonGroup, Tooltip, Button, Popover, Select, notification, SelectOption, Popconfirm, Modal, TimePicker, RadioGroup, RadioButton } from 'ant-design-vue';
+import { BackTop, Card, FloatButton, Input, Switch, TimeRangePicker, FloatButtonGroup, Tooltip, Button, Popover, Select, notification, SelectOption, Popconfirm, Modal, TimePicker, RadioGroup, RadioButton, Checkbox } from 'ant-design-vue';
 import { ref, reactive } from 'vue';
 import axios from 'axios';
 import Loading from './loading.vue';
@@ -293,6 +293,10 @@ export default {
                                 el.started_at ? dayjs(el.started_at, 'hh:mm') : dayjs(),
                                 el.ended_at ? dayjs(el.ended_at, 'HH:mm') : dayjs()
                             ]);
+                            el.detector_time = ref([
+                                el.detector_start ? dayjs(el.detector_start, 'hh:mm') : dayjs(),
+                                el.detector_end ? dayjs(el.detector_end, 'HH:mm') : dayjs()
+                            ])
                             //el.time = ref(dayjs(el.started_at, 'hh:mm'));
                             let curTime = new Date();
 
@@ -367,6 +371,11 @@ export default {
             // } else {
             fd.append('started_at', record.time[0].format('HH:mm'));
             fd.append('ended_at', record.time[1].format('HH:mm'));
+            if (record.has_detector) {
+                fd.append('has_detector', record.has_detector);
+                f.dappend('detector_start', record.detector_time[0]);
+                f.dappend('detector_end', record.detector_time[1]);
+            }
             // }
             if (record.workers_count) {
                 fd.append('workers_count', record.workers_count);
@@ -399,6 +408,7 @@ export default {
                     let i = this.lines.find(el => el.line_id == record['line_id']);
                     i.started_at = dayjs(record.time[0].format('HH:mm'));
                     i.ended_at = dayjs(record.time[1].format('HH:mm'));
+
                     let arr = [];
                     if (i.master) {
                         let f = this.responsible.find(m => m.responsible_id == i.master);
@@ -706,6 +716,13 @@ export default {
                                 {{ i.title }}
                             </SelectOption>
                         </Select>
+                        <Checkbox v-model:checked="line.has_detector" style="margin-top:10px;">
+                            Установить металодетектор
+                        </Checkbox>
+                        <div v-if="line.has_detector">
+                            <TimeRangePicker v-model:value="line.detector_time" format="HH:mm" :showTime="true" :allowClear="true"
+                            type="time" :showDate="false" style="width:fit-content;" />
+                        </div>    
                     </div>
                 </template>
                 <template v-else>
