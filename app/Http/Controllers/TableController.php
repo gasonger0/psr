@@ -462,6 +462,7 @@ class TableController extends Controller
 
         foreach ($linesFiltered as $sheet => &$lines) {
             $array = $arr[$sheet];
+            $dateCount = 0;
             foreach ($lines as &$line) {
                 $linePlans = array_filter($plans, function ($el) use ($line) {
                     return $el['line_id'] == $line['line_id'];
@@ -612,6 +613,8 @@ class TableController extends Controller
                             $kg / $product['perfomance'] * $product['people_count'],
                             '<f>=T' . (count($array) + 1) . '/' . $product['perfomance'] . '*' . $product['people_count'] . '</f>'
                         ];
+
+                        $dateCount+= ($crates + $parts);
                     }
                 }
                 if ($line['after_time'] != 0) {
@@ -631,7 +634,12 @@ class TableController extends Controller
                 ];
             }
 
-            // датирование
+            if($sheet == 1) {
+                $dating = Lines::find(42)->toArray();
+                $array[] = ['', '<style bgcolor="#B7DEE8"><b>ОТВЕТСТВЕННЫЕ: ' . $dating['master'] . ',' . $dating['engineer'] . '</b></style>'];
+                $array[] = ['', '<style bgcolor="#D8E4BC"><b>ДАТИРОВАНИЕ</b></style>', '', ($dateCount / 8000), '', '', '', '', '', '', '', $dating['workers_count'], $dating['started_at'], $dating['ended_at']];
+
+            }
             $arr[$sheet] = $array;
         }
 

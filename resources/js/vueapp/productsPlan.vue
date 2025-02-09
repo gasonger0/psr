@@ -39,21 +39,6 @@ export default {
                 1: "Варка",
                 2: "Упаковка"
             },
-            packTimeOptions: [{
-                value: 30
-            }, {
-                value: 60
-            }, {
-                value: 90
-            }, {
-                value: 120
-            }, {
-                value: 180
-            }, {
-                value: 240
-            }, {
-                value: 300
-            }],
             packLinesOptions: ref([]),
             isScrolling: false,
             showPack: ref(false),
@@ -154,14 +139,14 @@ export default {
                                     prod.current_line_id = el.line_id;
                                 }
                                 if (el.type_id == 1) {
-                                    el.boils = eval(prod.kg2boil) * el.amount;
-                                }
-                                if (el.type_id == 1) {
+                                    el.boils = el.amount * eval(prod.kg2boil) * prod.amount2parts * prod.parts2kg;
                                     prod.amounts_fact[0] = el.amount;
                                 }
                                 if (el.type_id == 2) {
                                     prod.amounts_fact[1] = el.amount;
                                 }
+                            } else {
+                                console.log('No product in getProductPlan for:',el);
                             }
                             return el;
                         });
@@ -266,8 +251,8 @@ export default {
                             this.active.selection = ref([]);
                             this.active.line = this.lines.find(f => f.line_id == line_id);
                             let prod = this.products.find(i => i.product_id == ev.target.dataset.id);
-                            this.active.kg2boil = prod.kg2boil ? eval(prod.kg2boil) : 0;
-                            console.log('kg2boil', prod.kg2boil);
+                            this.active.kg2boil = prod.kg2boil ? (el.amount * eval(prod.kg2boil) * eval(prod.amount2parts) * eval(prod.parts2kg)) : 0;
+                            console.log('kg2boil', this.active.kg2boil);
                             this.active.slot = prod.slots[1].concat(prod.slots[2]).find(n => n.line_id == line_id);
                             if (typeof this.active.slot == 'array') {
                                 this.active.selection = this.active.slot;
@@ -645,7 +630,7 @@ export default {
                 } else {
                     newSlot = newSlot[0];
                 }
-                this.active.kg2boil = prod.kg2boil ? eval(prod.kg2boil) : 0;
+                this.active.kg2boil = prod.kg2boil ? (el.amount * eval(prod.kg2boil) * eval(prod.amount2parts) * eval(prod.parts2kg)) : 0;
                 this.active.slot = newSlot;
                 this.active.perfomance = newSlot.perfomance ? newSlot.perfomance : 1;
                 this.active.time = (this.active.amount * prod.amount2parts * prod.parts2kg / this.active.perfomance).toFixed(2);
@@ -765,7 +750,10 @@ export default {
                 this.active = plan;
                 this.active.line = this.lines.find(el => el.line_id == plan.line_id);
                 let prod = this.products.find(i => i.product_id == plan.product_id);
-                this.active.kg2boil = prod.kg2boil ? eval(prod.kg2boil) : 0;
+                if (!prod) {
+                    console.log('cant find product with ID' + plan.product_id, plan);
+                }
+                this.active.kg2boil = prod.kg2boil ? (el.amount * eval(prod.kg2boil) * eval(prod.amount2parts) * eval(prod.parts2kg)) : 0;
                 this.active.slot = prod.slots[1].concat(prod.slots[2]).find(n => n.line_id == plan.line_id && n.hardware == plan.hardware && n.product_slot_id == plan.slot_id);
                 if (!this.active.slot) {
                     this.active.slot = prod.slots[1].concat(prod.slots[2]).find(n => n.line_id == plan.line_id && n.product_slot_id == plan.slot_id);
@@ -869,7 +857,7 @@ export default {
             </Card>
             <section class="line_items products">
                 <Card draggable="true" class="draggable-card" v-for="(v, k) in products" :data-id="v.product_id"
-                    :key="v.product_id">
+                    :key="v.product_id" v-if="!v.hide">
                     <template #title>
                         <span style="white-space: break-spaces;">{{ v.title }}</span>
                     </template>
@@ -1045,21 +1033,6 @@ export default {
                     v.perfomance }}</RadioButton>
             </RadioGroup>
             <!-- <div>Выбранная производительность: {{ active.perfomance }}</div> -->
-            <br>
-            <Checkbox v-model:checked="showPack" v-if="packTimeOptions">
-                Сгененрировать план упаковки
-            </Checkbox>
-            <br>
-            <div v-if="showPack">
-                <div>
-                    <span>Упаковать через </span>
-                    <Select v-model:value="active.packTime" :options="packTimeOptions" placeholder="30">
-                    </Select>
-                    <span> мин.</span>
-                    <CheckboxGroup v-model:value="active.packs" :options="packLinesOptions" style="flex-direction:column">
-                    </CheckboxGroup>
-                </div>
-            </div>
         </div>
         <div v-if="active.slot.type_id == 2">
             <RadioGroup v-model:value="active.hardware" @change="handleHardware(null, true)">
@@ -1075,14 +1048,31 @@ export default {
             </RadioGroup>
         </div>
         <br>
+            <Checkbox v-model:checked="showPack" v-if="packLinesOptions">
+                Сгененрировать план упаковки
+            </Checkbox>
+            <br>
+            <div v-if="showPack">
+                <div>
+                    <span>Упаковать через </span>
+                    <InputNumber v-model:value="active.packTime" placeholder="30"/>
+                    <span> мин.</span>
+                    <CheckboxGroup v-model:value="active.packs" :options="packLinesOptions" style="flex-direction:column">
+                    </CheckboxGroup>
+                </div>
+            </div>
+        <br>
         <span>С учётом производительности линии для данного продукта, время изготовления составит
             <b>{{ active.time }}</b>ч.
+        </span>
+        <span v-if="active.time >= 24" style="color:#ff4d4f">
+            ВНИМАНИЕ! Данная продукция будет изготавливаться больше суток!
         </span>
         <br>
         <span>Работа по данной продукции закончится в <b>{{ active.ended_at.format('HH:mm') }}</b></span>
         <br>
         <span v-if="active.showError" style="color:#ff4d4f">
-            Внимание! Продукция будет изготавливаться дольше, чем работает линия!
+            ВНИМАНИЕ! Продукция будет изготавливаться дольше, чем работает линия!
             <br />
             Скорректируте объём изготовления продукции или время работы линии
         </span>
