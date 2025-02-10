@@ -251,7 +251,7 @@ export default {
                             this.active.selection = ref([]);
                             this.active.line = this.lines.find(f => f.line_id == line_id);
                             let prod = this.products.find(i => i.product_id == ev.target.dataset.id);
-                            this.active.kg2boil = prod.kg2boil ? (prod.amount * eval(prod.kg2boil) * eval(prod.amount2parts) * eval(prod.parts2kg)) : 0;
+                            this.active.kg2boil = prod.kg2boil ? (eval(prod.kg2boil) * eval(prod.amount2parts) * eval(prod.parts2kg)) : 0;
                             console.log('kg2boil', this.active.kg2boil);
                             this.active.slot = prod.slots[1].concat(prod.slots[2]).find(n => n.line_id == line_id);
                             if (typeof this.active.slot == 'array') {
@@ -630,7 +630,7 @@ export default {
                 } else {
                     newSlot = newSlot[0];
                 }
-                this.active.kg2boil = prod.kg2boil ? (prod.amount * eval(prod.kg2boil) * eval(prod.amount2parts) * eval(prod.parts2kg)) : 0;
+                this.active.kg2boil = prod.kg2boil ? (eval(prod.kg2boil) * eval(prod.amount2parts) * eval(prod.parts2kg)) : 0;
                 this.active.slot = newSlot;
                 this.active.perfomance = newSlot.perfomance ? newSlot.perfomance : 1;
                 this.active.time = (this.active.amount * prod.amount2parts * prod.parts2kg / this.active.perfomance).toFixed(2);
@@ -759,7 +759,7 @@ export default {
                 if (!prod) {
                     console.log('cant find product with ID' + plan.product_id, plan);
                 }
-                this.active.kg2boil = prod.kg2boil ? (prod.amount * eval(prod.kg2boil) * eval(prod.amount2parts) * eval(prod.parts2kg)) : 0;
+                this.active.kg2boil = prod.kg2boil ? (eval(prod.kg2boil) * eval(prod.amount2parts) * eval(prod.parts2kg)) : 0;
                 this.active.slot = prod.slots[1].concat(prod.slots[2]).find(n => n.line_id == plan.line_id && n.hardware == plan.hardware && n.product_slot_id == plan.slot_id);
                 if (!this.active.slot) {
                     this.active.slot = prod.slots[1].concat(prod.slots[2]).find(n => n.line_id == plan.line_id && n.product_slot_id == plan.slot_id);
