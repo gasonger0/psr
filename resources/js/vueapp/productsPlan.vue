@@ -862,7 +862,7 @@ export default {
                 </template>
             </Card>
             <section class="line_items products">
-                <Card draggable="true" class="draggable-card" v-for="(v, k) in products" :data-id="v.product_id" v-if="v && !v.hide"
+                <Card draggable="true" class="draggable-card" v-for="(v, k) in products" :data-id="v.product_id" v-show="v && !v.hide"
                     :key="v.product_id">
                     <template #title>
                         <span style="white-space: break-spaces;">{{ v.title }}</span>
