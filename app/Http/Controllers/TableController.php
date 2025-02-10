@@ -433,7 +433,7 @@ class TableController extends Controller
             $responsibles[$f['responsible_id']] = $f['title'];
         }
 
-        $lines = Lines::whereIn('line_id', $linesFromPlans)->get(['line_id', 'title', 'started_at', 'ended_at', 'master', 'engineer', 'workers_count', 'type_id', 'prep_time', 'after_time'])->toArray();
+        $lines = Lines::whereIn('line_id', $linesFromPlans)->get()->toArray();
         $products = ProductsDictionary::whereIn('product_id', $productsFromLines)->get(['product_id', 'title', 'amount2parts', 'parts2kg', 'kg2boil', 'cars', 'cars2plates'])->toArray();
         $slots = ProductsSlots::whereIn('product_slot_id', $slotsFromProducts)->get(['product_slot_id', 'people_count', 'perfomance', 'product_id'])->toArray();
 
@@ -524,6 +524,9 @@ class TableController extends Controller
                     $line['engineer'] = $line['engineer'][0] . '.' . mb_substr($line['engineer'][1], 0, 1) . '.';
                 }
 
+                if ($line['has_detector']) {
+                    $array[] = ['', '<style bgcolor="#fc8c03"><b><i>МЕТАЛОДЕТЕКТОР</i></b></style>', '', '', '', '', '', '', '', '', '', '', $line['detector_start'], $line['detector_end']];
+                }
                 $array[] = ['', '<style bgcolor="#D8E4BC"><b>' . $line['title'] . '</b></style>', '', '', '', '', '', '', '', '', '', $line['workers_count'], $line['started_at'], Carbon::parse($line['ended_at'])->addMinutes($line['after_time'])->format('H:i:s')];
 
                 $array[] = ['', '<style bgcolor="#B7DEE8"><b>ОТВЕТСТВЕННЫЕ: ' . $line['master'] . ',' . $line['engineer'] . '</b></style>'];
