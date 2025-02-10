@@ -523,12 +523,10 @@ class TableController extends Controller
                 if (is_array($line['engineer'])) {
                     $line['engineer'] = $line['engineer'][0] . '.' . mb_substr($line['engineer'][1], 0, 1) . '.';
                 }
-
+                $array[] = ['', '<style bgcolor="#D8E4BC"><b>' . $line['title'] . '</b></style>', '', '', '', '', '', '', '', '', '', $line['workers_count'], $line['started_at'], Carbon::parse($line['ended_at'])->addMinutes($line['after_time'])->format('H:i:s')];
                 if ($line['has_detector']) {
                     $array[] = ['', '<style bgcolor="#fc8c03"><b><i>МЕТАЛОДЕТЕКТОР</i></b></style>', '', '', '', '', '', '', '', '', '', '', $line['detector_start'], $line['detector_end']];
                 }
-                $array[] = ['', '<style bgcolor="#D8E4BC"><b>' . $line['title'] . '</b></style>', '', '', '', '', '', '', '', '', '', $line['workers_count'], $line['started_at'], Carbon::parse($line['ended_at'])->addMinutes($line['after_time'])->format('H:i:s')];
-
                 $array[] = ['', '<style bgcolor="#B7DEE8"><b>ОТВЕТСТВЕННЫЕ: ' . $line['master'] . ',' . $line['engineer'] . '</b></style>'];
                 if ($line['prep_time'] != 0) {
                     $array[] = ['', '<style bgcolor="#FFC263"><b><i>Подготовительное время</i></b></style>', '', '', '', '', '', '', '', '', '', '', $line['started_at'], Carbon::parse($line['started_at'])->addMinutes($line['prep_time'])->format('H:i:s')];
