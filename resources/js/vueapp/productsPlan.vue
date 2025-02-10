@@ -695,6 +695,12 @@ export default {
                 fd.append('after_time', record.after_time);
             }
 
+            if (record.has_detector) {
+                fd.append('has_detector', record.has_detector);
+                fd.append('detector_start', record.detector_time[0]);
+                fd.append('detector_end', record.detector_time[1]);
+            }
+
             axios.post('/api/save_line', fd)
                 .then((response) => {
                     this.$emit('notify', 'success', 'Сохранено');
@@ -947,6 +953,13 @@ export default {
                                 {{ i.title }}
                             </SelectOption>
                         </Select>
+                        <Checkbox v-model:checked="line.has_detector" style="margin-top:10px;">
+                            Установить металодетектор
+                        </Checkbox>
+                        <div v-if="line.has_detector">
+                            <TimeRangePicker v-model:value="line.detector_time" format="HH:mm" :showTime="true" :allowClear="true"
+                            type="time" :showDate="false" style="width:fit-content;" />
+                        </div>
                     </div>
                 </template>
                 <template v-else>

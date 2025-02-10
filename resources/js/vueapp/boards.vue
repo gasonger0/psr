@@ -373,8 +373,8 @@ export default {
             fd.append('ended_at', record.time[1].format('HH:mm'));
             if (record.has_detector) {
                 fd.append('has_detector', record.has_detector);
-                f.dappend('detector_start', record.detector_time[0]);
-                f.dappend('detector_end', record.detector_time[1]);
+                fd.dappend('detector_start', record.detector_time[0].format('HH:mm'));
+                fd.dappend('detector_end', record.detector_time[1].format('HH:mm'));
             }
             // }
             if (record.workers_count) {
