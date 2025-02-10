@@ -21,19 +21,19 @@ export default {
     methods: {
         close(send) {
             if (send) {
-                console.log(this.workers);
+                // console.log(this.workers);
                 this.workers = this.workers.filter(el => el.check).map(el => {
                     return {
                         worker_id: el.worker_id,
                         ktu: el.ktu
                     }
                 });
-                console.log(this.workers);
+                // console.log(this.workers);
                 axios.post('/api/get_xlsx', this.workers)
                     .then(response => {
                         if (response.data) {
                             let url = response.data;
-                            console.log(response);
+                            // console.log(response);
                             let a = document.createElement('a');
                             if (typeof a.download === undefined) {
                                 window.location = url;
@@ -46,7 +46,7 @@ export default {
                         }
                     })
                     .catch((err) => {
-                        console.log(err);
+                        // console.log(err);
                         this.$emit('notify', 'error', "Что-то пошло не так: " + err.code);
                     });
                 this.$emit('close-modal');
@@ -63,7 +63,7 @@ export default {
                 return el;
             })
         }
-        console.log(this.workers);
+        // console.log(this.workers);
     }
 }
 </script>

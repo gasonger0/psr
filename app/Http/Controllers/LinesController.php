@@ -46,7 +46,7 @@ class LinesController extends Controller
         $line->type_id = $type_id;
         $line->prep_time = $prep_time;
         $line->after_time = $after_time;
-        $line->has_detector = $has_detector;
+        $line->has_detector = $has_detector != null ? $has_detector : false;
         $line->detector_start = $detector_start;
         $line->detector_end = $detector_end;
         $line->save();
@@ -105,7 +105,7 @@ class LinesController extends Controller
             $line->engineer = $request->post('engineer');
             $line->type_id = $request->post('type_id');
             $line->title = $request->post('title');
-            $line->has_detector = $request->post('has_detector');
+            $line->has_detector = $request->post('has_detector') !== null ? $request->post('has_detector') : false;
             $line->detector_start = $request->post('detector_start');
             $line->detector_end = $request->post('detector_end');
             $line->save();

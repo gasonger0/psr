@@ -179,7 +179,7 @@ export default {
             const card = currentElement.closest(".draggable-card");
             let currentElementCoord = null;
             if (card) {
-                console.log(card);
+                // console.log(card);
                 currentElementCoord = card.getBoundingClientRect();
             } else {
                 currentElementCoord = currentElement.getBoundingClientRect();
@@ -231,7 +231,7 @@ export default {
                                 let ids = [8, 9, 10, 11, 12];
                                 let match = product.slots[1].filter(el =>
                                     ids.find(f => f == el.line_id));
-                                console.log(match);
+                                // console.log(match);
                                 for (let i in match) {
                                     this.document.querySelector('.line[data-id="' + match[i].line_id + '"]').classList.remove('hidden-hard');
                                 }
@@ -251,7 +251,7 @@ export default {
                             this.active.selection = ref([]);
                             this.active.line = this.lines.find(f => f.line_id == line_id);
                             let prod = this.products.find(i => i.product_id == ev.target.dataset.id);
-                            this.active.kg2boil = prod.kg2boil ? (el.amount * eval(prod.kg2boil) * eval(prod.amount2parts) * eval(prod.parts2kg)) : 0;
+                            this.active.kg2boil = prod.kg2boil ? (prod.amount * eval(prod.kg2boil) * eval(prod.amount2parts) * eval(prod.parts2kg)) : 0;
                             console.log('kg2boil', this.active.kg2boil);
                             this.active.slot = prod.slots[1].concat(prod.slots[2]).find(n => n.line_id == line_id);
                             if (typeof this.active.slot == 'array') {
@@ -260,7 +260,7 @@ export default {
                                 this.selRadio = this.active.slot.product_slot_id
                             }
                             this.active.hardware = this.active.slot.hardware;
-                            console.log(prod.slots[1]);
+                            // console.log(prod.slots[1]);
                             this.active.packs = ref([]);
                             this.packLinesOptions = prod.slots[2].map(el => {
                                 return {
@@ -268,8 +268,8 @@ export default {
                                     value: el.product_slot_id 
                                 }
                             });
-                            console.log(this.packLinesOptions);
-                            console.log(prod.slots[1]);
+                            // console.log(this.packLinesOptions);
+                            // console.log(prod.slots[1]);
                             this.active.perfomance = (this.active.slot.perfomance ? this.active.slot.perfomance : 1);
                             this.active.amount = prod.order_amount;
                             this.active.order_amount = ref(prod.order_amount);
@@ -294,10 +294,10 @@ export default {
                             } else if (this.active.slot.type_id == 2) {
                                 this.active.ended_at = this.active.ended_at.add(15, 'minute');
                             } else {
-                                console.log(1, this.active.slot.type_id)
+                                // console.log(1, this.active.slot.type_id)
                             }
                             let endTime = this.active.line.time[1];
-                            console.log(endTime);
+                            // console.log(endTime);
                             endTime = endTime.add(this.active.line.prep_time, 'minute');
                             this.active.showError = (endTime.format('HH:mm') < this.active.ended_at.format('HH:mm'));
                             this.confirmPlanOpen = true;
@@ -310,15 +310,15 @@ export default {
 
                             let changeIds = children.filter(el => el.dataset.order >= Math.min(sp[0], sp[1]) && el.dataset.order <= Math.max(sp[0], sp[1]));
 
-                            console.log(changeIds);
+                            // console.log(changeIds);
 
                             let oldId = changeIds.find(el => el.dataset.order == sp[1]);
                             let newId = children[sp[1]];
 
 
-                            console.log(oldId);
-                            console.log(newId);
-                            console.log(this.plans);
+                            // console.log(oldId);
+                            // console.log(newId);
+                            // console.log(this.plans);
                             let oldd = this.plans.find(el => el.plan_product_id == oldId.dataset.id);
                             let neww = this.plans.find(el => el.plan_product_id == newId.dataset.id);
 
@@ -326,11 +326,11 @@ export default {
 
                             let a = dayjs(oldd.started_at, 'hh:mm');
                             let b = dayjs(neww.started_at, 'hh:mm');
-                            console.log(a, b);
+                            // console.log(a, b);
 
                             let dateDiff = a.diff(b, 'minutes');
-                            console.log('data:');
-                            console.log(dateDiff);
+                            // console.log('data:');
+                            // console.log(dateDiff);
                             this.showLoader = true;
                             changeIds.forEach((el, k) => {
                                 if (el.dataset.id == ev.target.dataset.id) {
@@ -388,7 +388,7 @@ export default {
                 });
 
                 line.addEventListener('dragover', (ev) => {
-                    console.log('dragover');
+                    // console.log('dragover');
                     ev.preventDefault();
                     const activeElement = document.querySelector('.selected');
                     const currentElement = ev.target;
@@ -507,7 +507,7 @@ export default {
             this.isNewPlan = ref(false);
         },
         deletePlan(id) {
-            console.log('ID: ' + id);
+            // console.log('ID: ' + id);
             axios.post('/api/delete_product_plan',
                 {
                     product_plan_id: id
@@ -571,7 +571,7 @@ export default {
                 });
         },
         importPlan(file) {
-            console.log(file);
+            // console.log(file);
             let fd = new FormData();
             fd.append('file', file);
 
@@ -579,14 +579,14 @@ export default {
 
             axios.post('/api/load_plan_json', fd).then((response) => {
                 if (response) {
-                    console.log(response);
+                    // console.log(response);
                     this.$emit('notify', 'success', "Файл успешно загружен. Обновите страницу, чтобы оперировать актуальными данными");
                 }
             }).catch((err) => {
-                console.log(err);
+                // console.log(err);
                 this.$emit('notify', 'warning', err);
             })
-            console.log(file);
+            // console.log(file);
             return false;
         },
         async changeCat() {
@@ -612,15 +612,15 @@ export default {
             let newSlot = (isPack ? prod.slots[2] : prod.slots[1]).filter(function (n) {
                 return n.line_id == line_id && n.hardware == hw;
             });
-            console.log(prod.slots[1]);
-            console.log(prod);
+            // console.log(prod.slots[1]);
+            // console.log(prod);
             if (!newSlot || newSlot.length == 0) {
                 newSlot = (isPack ? prod.slots[2] : prod.slots[1]).filter(function (n) {
                     return n.line_id == line_id && n.hardware == null;
                 });
             }
             if (newSlot) {
-                console.log('newSlot:', newSlot);
+                // console.log('newSlot:', newSlot);
                 if (newSlot.length > 1 && !slot_id) {
                     this.active.selection = newSlot;
                     newSlot = newSlot[0];
@@ -630,12 +630,12 @@ export default {
                 } else {
                     newSlot = newSlot[0];
                 }
-                this.active.kg2boil = prod.kg2boil ? (el.amount * eval(prod.kg2boil) * eval(prod.amount2parts) * eval(prod.parts2kg)) : 0;
+                this.active.kg2boil = prod.kg2boil ? (prod.amount * eval(prod.kg2boil) * eval(prod.amount2parts) * eval(prod.parts2kg)) : 0;
                 this.active.slot = newSlot;
                 this.active.perfomance = newSlot.perfomance ? newSlot.perfomance : 1;
                 this.active.time = (this.active.amount * prod.amount2parts * prod.parts2kg / this.active.perfomance).toFixed(2);
                 this.active.ended_at = ref(this.active.started_at.add(this.active.time, 'hour'));
-                console.log(this.active.selection);
+                // console.log(this.active.selection);
                 if (this.active.slot.type_id == 1) {
                     this.active.ended_at = this.active.ended_at.add(10, 'minute');
                 } else if (this.active.slot.type_id == 2) {
@@ -658,7 +658,7 @@ export default {
                             behavior: "smooth"
                         });
                         // cont.scrollLeft += (direction ? 280 : -280);
-                        console.log('scroll');
+                        // console.log('scroll');
                     }, 300);
                 }
             } else if (start == 2) {
@@ -759,7 +759,7 @@ export default {
                 if (!prod) {
                     console.log('cant find product with ID' + plan.product_id, plan);
                 }
-                this.active.kg2boil = prod.kg2boil ? (el.amount * eval(prod.kg2boil) * eval(prod.amount2parts) * eval(prod.parts2kg)) : 0;
+                this.active.kg2boil = prod.kg2boil ? (prod.amount * eval(prod.kg2boil) * eval(prod.amount2parts) * eval(prod.parts2kg)) : 0;
                 this.active.slot = prod.slots[1].concat(prod.slots[2]).find(n => n.line_id == plan.line_id && n.hardware == plan.hardware && n.product_slot_id == plan.slot_id);
                 if (!this.active.slot) {
                     this.active.slot = prod.slots[1].concat(prod.slots[2]).find(n => n.line_id == plan.line_id && n.product_slot_id == plan.slot_id);
@@ -782,7 +782,7 @@ export default {
                 } else if (this.active.type_id == 2) {
                     this.active.ended_at = this.active.ended_at.add(15, 'minute');
                 } else {
-                    console.log(1, this.active.type_id)
+                    // console.log(1, this.active.type_id)
                 }
                 this.active.showError = (this.active.line.ended_at < this.active.ended_at.format('HH:mm'));
 
@@ -793,8 +793,8 @@ export default {
                     }
                 });
                 this.active.packs = this.plans.filter(el => this.packLinesOptions.find(f => f.value == el.slot_id)).map(el => el.slot_id);
-                console.log(this.active.packs);
-                console.log(this.packLinesOptions);
+                // console.log(this.active.packs);
+                // console.log(this.packLinesOptions);
                 this.confirmPlanOpen = true;
             }
         }
@@ -814,7 +814,7 @@ export default {
             }
             return accumulator;
         }, 0);
-        console.log(this.plans.boils);
+        // console.log(this.plans.boils);
         this.$emit('getBoils', sum.toFixed(2));
 
         this.showLoader = false;

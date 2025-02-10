@@ -99,7 +99,7 @@ export default {
                         }
                     })
                     .catch((err) => {
-                        console.log(err);
+                        // console.log(err);
                         this.$emit('notify', 'Что-то пошло не так');
                         reject();
                     });
@@ -114,13 +114,13 @@ export default {
                 'category_id=' + key[0])
                 .then((response) => {
                     if (response.data) {
-                        console.log(response.data);
+                        // console.log(response.data);
                         this.products = response.data;
                         this.loading = false;
                     }
                 })
                 .catch((err) => {
-                    console.log(err);
+                    // console.log(err);
                     this.$emit('notify', 'Что-то пошло не так');
                 });
         },
@@ -144,7 +144,7 @@ export default {
                         }
                     })
                     .catch((err) => {
-                        console.log(err);
+                        // console.log(err);
                         this.$emit('notify', 'error', 'Что-то пошло не так: ' + err.code);
                     });
             }, 500);

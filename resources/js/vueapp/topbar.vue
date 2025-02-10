@@ -23,7 +23,7 @@ export default {
     },
     methods: {
         processXlsx(file) {
-            console.log(file);
+            // console.log(file);
             let fd = new FormData();
             fd.append('file', file);
 
@@ -31,14 +31,14 @@ export default {
 
             axios.post('/api/load_xlsx', fd).then((response) => {
                 if (response) {
-                    console.log(response);
+                    // console.log(response);
                     this.$emit('notify', 'success', "Файл успешно загружен. Обновите страницу, чтобы оперировать актуальными данными");
                 }
             }).catch((err) => {
-                console.log(err);
+                // console.log(err);
                 this.$emit('notify', 'warning', err);
             })
-            console.log(file);
+            // console.log(file);
             return false;
         },
         processOrder(file) {
@@ -48,11 +48,11 @@ export default {
 
             axios.post('/api/load_order', fd).then((response) => {
                 if (response) {
-                    console.log(response);
+                    // console.log(response);
                     this.$emit('notify', 'success', "Файл успешно загружен. Обновите страницу, чтобы оперировать актуальными данными");
                 }
             }).catch((err) => {
-                console.log(err);
+                // console.log(err);
                 this.$emit('notify', 'warning', err);
             });
             return false;
@@ -64,11 +64,11 @@ export default {
 
             axios.post('/api/load_defaults', fd).then((response) => {
                 if (response) {
-                    console.log(response);
+                    // console.log(response);
                     this.$emit('notify', 'success', "Файл успешно загружен. Обновите страницу, чтобы оперировать актуальными данными");
                 }
             }).catch((err) => {
-                console.log(err);
+                // console.log(err);
                 this.$emit('notify', 'warning', err);
             });
             return false;
@@ -80,17 +80,17 @@ export default {
 
             axios.post('/api/load_formulas', fd).then((response) => {
                 if (response) {
-                    console.log(response);
+                    // console.log(response);
                     this.$emit('notify', 'success', "Файл успешно загружен. Обновите страницу, чтобы оперировать актуальными данными");
                 }
             }).catch((err) => {
-                console.log(err);
+                // console.log(err);
                 this.$emit('notify', 'warning', err);
             });
             return false;
         },
         changeBoard(prod) {
-            console.log(prod);
+            // console.log(prod);
             this.$emit('change-board');
         }
     },

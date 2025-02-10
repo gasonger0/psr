@@ -84,7 +84,7 @@ export default {
             }
         },
         getData(ev) {
-            console.log(ev);
+            // console.log(ev);
             this.data = ev;
             // this.boardKey +=1;
         }

@@ -51,7 +51,7 @@ export default {
                     });
                 }
             });
-            console.log(this.workers);
+            // console.log(this.workers);
         },
         processColumns() {
             this.lines.forEach(el => {
@@ -72,7 +72,7 @@ export default {
             });
         },
         addUpdate(rec) {
-            console.log(rec);
+            // console.log(rec);
             let item = null;
             if (rec.slot_id) {
                 let i = this.checkTime(rec.slot_id, rec.time[0], rec.time[1]);
@@ -83,7 +83,7 @@ export default {
             if(rec.new) {
                 // New slot
                 item = this.updSlots.find(el => el.worker_id == rec.worker_id && el.new == true && el.line_id == rec.line_id);
-                console.log(item);
+                // console.log(item);
             } else if (rec.slot_id && !rec.worker_id) {
                 // Edit slot
                 item = this.updSlots.find(el => el.slot_id == rec.slot_id);
@@ -92,14 +92,14 @@ export default {
                 item = this.updWorkers.find(el => el.worker_id == rec.worker_id);
             }
             if (item) {
-                console.log(rec);
+                // console.log(rec);
                 item.started_at = rec.time[0].format('HH:mm');
                 item.ended_at = rec.time[1].format('HH:mm');
             } else {
-                console.log(item);
-                console.log(rec);
+                // console.log(item);
+                // console.log(rec);
                 if (rec.new) {
-                    console.log('new');
+                    // console.log('new');
                 } else if (rec.slot_id) {
                     this.updSlots.push({
                         slot_id: rec.slot_id ? rec.slot_id : -1,
@@ -174,7 +174,7 @@ export default {
                     ended_at: id[line_id].time[1]
                 });
 
-                console.log(this.updSlots);
+                // console.log(this.updSlots);
             }
         }
     },

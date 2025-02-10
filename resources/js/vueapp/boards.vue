@@ -117,7 +117,7 @@ export default {
                 })
 
                 this.isLoading = false;
-                console.log('data');
+                // console.log('data');
                 resolve(true);
             });
         },
@@ -134,8 +134,8 @@ export default {
                 });
         },
         changeWorker(newWorker, oldWorker) {
-            console.log(newWorker);
-            console.log(oldWorker);
+            // console.log(newWorker);
+            // console.log(oldWorker);
             if (this.workers.find(el => el.worker_id == newWorker.key).current_slot) {
                 const notify = notification["warning"]({
                     description: 'Этот работник уже занят на другой линии'
@@ -201,7 +201,7 @@ export default {
 
         },
         updateData(ev) {
-            console.log(ev);
+            // console.log(ev);
             this.slots = ev.slots;
             this.workers = ev.workers;
         },
@@ -445,7 +445,7 @@ export default {
             // Создать новый слот
             let fd = new FormData();
             let worker = this.workers.find(el => el.worker_id == worker_id);
-            console.log(worker);
+            // console.log(worker);
             fd.append('new_line_id', line_id);
             fd.append('worker_id', worker_id);
             fd.append('old_line_id', worker.current_line_id);
@@ -462,7 +462,7 @@ export default {
                     this.initFunc();
                 })
                 .catch((err) => {
-                    console.log(err);
+                    // console.log(err);
                     this.$emit('notify', 'error', "Что-то пошло не так: " + err.code);
                 });
         },
@@ -484,7 +484,7 @@ export default {
                             el.classList.toggle('hidden');
                         })
                         this.active = ev.target;
-                        console.log(ev.target)
+                        // console.log(ev.target)
                     })
 
                     line.addEventListener(`dragend`, (ev) => {
@@ -555,7 +555,7 @@ export default {
                             behavior: "smooth"
                         });
                         // cont.scrollLeft += (direction ? 280 : -280);
-                        console.log('scroll');
+                        // console.log('scroll');
                     }, 300);
                 }
             } else if (start == 2) {
