@@ -1,7 +1,9 @@
 <script setup>
 import { ref } from 'vue';
-import { Upload, Button, Switch, Dropdown, Menu, MenuItem } from 'ant-design-vue';
+import { Upload, Button, Switch, Dropdown, Menu, MenuItem, DatePicker } from 'ant-design-vue';
 import { BarChartOutlined, UploadOutlined, EditOutlined, TeamOutlined, AppstoreOutlined, DatabaseOutlined, FileExcelOutlined, TableOutlined } from '@ant-design/icons-vue';
+import dayjs from 'dayjs';
+import locale from 'ant-design-vue/es/date-picker/locale/ru_RU';
 import axios from 'axios';
 </script>
 <script>
@@ -17,7 +19,7 @@ export default {
     data() {
         return {
             uploadedFile: ref(null),
-            date: (new Date()).toLocaleDateString(),
+            date: dayjs(new Date(sessionStorage.getItem('date'))),
             boardMode: this.$props.boardMode
         }
     },
@@ -92,6 +94,16 @@ export default {
         changeBoard(prod) {
             // console.log(prod);
             this.$emit('change-board');
+        },
+        updateCookie(obj, datestring) {
+            axios.post('/api/update_cookie', {
+                date: datestring
+            }).then(response => {
+                if (response) {
+                    sessionStorage.setItem('date', obj.$d.toISOString().split('T')[0]);
+                    window.location.reload();      
+                }
+            })
         }
     },
     mounted() {
@@ -189,7 +201,8 @@ export default {
             </div>
         </div>
         <div>
-            <span style="height:fit-content;font-size: 18px;font-weight: 600;">{{ date }}</span>
+            <DatePicker v-model:value="date" format="DD.MM.YYYY" mode="date" @change="updateCookie" :locale="locale" />
+            <!-- <span style="height:fit-content;font-size: 18px;font-weight: 600;">{{ date }}</span> -->
             <img src="./logo.png" alt="" style="height:32px;">
         </div>
     </div>

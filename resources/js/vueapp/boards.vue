@@ -366,15 +366,16 @@ export default {
             let fd = new FormData();
             fd.append('line_id', record['line_id']);
 
-            // if (record['line_id'] != -1) {
-            //     fd.append('started_at', record.time.format('HH:mm'));
-            // } else {
+            if (record.extra_title) {
+                fd.append('extra_title', record['extra_title']);
+            }
+
             fd.append('started_at', record.time[0].format('HH:mm'));
             fd.append('ended_at', record.time[1].format('HH:mm'));
             if (record.has_detector) {
                 fd.append('has_detector', record.has_detector);
-                fd.dappend('detector_start', record.detector_time[0].format('HH:mm'));
-                fd.dappend('detector_end', record.detector_time[1].format('HH:mm'));
+                fd.append('detector_start', record.detector_time[0].format('HH:mm'));
+                fd.append('detector_end', record.detector_time[1].format('HH:mm'));
             }
             // }
             if (record.workers_count) {
@@ -635,6 +636,8 @@ export default {
                         <b>{{ line.title }}</b>
                     </div>
                     <Input v-show="line.edit" :data-id="line.line_id" class="line_title" v-model:value="line.title"
+                        style="display: block;color:black;" />
+                    <Input v-show="line.edit" class="line_title" v-model:value="line.extra_title"
                         style="display: block;color:black;" />
 
                     <div style="display: flex;justify-content: space-between;align-items: center;">

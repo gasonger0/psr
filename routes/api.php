@@ -13,6 +13,7 @@ use App\Http\Controllers\TableController;
 use App\Http\Controllers\WorkersController;
 use App\Models\ProductsPlan;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Http\Request;
 
 /*******
  * LINES
@@ -100,3 +101,14 @@ Route::get('/download_json_plan',   [TableController::class,                'dow
 Route::get('/get_logs',             [LogsController::class,                 'getAll'    ]);
 Route::post('/add_log',             [LogsController::class,                 'add'       ]);
 Route::get('/load_logs',            [LogsController::class,                 'logXlsx'   ]);
+
+
+/********
+ * COOKIE
+ *******/
+Route::post('/update_cookie', function(Request $request) {
+    if ($request) {
+        cookie('date', $request->post('date'));
+        return true;
+    }
+});

@@ -5,10 +5,10 @@ use Carbon\Carbon;
 
 use Illuminate\Database\Eloquent\Model;
 
-class Lines extends Model
+class LinesExtra extends Model
 {
-    protected $table = 'lines';
-    protected $primaryKey = 'line_id';
+    protected $table = 'line_extra';
+    protected $primaryKey = 'line_extra_id';
     public $incrementing = true;
     // protected $dateFormat = 'U';
     public $fillable = ['started_at', 'ended_at'];
@@ -21,5 +21,5 @@ class Lines extends Model
     public function setUpdatedAtAttribute($value)
     {
         $this->attributes['updated_at'] = Carbon::parse($value)->format('Y-m-d H:i:s');
-    }
+    } 
 }

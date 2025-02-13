@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Lines;
+use App\Models\LinesExtra;
 use App\Models\ProductsPlan;
 use App\Models\Slots;
+use Cookie;
 use DB;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
@@ -12,65 +14,40 @@ use Carbon\Carbon;
 class LinesController extends Controller
 {
     static public function getList()
-    {
-        return Lines::all()->toJson();
+    {   
+        $result = [];
+        Lines::all()->each(function ($line) use(&$result)  {
+            $line_extra = LinesExtraController::get($line->line_id);
+            if (!$line_extra) {
+                $line_extra = LinesExtraController::add($line->line_id, self::getDefaults($line->line_id));
+            }
+            $result[] = array_merge($line->toArray(), $line_extra->toArray());
+        });
+            
+        return json_encode($result);
     }
 
-    static public function add(
-        $title = null, 
-        $workers_count = null, 
-        $started_at = null,
-        $ended_at = null, 
-        $color = null, 
-        $master = null, 
-        $engineer = null, 
-        $type_id = null, 
-        $prep_time = null, 
-        $after_time = null,
-        $has_detector = null,
-        $detector_start = null,
-        $detector_end = null)
+    static public function add($array)
     {
-        if (empty($title))
+        if (empty($array['title']))
             return;
 
         $line = new Lines;
+        $line->title = $array['title'];
+        $line->color = $array['color'];
 
-        $line->title = $title;
-        $line->workers_count = $workers_count;
-        $line->started_at = $started_at;
-        $line->ended_at = $ended_at;
-        $line->color = $color;
-        $line->master = $master;
-        $line->engineer = $engineer;
-        $line->type_id = $type_id;
-        $line->prep_time = $prep_time;
-        $line->after_time = $after_time;
-        $line->has_detector = $has_detector != null ? $has_detector : false;
-        $line->detector_start = $detector_start;
-        $line->detector_end = $detector_end;
+        $line->type_id = $array['type_id'];
         $line->save();
+        LinesExtraController::add($line->line_id, 
+            array_merge($array, self::getDefaults($line->line_id))
+        );
         return $line->line_id;
     }
 
     static public function save(Request $request)
     {
         if ($request->post('line_id') == -1) {
-            $id = self::add(
-                $request->post('title'),
-                $request->post('workers_count'),
-                $request->post('started_at'),
-                $request->post('ended_at'),
-                $request->post('color'),
-                $request->post('master'),
-                $request->post('engineer'),
-                $request->post('type_id'),
-                $request->post('prep_time'),
-                $request->post('after_time'),
-                $request->post('has_detector'),
-                $request->post('detector_start'),
-                $request->post('detector_end')
-            );
+            $id = self::add($request->post());
             if ($id) {
                 return json_encode([
                     "success" => true,
@@ -82,48 +59,27 @@ class LinesController extends Controller
                 ]);
             }
         }
-
         $line = Lines::find($request->post('line_id'));
-
         if ($line) {
-            // $time = new \DateTime($oldStart);
-            // $tmie2 = new \DateTime($request->post('started_at'));
-            // $diff = $time->diff($tmie2);
-            $start = $line->started_at;
-            $end = $line->ended_at;
-            $line->workers_count = $request->post('workers_count');
-            $line->prep_time = $request->post('prep_time');
-            $line->after_time = $request->post('after_time');
-            if ($request->post('started_at')) {
-                $line->started_at = strval($request->post('started_at'));
-                $line->ended_at = strval($request->post('ended_at'));
-                $line->cancel_reason = $request->post('cancel_reason');
-            }
-            // $line->ended_at = strval($request->post('ended_at'));
+            $d = LinesExtraController::update($line->line_id, $request->post());
+            $start = $d['start'];
+            $end = $d['end'];
             $line->color = $request->post('color');
-            $line->master = $request->post('master');
-            $line->engineer = $request->post('engineer');
             $line->type_id = $request->post('type_id');
             $line->title = $request->post('title');
-            $line->has_detector = $request->post('has_detector') !== null ? $request->post('has_detector') : false;
-            $line->detector_start = $request->post('detector_start');
-            $line->detector_end = $request->post('detector_end');
             $line->save();
-            // $line->shiftEnd($diff->i + $diff->h * 60);
 
             if ($request->post('started_at')) {
-                // $total = $diff->i + $diff->h * 60;
                 SlotsController::afterLineUpdate(
                     $request->post('line_id'),
                     $request->post('started_at'),
-                    $line->started_at,
+                    $start,
                     $request->post('ended_at'),
                     $end
                 );
-                // ProductsController::afterLineUpdate($request->post('line_id'), $request->post('started_at'), $start, $request->post('ended_at'), $end);
                 ProductsPlanController::afterLineUpdate($request->post('line_id'), $request->post('started_at'), $start, $request->post('ended_at'), $end);
                 if ($line->cancel_reason != null) {
-                    $d = Slots::where('line_id', '=', $line->line_id)->where('started_at', '<=', $line->started_at)->get('worker_id')->toArray();
+                    $d = Slots::where('line_id', '=', $line->line_id)->where('started_at', '<=', $start)->get('worker_id')->toArray();
                     $d = array_map(function ($a) {
                         return $a['worker_id'];
                     }, $d);
@@ -131,7 +87,7 @@ class LinesController extends Controller
                         'line_id' => $line->line_id,
                         'action' => 'Перенос времени работы линии',
                         'extra' => 'Причина: ' . $request->post('cancel_reason_extra') . PHP_EOL . 'Старое время: ' . $start,
-                        'people_count' => $line->workers_count,
+                        'people_count' => $request->post('workers_count'),
                         'type' => 3,
                         'workers' => implode(',', $d),
                     ]);
@@ -144,30 +100,14 @@ class LinesController extends Controller
         }
     }
 
-    static public function down(Request $request)
-    {
-        $line = Lines::find($request->post('id'));
-        $downFrom = $line->down_from;
-        if ($downFrom != null) {
-            $diff = (new \DateTime($downFrom))->diff(new \DateTime());
-            $line->down_time = $line->down_time + $diff->h * 60 + $diff->i;
-            $line->down_from = null;
-            $line->save();
-            SlotsController::down($line->line_id, $downFrom);
-        } else {
-            $line->down_from = now('Europe/Moscow');
-            $line->save();
-        }
-    }
-
     static public function clear()
     {
         Lines::truncate();
     }
 
-    public static function getDefaults()
+    public static function getDefaults($line_id = false)
     {
-        return [
+        $defs =  [
             [
                 'line_id' => 44,
                 'title' => 'ВАРКА СУФЛЕ',
@@ -449,11 +389,21 @@ class LinesController extends Controller
                 'end' => 10
             ]
         ];
+        if ($line_id) {
+            $index = array_search($line_id, array_column($defs, 'line_id'));
+            var_dump($index, $line_id);
+            if ($index !== false) {
+                return $defs[$index];
+            } else {
+                return false;
+            }
+        }
     }
 
     public function delete(Request $request) {
         $line_id = $request->post('line_id');
         Lines::where('line_id', $line_id)->delete();
+        LinesExtra::where('line_id', $line_id)->delete();
         return true;
     }
 }

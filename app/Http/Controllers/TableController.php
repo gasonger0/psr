@@ -433,7 +433,10 @@ class TableController extends Controller
             $responsibles[$f['responsible_id']] = $f['title'];
         }
 
-        $lines = Lines::whereIn('line_id', $linesFromPlans)->get()->toArray();
+        $lines = json_decode(LinesController::getList());
+        $lines = array_filter($lines, function ($el) use ($linesFromPlans) {
+            return in_array($el['line_id'], $linesFromPlans);
+        });
         $products = ProductsDictionary::whereIn('product_id', $productsFromLines)->get(['product_id', 'title', 'amount2parts', 'parts2kg', 'kg2boil', 'cars', 'cars2plates'])->toArray();
         $slots = ProductsSlots::whereIn('product_slot_id', $slotsFromProducts)->get(['product_slot_id', 'people_count', 'perfomance', 'product_id'])->toArray();
 

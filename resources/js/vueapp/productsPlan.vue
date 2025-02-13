@@ -669,6 +669,11 @@ export default {
         saveLine(record) {
             let fd = new FormData();
             fd.append('line_id', record['line_id']);
+            
+            if (record.extra_title) {
+                fd.append('extra_title', record['extra_title']);
+            }
+
 
             fd.append('started_at', record.time[0].format('HH:mm'));
             fd.append('ended_at', record.time[1].format('HH:mm'));
@@ -906,6 +911,9 @@ export default {
                     </div>
                     <Input v-show="line.edit" :data-id="line.line_id" class="line_title" v-model:value="line.title"
                         style="display: block;color:black;" />
+                    <Input v-show="line.edit" class="line_title" v-model:value="line.extra_title"
+                        style="display: block;color:black;" />
+
 
                     <div style="display: flex;justify-content: space-between;align-items: center;">
                         <Switch v-model:checked="line.edit" checked-children="Редактирование"
