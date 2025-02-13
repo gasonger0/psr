@@ -6,7 +6,7 @@ use App\Models\Lines;
 use App\Models\Slots;
 use App\Models\Workers;
 use Carbon\Carbon;
-use DateTime;
+use Illuminate\Support\Facades\Session;
 use Illuminate\Http\Request;
 use Shuchkin\SimpleXLSXGen;
 
@@ -14,7 +14,8 @@ class SlotsController extends Controller
 {
     static public function getList()
     {
-        return Slots::all()->toJson();
+        $date = session('date') ?? (new \DateTime())->format('Y-m-d');
+        return Slots::where('date', '=', $date)->get()->toJson();
     }
 
     static public function add($line_id = null, $worker_id = null, $start = null, $end = null)
@@ -30,6 +31,8 @@ class SlotsController extends Controller
         $slot->worker_id = $worker_id;
         $diff = (new \DateTime($start))->diff(new \DateTime($end));
         $slot->time_planned = $diff->h * 60 + $diff->i;
+        $date = session('date') ?? (new \DateTime())->format('Y-m-d');
+        $slot->date = $date;
         $slot->save();
 
         return $slot->slot_id;
@@ -37,6 +40,7 @@ class SlotsController extends Controller
 
     static public function change(Request $request)
     {
+        $date = session('date') ?? (new \DateTime())->format('Y-m-d');
         $oldSlot = Slots::where(
             'worker_id',
             '=',
@@ -45,6 +49,10 @@ class SlotsController extends Controller
             'line_id',
             '=',
             $request->post('old_line_id')
+        )->where(
+            'date',
+            '=',
+            $date
         )->first();
 
         if (!$oldSlot) {
@@ -52,12 +60,12 @@ class SlotsController extends Controller
             if (!$line) {
                 return -1;
             }
-
+            $extra = LinesExtraController::get($line->line_id);
             SlotsController::add(
                 $line->line_id,
                 $request->worker_id,
                 now('Europe/Moscow')->format('H:i:s'),
-                $line->ended_at
+                $extra->ended_at
             );
             return 0;
         }
@@ -92,6 +100,7 @@ class SlotsController extends Controller
                 $slot->started_at = Carbon::parse($r['started_at'])->format('H:i:s'); 
                 $slot->ended_at = Carbon::parse($r['ended_at'])->format('H:i:s');
                 $slot->worker_id = $r['worker_id'];
+                $slot->date = session('date') ?? (new \DateTime())->format('Y-m-d');
                 $diff = (new \DateTime($slot->started_at))->diff(new \DateTime($slot->ended_at));
                 $slot->time_planned = $diff->h * 60 + $diff->i;
                 $slot->save();
@@ -110,9 +119,10 @@ class SlotsController extends Controller
     static public function delete(Request $request)
     {
         if (!($id = $request->post('worker_id'))) return;
-        
+        $date = session('date') ?? (new \DateTime())->format('Y-m-d');
         if  ($request->post('delete')){
-            Slots::where('worker_id', '=', $id)->delete();
+            Slots::where('worker_id', '=', $id)
+                ->where('date', $date)->delete();
         }else {
             $worker = Slots::find($request->post('slot_id'));
             if ($worker) {
@@ -125,13 +135,20 @@ class SlotsController extends Controller
 
     static public function afterLineUpdate($line_id, $newStart, $oldStart, $newEnd, $oldEnd)
     {
-        $slots = Slots::where('line_id', '=', $line_id)->where('started_at', '=', $oldStart)->get();
+        $date = session('date') ?? (new \DateTime())->format('Y-m-d');
+        $slots = Slots::where('line_id', '=', $line_id)
+            ->where('started_at', '=', $oldStart)
+            ->where('date', $date)
+            ->get();
         foreach ($slots as $slot) {
             $slot->started_at = $newStart;
             $slot->save();
         }
 
-        $slots = Slots::where('line_id', '=', $line_id)->where('ended_at', '=', $oldEnd)->get();
+        $slots = Slots::where('line_id', '=', $line_id)
+            ->where('ended_at', '=', $oldEnd)
+            ->where('date', $date)
+            ->get();
         foreach ($slots as $slot) {
             $slot->ended_at = $newEnd;
             $slot->save();
@@ -140,8 +157,9 @@ class SlotsController extends Controller
 
     static public function down($lineId, $downFrom)
     {
-        $slots = Slots::where('line_id', '=', $lineId)->where('started_at', '<', $downFrom)->get();
-        var_dump($slots, $downFrom, $lineId);
+        $date = session('date') ?? (new \DateTime())->format('Y-m-d');
+        $slots = Slots::where('line_id', '=', $lineId)->where('started_at', '<', $downFrom)->where('date', $date)->get();
+        // var_dump($slots, $downFrom, $lineId);
         foreach ($slots as $slot) {
             if ($slot->ended_at < now('Europe/Moscow')) {
                 // Если простой кончился после окончания слота, т.е. линия стояла до конца рабочей смены
@@ -152,7 +170,7 @@ class SlotsController extends Controller
                 $diff = (new \DateTime(now('Europe/Moscow')))->diff(new \DateTime($downFrom));
                 $slot->down_time = $slot->down_time + ($diff->h * 60 + $diff->i);
             }
-            var_dump($slot->down_time);
+            // var_dump($slot->down_time);
             $slot->save();
         }
     }
@@ -184,11 +202,13 @@ class SlotsController extends Controller
             return [$line['title'], ''];
         }, $lines));
         $columns = [array_merge(['Работник'], $titles)];
-        Workers::all()->each(function($worker) use($lines, &$columns){
+        $date = session('date') ?? (new \DateTime())->format('Y-m-d');
+        Workers::all()->each(function($worker) use($lines, &$columns, $date){
             $row = [$worker->title];
             foreach ($lines as $line) {
                 $slot = Slots::where('worker_id', '=', $worker->worker_id)
                     ->where('line_id', '=', $line['line_id'])
+                    ->where('date', '=', $date)
                     ->first();
                 if ($slot) {
                     $row[] = $slot->started_at;

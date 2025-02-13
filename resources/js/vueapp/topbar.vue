@@ -95,12 +95,13 @@ export default {
             // console.log(prod);
             this.$emit('change-board');
         },
-        updateCookie(obj, datestring) {
-            axios.post('/api/update_cookie', {
-                date: datestring
+        updatesession(obj, datestring) {
+            let date = dayjs(obj).format('YYYY-MM-DD');
+            axios.post('/api/update_session', {
+                date: date
             }).then(response => {
                 if (response) {
-                    sessionStorage.setItem('date', obj.$d.toISOString().split('T')[0]);
+                    sessionStorage.setItem('date', date);
                     window.location.reload();      
                 }
             })
@@ -201,7 +202,7 @@ export default {
             </div>
         </div>
         <div>
-            <DatePicker v-model:value="date" format="DD.MM.YYYY" mode="date" @change="updateCookie" :locale="locale" />
+            <DatePicker v-model:value="date" format="DD.MM.YYYY" mode="date" @change="updatesession" :locale="locale" />
             <!-- <span style="height:fit-content;font-size: 18px;font-weight: 600;">{{ date }}</span> -->
             <img src="./logo.png" alt="" style="height:32px;">
         </div>

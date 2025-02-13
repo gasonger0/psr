@@ -633,12 +633,14 @@ export default {
                 :headStyle="{ 'background-color': (line.color ? line.color : '#1677ff') }">
                 <template #title>
                     <div class="line_title" :data-id="line.line_id" v-show="!line.edit">
-                        <b>{{ line.title }}</b>
+                        <b style="font-weight:700;">{{ line.title }}</b>
+                        <br>
+                        <span style="font-weight:400">{{ line.extra_title }}</span>
                     </div>
                     <Input v-show="line.edit" :data-id="line.line_id" class="line_title" v-model:value="line.title"
                         style="display: block;color:black;" />
                     <Input v-show="line.edit" class="line_title" v-model:value="line.extra_title"
-                        style="display: block;color:black;" />
+                        style="display: block;color:black;" placeholder="Производительность"/>
 
                     <div style="display: flex;justify-content: space-between;align-items: center;">
                         <Switch v-model:checked="line.edit" checked-children="Редактирование"

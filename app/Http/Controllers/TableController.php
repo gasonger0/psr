@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Lines;
+use App\Models\LinesExtra;
 use App\Models\Products_categories;
 use App\Models\ProductsDictionary;
 use App\Models\ProductsOrder;
@@ -190,6 +191,7 @@ class TableController extends Controller
 
     public function loadFile(Request $request)
     {
+        /*
         if (!$request->files) {
             return 'Файл не предоставлен';
         }
@@ -213,6 +215,7 @@ class TableController extends Controller
         }
 
         return 0;
+        */
     }
     public function loadOrder(Request $request)
     {
@@ -551,7 +554,7 @@ class TableController extends Controller
 			            $colon = array_values($colon);
 		            }
                     if (!empty($colon)) {
-                        $array[] = ['', '<b>', self::$colons[$colon[0]] . (isset($colon[1]) ? ', ' . self::$colons[$colon[1]] : ''), '</b>'];
+                        $array[] = ['', '<b>'. self::$colons[$colon[0]] . (isset($colon[1]) ? ', ' . self::$colons[$colon[1]] : '') . '</b>'];
                         array_shift($colon);
                     }
 
@@ -639,7 +642,11 @@ class TableController extends Controller
             }
 
             if($sheet == 1) {
-                $dating = Lines::find(42)->toArray();
+                $dating = array_merge(
+                    Lines::find(42)->toArray(),
+                    LinesExtraController::get(42)->toArray()
+                );
+
                 $array[] = ['', '<style bgcolor="#B7DEE8"><b>ОТВЕТСТВЕННЫЕ: ' . $dating['master'] . ',' . $dating['engineer'] . '</b></style>'];
                 $array[] = ['', '<style bgcolor="#D8E4BC"><b>ДАТИРОВАНИЕ</b></style>', '', ($dateCount / 8000), '', '', '', '', '', '', '', $dating['workers_count'], $dating['started_at'], $dating['ended_at']];
 
@@ -719,6 +726,7 @@ class TableController extends Controller
     }
     public function loadPlan(Request $request)
     {
+        /*
         $path = $request->files->get('file')->getRealPath();
         $data = json_decode(file_get_contents($path), true);
         if ($data['plans']) {
@@ -740,90 +748,91 @@ class TableController extends Controller
             foreach ($data['lines'] as $item) {
                 $i = Lines::find($item['line_id']);
                 if ($i) {
-                    $i->master = $item['master'] ?? null;
-                    $i->started_at = $item['started_at'] ?? null;
-                    $i->ended_at = $item['ended_at'] ?? null;
-                    $i->color = $item['color'] ?? null;
+                    // $i->master = $item['master'] ?? null;
+                    // $i->started_at = $item['started_at'] ?? null;
+                    // $i->ended_at = $item['ended_at'] ?? null;
+                    // $i->color = $item['color'] ?? null;
+                    // $i->engineer = $item['engineer'] ?? null;
                     $i->type_id = $item['type_id'] ?? null;
-                    $i->engineer = $item['engineer'] ?? null;
                     $i->save();
                 }
             }
         }
         LogsController::clear();
         return;
+        */
     }
 
     private function processProducts()
     {
-        $currentLine = null;
-        foreach (array_slice($this->file['products'], 4) as $row) {
-            if (
-                $row[1] != null &&
-                $row[2] != null &&
-                $row[3] != null &&
-                $row[4] != null
-            ) {
-                if ($row[0] == null) {
-                    // Строка линии
-                    if (array_search(trim(strtolower($row[1])), self::$skipPhrases) === false) {
-                        $currentLine = LinesController::add(
-                            trim($row[1]),
-                            trim($row[2]),
-                            trim($row[3]),
-                            trim($row[4])
-                        );
-                    } else {
-                        continue;
-                    }
-                } else {
-                    // Строка продукта
-                    if (array_search(trim(strtolower($row[1])), self::$skipPhrases) === false) {
-                        ProductsController::add(
-                            trim($row[0]),
-                            $currentLine,
-                            trim($row[1]),
-                            trim($row[2]),
-                            trim($row[3]),
-                            trim($row[4])
-                        );
-                    } else {
-                        continue;
-                    }
-                }
-            } else {
-                continue;
-            }
-        }
+        // $currentLine = null;
+        // foreach (array_slice($this->file['products'], 4) as $row) {
+        //     if (
+        //         $row[1] != null &&
+        //         $row[2] != null &&
+        //         $row[3] != null &&
+        //         $row[4] != null
+        //     ) {
+        //         if ($row[0] == null) {
+        //             // Строка линии
+        //             if (array_search(trim(strtolower($row[1])), self::$skipPhrases) === false) {
+        //                 $currentLine = LinesController::add(
+        //                     trim($row[1]),
+        //                     trim($row[2]),
+        //                     trim($row[3]),
+        //                     trim($row[4])
+        //                 );
+        //             } else {
+        //                 continue;
+        //             }
+        //         } else {
+        //             // Строка продукта
+        //             if (array_search(trim(strtolower($row[1])), self::$skipPhrases) === false) {
+        //                 ProductsController::add(
+        //                     trim($row[0]),
+        //                     $currentLine,
+        //                     trim($row[1]),
+        //                     trim($row[2]),
+        //                     trim($row[3]),
+        //                     trim($row[4])
+        //                 );
+        //             } else {
+        //                 continue;
+        //             }
+        //         }
+        //     } else {
+        //         continue;
+        //     }
+        // }
     }
-    private function processWorkers()
-    {
-        $lines = json_decode(LinesController::getList(['line_id', 'title']), true);
-        $lineCells = array_slice($this->file['workers'][0], 4);
-        for ($i = 0; $i < count($lineCells); $i += 2) {
-            if (!empty($lineCells[$i]) && ($index = array_search($lineCells[$i], array_column($lines, 'title'))) !== false) {
-                $lines[$index]["cells"] = [$i, $i + 1];
-            }
-        }
-        foreach (array_slice($this->file['workers'], 3) as $row) {
-            if ($row[1] == null)
-                continue;
-            $worker_id = WorkersController::add($row[0], $row[1], $row[2], $row[3]);
-            $row = array_slice($row, 4);
-            // $time = 0;      // time in minutes
-            for ($m = 0; $m < count($row); $m += 2) {
-                if (($index = array_search([$m, $m + 1], array_column($lines, 'cells'))) !== false) {
-                    if ($row[$m] == null)
-                        continue;
-                    SlotsController::add($lines[$index]['line_id'], $worker_id, $row[$m], $row[$m + 1]);
-                    // $bufdiff = (new \DateTime($row[$m]))->diff(new \DateTime($row[$m+1]));
-                    //$time += $bufdiff->h * 60 + $bufdiff->i;
-                    // WorkersController::updateBaseTime($worker_id, $time);
-                    // $time = 0;
-                }
-            }
-        }
-    }
+    // private function processWorkers()
+    // {
+    //     $lines = json_decode(LinesController::getList(['line_id', 'title']), true);
+    //     $lineCells = array_slice($this->file['workers'][0], 4);
+    //     for ($i = 0; $i < count($lineCells); $i += 2) {
+    //         if (!empty($lineCells[$i]) && ($index = array_search($lineCells[$i], array_column($lines, 'title'))) !== false) {
+    //             $lines[$index]["cells"] = [$i, $i + 1];
+    //         }
+    //     }
+    //     foreach (array_slice($this->file['workers'], 3) as $row) {
+    //         if ($row[1] == null)
+    //             continue;
+    //         $worker_id = WorkersController::add($row[0], $row[1], $row[2], $row[3]);
+    //         $row = array_slice($row, 4);
+    //         // $time = 0;      // time in minutes
+    //         for ($m = 0; $m < count($row); $m += 2) {
+    //             if (($index = array_search([$m, $m + 1], array_column($lines, 'cells'))) !== false) {
+    //                 if ($row[$m] == null)
+    //                     continue;
+    //                 SlotsController::add($lines[$index]['line_id'], $worker_id, $row[$m], $row[$m + 1]);
+    //                 // $bufdiff = (new \DateTime($row[$m]))->diff(new \DateTime($row[$m+1]));
+    //                 //$time += $bufdiff->h * 60 + $bufdiff->i;
+    //                 // WorkersController::updateBaseTime($worker_id, $time);
+    //                 // $time = 0;
+    //             }
+    //         }
+    //     }
+    // }
     public function getFile(Request $request)
     {
         $data = $request->post();
@@ -870,7 +879,7 @@ class TableController extends Controller
                     $workTime = self::setFloat(self::getWorkTime($slot['started_at'], $slot['ended_at']));
                     $ktu = $data[array_search($slot['worker_id'], array_column($data, 'worker_id'))]['ktu'];
                     if (!$worker) {
-                        var_dump($slot);
+                        // var_dump($slot);
                     }
                     $columns[] = [
                         $worker['title'],

@@ -6,7 +6,6 @@ use App\Models\Lines;
 use App\Models\LinesExtra;
 use App\Models\ProductsPlan;
 use App\Models\Slots;
-use Cookie;
 use DB;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
@@ -108,6 +107,15 @@ class LinesController extends Controller
     public static function getDefaults($line_id = false)
     {
         $defs =  [
+            // [
+            //     'line_id' => 33,
+            //     'title' => 'СТАРАЯ вертикальная установка',
+            //     'time' => '7:00-9:00',
+            //     'people' => 5,
+            //     'prep' => 60,
+            //     'end' => 30
+            // ],
+            // 34, 35, 38, 39, 40
             [
                 'line_id' => 44,
                 'title' => 'ВАРКА СУФЛЕ',
@@ -391,7 +399,6 @@ class LinesController extends Controller
         ];
         if ($line_id) {
             $index = array_search($line_id, array_column($defs, 'line_id'));
-            var_dump($index, $line_id);
             if ($index !== false) {
                 return $defs[$index];
             } else {

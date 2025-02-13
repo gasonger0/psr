@@ -4,11 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Models\Lines;
 use App\Models\ProductsPlan;
-use App\Models\Slots;
 use App\Models\ProductsSlots;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Session;
+
 
 class ProductsPlanController extends Controller
 {
@@ -17,18 +18,25 @@ class ProductsPlanController extends Controller
     }
     static public function getList(Request $request)
     {
+        $date = session('date') ?? (new \DateTime())->format('Y-m-d');
         if (!($id = $request->post('product_id'))) {
-            return ProductsPlan::join('products_dictionary', 'products_plan.product_id', '=', 'products_dictionary.product_id')
+            return ProductsPlan::where('date', $date)
+                ->join('products_dictionary', 'products_plan.product_id', '=', 'products_dictionary.product_id')
                 ->select('products_plan.*', DB::raw('products_dictionary.title as title'))
-                ->get()->toJson();
+                ->get()
+                ->toJson();
             // return ProductsPlan::all()->toJson();
         } else {
-            return ProductsPlan::where('product_id', '=', $id)->get()->toJson();
+            return ProductsPlan::where('product_id', '=', $id)
+                ->where('date', $date)
+                ->get()
+                ->toJson();
         }
     }
 
     public function addPlan(Request $request)
     {
+        $date = session('date') ?? (new \DateTime())->format('Y-m-d');
         if ($post = $request->post()) {
             if (!isset($post['plan_product_id'])) {
                 $plan = new ProductsPlan();
@@ -42,7 +50,7 @@ class ProductsPlanController extends Controller
                 $plan->ended_at = $post['ended_at'];
                 $plan->amount = $post['amount'];
                 $plan->hardware = isset($post['hardware']) ? $post['hardware'] : 0;
-
+                $plan->date = $date;
                 if (isset($post['colon'])) {
                     $plan->colon = is_array($post['colon']) ? implode(';', $post['colon']) : $post['colon'];
                 }
@@ -59,6 +67,7 @@ class ProductsPlanController extends Controller
                         $plan->line_id = $slot['line_id'];
                         $plan->slot_id = $slot['product_slot_id'];
                         $plan->workers_count = $slot['people_count'];
+                        $plan->date = $date;
                         // $plan->hardware = $post['hardware'];
                         $plan->type_id = 2;
 
@@ -75,7 +84,7 @@ class ProductsPlanController extends Controller
                         $plan->amount = $post['amount'];
                         $plan->save();
 
-                        $this->checkPlans($slot['line_id'], $plan->plan_product_id, $plan->started_at, $plan->ended_at);
+                        $this->checkPackPlans($slot['line_id'], $plan->plan_product_id, $plan->started_at, $plan->ended_at);
                     }
                 }
                 return true;
@@ -135,10 +144,10 @@ class ProductsPlanController extends Controller
 
     public function checkPlans($line_id, $prod_id, $start, $end)
     {
+        $date = session('date') ?? (new \DateTime())->format('Y-m-d');
         // Получаем планы, которые внутри нового
         $plans = ProductsPlan::where('line_id', '=', $line_id)
-            // ->whereBetween('started_at', [$start, $end])
-            // ->orWhereBetween('ended_at', [$start, $end])
+            ->where('date', $date)
             ->where('started_at', '<=', $start)
             ->where('ended_at', '>=', $start)
             ->orderBy('started_at', 'ASC')
@@ -148,7 +157,6 @@ class ProductsPlanController extends Controller
             $plans = array_filter($plans, function ($item) use ($prod_id) {
                 return $item['plan_product_id'] != $prod_id;
             });
-            var_dump($plans);
             $planOne = $plans[0];
             // Если есть, то ставим новую ГП после той, внутрь которой попадаем и ставим новые ГП
             $diff = Carbon::parse($planOne['ended_at'])->diffInMinutes(Carbon::parse($start));
@@ -158,12 +166,12 @@ class ProductsPlanController extends Controller
             $pl->save();
             $plans = ProductsPlan::where('line_id', '=', $line_id)
                 ->where('started_at', '>=', $start)
+                ->where('date', $date)
                 ->where('plan_product_id', '!=', $prod_id)
                 ->orderBy('started_at', 'ASC')
                 ->get();
             $end = $pl->ended_at;
             foreach ($plans as $plan) {
-                var_dump($end);
                 // Те, которые надо сдвинуть
                 $plan->started_at = $end;
                 $end = Carbon::parse($plan->ended_at)->addMinutes($diff)->format('H:i:s');
@@ -175,9 +183,12 @@ class ProductsPlanController extends Controller
 
     public function checkPackPlans($line_id, $prod_id, $start, $end)
     {
+        ///??????
+        $date = session('date') ?? (new \DateTime())->format('Y-m-d');
         $lastPlan = ProductsPlan::where('line_id', '=', $line_id)
             ->where('plan_product_id', '!=', $prod_id)
             ->where('ended_at', '>=', $start)
+            ->where('date', $date)
             ->orderBy('ended_at', 'DESC')
             ->first()->get();
         if ($lastPlan) {
@@ -245,13 +256,20 @@ class ProductsPlanController extends Controller
 
     public static function afterLineUpdate($line_id, $newStart, $oldStart, $newEnd, $oldEnd)
     {
-        $slots = ProductsPlan::where('line_id', '=', $line_id)->where('started_at', '=', $oldStart)->get();
+        $date = session('date') ?? (new \DateTime())->format('Y-m-d');
+        $slots = ProductsPlan::where('line_id', '=', $line_id)
+            ->where('started_at', '=', $oldStart)
+            ->where('date', $date)
+            ->get();
         foreach ($slots as $slot) {
             $slot->started_at = $newStart;
             $slot->save();
         }
 
-        $slots = ProductsPlan::where('line_id', '=', $line_id)->where('ended_at', '=', $oldEnd)->get();
+        $slots = ProductsPlan::where('line_id', '=', $line_id)
+            ->where('ended_at', '=', $oldEnd)
+            ->where('date', $date)
+            ->get();
         foreach ($slots as $slot) {
             $slot->ended_at = $newEnd;
             $slot->save();

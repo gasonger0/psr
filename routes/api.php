@@ -15,6 +15,9 @@ use App\Models\ProductsPlan;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 
+
+Route::group(['middleware' => ['web']], function () {
+
 /*******
  * LINES
  ******/
@@ -104,11 +107,16 @@ Route::get('/load_logs',            [LogsController::class,                 'log
 
 
 /********
- * COOKIE
+ * SESSION
  *******/
-Route::post('/update_cookie', function(Request $request) {
+Route::post('/update_session', function(Request $request) {
     if ($request) {
-        cookie('date', $request->post('date'));
+        var_dump($request->session()->all());
+        $request->session()->put('date', $request->post('date'));
+        // cookie('date', $request->post('date'));
+        // var_dump(session('date'));
         return true;
     }
+});
+
 });
