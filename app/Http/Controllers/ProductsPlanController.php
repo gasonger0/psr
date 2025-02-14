@@ -137,8 +137,17 @@ class ProductsPlanController extends Controller
                     //}
                 }
             }
-            return true;
+            $plans = ProductsPlan::where('line_id', '=', $post['line_id'])
+                ->where('date', session('date') ?? (new \DateTime())->format('Y-m-d'))
+                ->orderBy('started_at', 'ASC')
+                ->get()
+                ->toArray();
+            $minStartedAt = $plans ? min(array_column($plans, 'started_at')) : null;
+            $maxEndedAt = $plans ? max(array_column($plans, 'ended_at')) : null;
             
+            LinesExtraController::update($post['line_id'], ['started_at' => $minStartedAt, 'ended_at' => $maxEndedAt]);
+
+            return true;
         }
     }
 
@@ -217,15 +226,18 @@ class ProductsPlanController extends Controller
 
     public function changePlan(Request $request)
     {
-        if ($data = $request->post()) {
-            $plan = ProductsPlan::find($data['plan_product_id']);
-            $plan->started_at = Carbon::parse($plan->started_at)->addMinutes($data['diff']);
-            $plan->ended_at = Carbon::parse($plan->ended_at)->addMinutes($data['diff']);
-
-            $plan->save();
-            return;
+        // Ид записей, которые надо менять местами и их порядок
+        $data = $request->post();
+        if (!$data) {
+            return -1;
+        } else {
+            foreach ($data as $item) {
+                $id = $item['plan_product_id'];
+                unset($item['plan_product_id']);
+                // var_dump($item);
+                ProductsPlan::where('plan_product_id', '=', $id)->get()->first()->update($item);
+            }
         }
-        return -1;
     }
 
     public static function clear()

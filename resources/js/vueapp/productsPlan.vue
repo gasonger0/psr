@@ -182,6 +182,7 @@ export default {
                 // console.log(card);
                 currentElementCoord = card.getBoundingClientRect();
             } else {
+                return;
                 currentElementCoord = currentElement.getBoundingClientRect();
             }
             // Находим вертикальную координату центра текущего элемента
@@ -306,83 +307,116 @@ export default {
                         if (ev.target.classList.contains('selected') && ev.target == this.active.html) {
                             ev.target.classList.remove(`selected`);
                             let children = Array.from(ev.target.parentNode.children);
-                            let sp = [ev.target.dataset.order, children.indexOf(ev.target)];
+                            let ids = children.map(el => el.dataset.id);
+                            console.log(ids);
+                            let cards = [];
+                            ids.forEach(el => {
+                                cards.push(this.plans.find(f => f.plan_product_id == el));
+                            })
+                            console.log(cards);
+                            for (let i in cards) {
+                                let timeDiff = dayjs(cards[i].ended_at, 'HH:mm:ss').diff(dayjs(cards[i].started_at, 'HH:mm:ss'), 'minutes');
+                                if (i == 0) {
+                                    let line = this.lines.find(el => el.line_id == cards[i].line_id);
+                                    cards[i].started_at = dayjs(line.started_at, 'HH:mm:ss').format('HH:mm:ss');
+                                    // if (line.prep_time) {
+                                } else {
+                                    cards[i].started_at = cards[i - 1].ended_at;
+                                }
+                                cards[i].ended_at = dayjs(cards[i].started_at, 'HH:mm:ss').add(timeDiff, 'minutes').format('HH:mm:ss');
+                            }
+                            this.showLoader = true;
+                            axios.post('/api/change_plan', 
+                                cards.map(el => {
+                                    return {
+                                        plan_product_id: el.plan_product_id,
+                                        started_at: el.started_at,
+                                        ended_at: el.ended_at
+                                    }
+                                })
+                            ).then(response => {
+                                this.showLoader = false;
+                            });
+                            // axios.post('/api/change_plan', {
+                            //     ids: ids
+                            // });
 
-                            let changeIds = children.filter(el => el.dataset.order >= Math.min(sp[0], sp[1]) && el.dataset.order <= Math.max(sp[0], sp[1]));
+                            // let sp = [ev.target.dataset.order, children.indexOf(ev.target)];
 
-                            // console.log(changeIds);
+                            // let changeIds = children.filter(el => el.dataset.order >= Math.min(sp[0], sp[1]) && el.dataset.order <= Math.max(sp[0], sp[1]));
 
-                            let oldId = changeIds.find(el => el.dataset.order == sp[1]);
-                            let newId = children[sp[1]];
+                            // // console.log(changeIds);
+
+                            // let oldId = changeIds.find(el => el.dataset.order == sp[1]);
+                            // let newId = children[sp[1]];
 
 
-                            // console.log(oldId);
-                            // console.log(newId);
-                            // console.log(this.plans);
-                            let oldd = this.plans.find(el => el.plan_product_id == oldId.dataset.id);
-                            let neww = this.plans.find(el => el.plan_product_id == newId.dataset.id);
+                            // // console.log(oldId);
+                            // // console.log(newId);
+                            // // console.log(this.plans);
+                            // let oldd = this.plans.find(el => el.plan_product_id == oldId.dataset.id);
+                            // let neww = this.plans.find(el => el.plan_product_id == newId.dataset.id);
 
-                            // console.log(dayjs('10:00:00', 'hh:mm'));
+                            // // console.log(dayjs('10:00:00', 'hh:mm'));
 
-                            let a = dayjs(oldd.started_at, 'hh:mm');
-                            let b = dayjs(neww.started_at, 'hh:mm');
-                            // console.log(a, b);
+                            // let a = dayjs(oldd.started_at, 'hh:mm');
+                            // let b = dayjs(neww.started_at, 'hh:mm');
+                            // // console.log(a, b);
 
-                            let dateDiff = a.diff(b, 'minutes');
+                            // let dateDiff = a.diff(b, 'minutes');
                             // console.log('data:');
                             // console.log(dateDiff);
-                            this.showLoader = true;
-                            changeIds.forEach((el, k) => {
-                                if (el.dataset.id == ev.target.dataset.id) {
-                                    axios.post('/api/change_plan', {
-                                        plan_product_id: el.dataset.id,
-                                        diff: dateDiff
-                                    }).then(async (response) => {
-                                        if (k == (changeIds.length - 1)) {
-                                            this.listenerSet = false;
-                                            this.key += 1;
-                                            await this.getProducts();
-                                            await this.getProductPlan();
-                                            await this.getProductSlots();
-                                            await this.getOrders();
-                                            let sum = this.plans.reduce((accumulator, plan) => {
-                                                if (plan.boils) {
-                                                    return accumulator + plan.boils;
-                                                }
-                                                return accumulator;
-                                            }, 0);
-                                            this.$emit('getBoils', sum.toFixed(2));
-                                            this.$forceUpdate();
-                                            this.initFunc();
-                                            this.showLoader = false;
-                                        }
-                                    });
-                                } else {
-                                    axios.post('/api/change_plan', {
-                                        plan_product_id: el.dataset.id,
-                                        diff: -dateDiff
-                                    }).then(async (response) => {
-                                        if (k == (changeIds.length - 1)) {
-                                            this.listenerSet = false;
-                                            this.key += 1;
-                                            await this.getProducts();
-                                            await this.getProductPlan();
-                                            await this.getProductSlots();
-                                            await this.getOrders();
-                                            this.$forceUpdate();
-                                            this.initFunc();
-                                            let sum = this.plans.reduce((accumulator, plan) => {
-                                                if (plan.boils) {
-                                                    return accumulator + plan.boils;
-                                                }
-                                                return accumulator;
-                                            }, 0);
-                                            this.$emit('getBoils', sum.toFixed(2));
-                                            this.showLoader = false;
-                                        }
-                                    });
-                                }
-                            });
+                            // changeIds.forEach((el, k) => {
+                            //     if (el.dataset.id == ev.target.dataset.id) {
+                            //         axios.post('/api/change_plan', {
+                            //             plan_product_id: el.dataset.id,
+                            //             diff: dateDiff
+                            //         }).then(async (response) => {
+                            //             if (k == (changeIds.length - 1)) {
+                            //                 this.listenerSet = false;
+                            //                 this.key += 1;
+                            //                 await this.getProducts();
+                            //                 await this.getProductPlan();
+                            //                 await this.getProductSlots();
+                            //                 await this.getOrders();
+                            //                 let sum = this.plans.reduce((accumulator, plan) => {
+                            //                     if (plan.boils) {
+                            //                         return accumulator + plan.boils;
+                            //                     }
+                            //                     return accumulator;
+                            //                 }, 0);
+                            //                 this.$emit('getBoils', sum.toFixed(2));
+                            //                 this.$forceUpdate();
+                            //                 this.initFunc();
+                            //                 this.showLoader = false;
+                            //             }
+                            //         });
+                            //     } else {
+                            //         axios.post('/api/change_plan', {
+                            //             plan_product_id: el.dataset.id,
+                            //             diff: -dateDiff
+                            //         }).then(async (response) => {
+                            //             if (k == (changeIds.length - 1)) {
+                            //                 this.listenerSet = false;
+                            //                 this.key += 1;
+                            //                 await this.getProducts();
+                            //                 await this.getProductPlan();
+                            //                 await this.getProductSlots();
+                            //                 await this.getOrders();
+                            //                 this.$forceUpdate();
+                            //                 this.initFunc();
+                            //                 let sum = this.plans.reduce((accumulator, plan) => {
+                            //                     if (plan.boils) {
+                            //                         return accumulator + plan.boils;
+                            //                     }
+                            //                     return accumulator;
+                            //                 }, 0);
+                            //                 this.$emit('getBoils', sum.toFixed(2));
+                            //                 this.showLoader = false;
+                            //             }
+                            //         });
+                            //     }
+                            // });
                         }
                     }
                 });
@@ -657,8 +691,6 @@ export default {
                             left: cont.scrollLeft + (direction ? 280 : -280),
                             behavior: "smooth"
                         });
-                        // cont.scrollLeft += (direction ? 280 : -280);
-                        // console.log('scroll');
                     }, 300);
                 }
             } else if (start == 2) {
@@ -909,7 +941,7 @@ export default {
                     <div class="line_title" :data-id="line.line_id" v-show="!line.edit">
                         <b style="font-weight:700;">{{ line.title }}</b>
                         <br>
-                        <span style="font-weight:400">{{ line.extra_title }}</span>
+                        <span style="font-weight:400;display: block;width: 100%;white-space: collapse;">{{ line.extra_title }}</span>
                     </div>
                     <Input v-show="line.edit" :data-id="line.line_id" class="line_title" v-model:value="line.title"
                         style="display: block;color:black;" />

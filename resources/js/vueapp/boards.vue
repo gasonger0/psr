@@ -635,7 +635,7 @@ export default {
                     <div class="line_title" :data-id="line.line_id" v-show="!line.edit">
                         <b style="font-weight:700;">{{ line.title }}</b>
                         <br>
-                        <span style="font-weight:400">{{ line.extra_title }}</span>
+                        <span style="font-weight:400;display: block;width: 100%;white-space: collapse;">{{ line.extra_title }}</span>
                     </div>
                     <Input v-show="line.edit" :data-id="line.line_id" class="line_title" v-model:value="line.title"
                         style="display: block;color:black;" />

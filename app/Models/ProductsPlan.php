@@ -10,6 +10,10 @@ class ProductsPlan extends Model
     protected $table = 'products_plan';
     protected $primaryKey = 'plan_product_id';
     public $incrementing = true;
+    public $fillable = [
+        'started_at',
+        'ended_at'
+    ];
 
     public function setCreatedAtAttribute($value)
     {
