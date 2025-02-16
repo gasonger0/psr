@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue';
 import { Upload, Button, Switch, Dropdown, Menu, MenuItem, DatePicker } from 'ant-design-vue';
-import { BarChartOutlined, UploadOutlined, EditOutlined, TeamOutlined, AppstoreOutlined, DatabaseOutlined, FileExcelOutlined, TableOutlined } from '@ant-design/icons-vue';
+import { BarChartOutlined, UploadOutlined, EditOutlined, TeamOutlined, AppstoreOutlined, DatabaseOutlined, FileExcelOutlined, TableOutlined, CalendarOutlined } from '@ant-design/icons-vue';
 import dayjs from 'dayjs';
 import locale from 'ant-design-vue/es/date-picker/locale/ru_RU';
 import axios from 'axios';
@@ -178,6 +178,12 @@ export default {
                 </Button>
                 <template #overlay>
                     <Menu>
+                        <MenuItem>
+                            <Button type="primary" @click="$emit('showPlansDict')">
+                                <CalendarOutlined/>
+                                Реестр планов
+                            </Button>
+                        </MenuItem>
                         <MenuItem>
                             <Button type="primary" @click="$emit('showProductsDict')">
                                 <AppstoreOutlined />

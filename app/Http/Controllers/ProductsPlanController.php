@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Lines;
+use App\Models\LinesExtra;
 use App\Models\ProductsPlan;
 use App\Models\ProductsSlots;
 use Carbon\Carbon;
@@ -240,29 +241,22 @@ class ProductsPlanController extends Controller
         }
     }
 
-    public static function clear()
+    public static function clear(Request $request)
     {
-        ProductsPlan::truncate();
+
+        $date = $request->post('date');
+        if (!$date) {
+            return;
+        }
+        ProductsPlan::where('date', $date)->delete();
         $def = LinesController::getDefaults();
         foreach ($def as $d) {
-            $line = Lines::where('line_id', '=', $d['line_id'])->first()->get();
-            if ($line) {
-                $time = explode('-', $d['time']);
-                // $line->started_at = $time[0];
-                // $line->ended_at = $time[1];
-                // $line->prep_time = $d['prep'];
-                // $line->after_time = $d['end'];
-                // $line->workers_count = $d['people'];
-                $line->title = $d['title'];
-                // $line->master = null;
-                // $line->engineer = null;
-                // $line->cancel_reason = null;
-                $line->save();
-                // LinesExtraController::delete
-            }
+            LinesExtra::where('line_id', '=', $d['line_id'])->where('date', $date)->each(function ($item) { 
+                $item->delete();
+            });
         }
-        LogsController::clear();
-        SlotsController::clear();
+        LogsController::clear($date);
+        SlotsController::clear($date);
         return;
     }
 

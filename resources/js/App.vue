@@ -9,6 +9,7 @@ import { ref } from 'vue';
 import Result from './vueapp/result.vue';
 import { notification } from 'ant-design-vue';
 import WorkersDict from './vueapp/workersDict.vue';
+import PlansDict from './vueapp/plansDict.vue';
 </script>
 <script>
 export default {
@@ -25,6 +26,7 @@ export default {
             openProductsDict: ref(false),
             openWorkersDict: ref(false),
             openProductsPlan: ref(false),
+            openPlansDict: ref(false),
             prod: ref(1),
             boardKey: ref(1),
             statsRef: null,
@@ -62,6 +64,10 @@ export default {
             this.openWorkersDict = true;
             return;
         },
+        showPlansDict(){
+            this.openPlansDict = true;
+            return;
+        },
         changeBoard(){
             this.boardType = !this.boardType;
         },
@@ -75,6 +81,7 @@ export default {
             this.openLogs = false;
             this.openProductsDict = false;
             this.openWorkersDict = false;
+            this.openPlansDict = false; 
             // if (ev) {
             //     this.boardKey += 1;
             // }
@@ -127,6 +134,7 @@ export default {
         @showProductsDict="showProductsDict"
         @showWorkersDict="showWorkersDict"
         @change-board="changeBoard"
+        @showPlansDict="showPlansDict"
         @notify="notify"/>
     <Boards 
         v-if="!boardType"
@@ -140,4 +148,7 @@ export default {
         @getBoils="onGetBoils"
         @close-modal="closeModal"
         @notify="notify"/>
+    <PlansDict
+        :open="openPlansDict"
+        @close-modal="closeModal"/>
 </template>

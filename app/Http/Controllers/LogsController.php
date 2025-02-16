@@ -13,6 +13,7 @@ class LogsController extends Controller
 {
     static public function add(Request $request)
     {
+        $date = session('date') ?? (new \DateTime())->format('Y-m-d');
         if (empty($request->post())) return -1;
         $log = new Logs();
 
@@ -25,13 +26,15 @@ class LogsController extends Controller
         $log->created_at = now('Europe/Moscow')->format(format: 'H:i:s');
         $log->workers = $request->post('workers') ?? '';
         $log->type = $request->post('type');
+        $log->date = $date;
         $log->save();
         return;
     }
 
     static public function getAll()
     {
-        $logs = Logs::orderBy('created_at', 'DESC')->get()->toArray();
+        $date = session('date') ?? (new \DateTime())->format('Y-m-d');
+        $logs = Logs::where('date', $date)->orderBy('created_at', 'DESC')->get()->toArray();
         foreach ($logs as &$log) {
             $log['line'] = Lines::find($log['line_id'])->title;
         }
@@ -153,8 +156,13 @@ class LogsController extends Controller
         $xlsx->downloadAs($name);
         // return $name;
     }
-    static public function clear()
+    static public function clear($date = null)
     {
-        return Logs::truncate();
+        if (!$date) {
+            return;
+        }
+        Logs::where('date', $date)->each(function($log) {
+            $log->delete();
+        });
     }
 }

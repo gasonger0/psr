@@ -11,8 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('order', function (Blueprint $table) {
-            //
+        Schema::table('products_order', function (Blueprint $table) {
+            $table->date('date')->nullable();
+        });
+        Schema::table('logs', function (Blueprint $table) {
+            $table->date('date')->nullable();
         });
     }
 
@@ -22,7 +25,10 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('order', function (Blueprint $table) {
-            //
+            $table->dropColumn('date');
+        });
+        Schema::table('logs', function (Blueprint $table) {
+            $table->dropColumn('date');
         });
     }
 };

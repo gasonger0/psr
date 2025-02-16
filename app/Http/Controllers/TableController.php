@@ -225,7 +225,8 @@ class TableController extends Controller
 
         if ($xlsx = SimpleXLSX::parse($request->files->get('file')->getRealPath())) {
 
-            ProductsOrder::truncate();
+            // ProductsOrder::truncate();
+            $date = session('date') ?? (new \DateTime())->format('Y-m-d');
             $cats = Products_categories::get(['title', 'category_id'])->toArray();
             $products = ProductsDictionary::get(['title', 'product_id', 'category_id'])->toArray();
             foreach ($cats as &$cat) {
@@ -270,7 +271,7 @@ class TableController extends Controller
             }
             foreach ($amounts as $amount) {
                 if ($val = $amount['amount']) {
-                    $am = ProductsOrder::where('product_id', '=', $amount['product_id'])->get();
+                    $am = ProductsOrder::where('product_id', '=', $amount['product_id'])->where('date', $date)->get();
                     if ($am->count() > 0) {
                         foreach ($am as $i) {
                             $i->amount = $val;
@@ -280,6 +281,7 @@ class TableController extends Controller
                         $order = new ProductsOrder();
                         $order->product_id = $amount['product_id'];
                         $order->amount = $val;
+                        $order->date = $date;
                         $order->save();
                     }
                 }
@@ -529,7 +531,7 @@ class TableController extends Controller
                 if (is_array($line['engineer'])) {
                     $line['engineer'] = $line['engineer'][0] . '.' . mb_substr($line['engineer'][1], 0, 1) . '.';
                 }
-                $array[] = ['', '<style bgcolor="#D8E4BC"><b>' . $line['title'] . '</b></style>', '', '', '', '', '', '', '', '', '', $line['workers_count'], $line['started_at'], Carbon::parse($line['ended_at'])->addMinutes($line['after_time'])->format('H:i:s')];
+                $array[] = ['', '<style bgcolor="#D8E4BC"><b>' . $line['title'] . '</b> (' . $line['extra_title'] . ')</style>', '', '', '', '', '', '', '', '', '', $line['workers_count'], $line['started_at'], Carbon::parse($line['ended_at'])->addMinutes($line['after_time'])->format('H:i:s')];
                 if ($line['has_detector']) {
                     $array[] = ['', '<style bgcolor="#fc8c03"><b><i>МЕТАЛОДЕТЕКТОР</i></b></style>', '', '', '', '', '', '', '', '', '', '', $line['detector_start'], $line['detector_end']];
                 }
@@ -962,13 +964,28 @@ class TableController extends Controller
         }
         return $result;
     }
-    static public function downloadPlanJson(Request $request)
-    {
-        $array = [
-            'lines' => LinesController::getList(),
-            'plans' => ProductsPlanController::getAll(),
-            'workersSlots' => SlotsController::getList()
-        ];
-        return json_encode($array);
+    // static public function downloadPlanJson(Request $request)
+    // {
+    //     $array = [
+    //         'lines' => LinesController::getList(),
+    //         'plans' => ProductsPlanController::getAll(),
+    //         'workersSlots' => SlotsController::getList()
+    //     ];
+    //     return json_encode($array);
+    // }
+    static public function getPlans(){
+        //$date =  session('date') ?? (new \DateTime())->format('Y-m-d');
+        $plans = [];
+        ProductsPlan::all()->each(function($plan) use (&$plans) {
+            if (!isset($plans[strval($plan->date)]) && $plan->date != null) {
+                $plans[strval($plan->date)] = [
+                    'date' => $plan->date,
+                    'plan' => true,
+                    'order' => count(ProductsOrder::where('date', $plan->date)->get()->toArray()) > 0,
+                    'workers' => count(Slots::where('date', $plan->date)->get()->toArray()) > 0
+                ];
+            }
+        });
+        return json_encode(array_values($plans));
     }
 }

@@ -191,9 +191,14 @@ class SlotsController extends Controller
         );
     }
 
-    static public function clear()
+    static public function clear($date = null)
     {
-        return Slots::truncate();
+        if (!$date) {
+            return;
+        }
+        Slots::where('date', $date)->each(function($slot) {
+            $slot->delete();
+        });
     }
 
     static function print(Request $resuest) {
