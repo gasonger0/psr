@@ -866,7 +866,7 @@ export default {
     <div style="height: fit-content; margin-left: 1vw;display: flex; gap: 10px;" :key="key">
         <Button type="dashed" @click="() => showList = !showList">{{ !showList ? 'Показать список продукции' : 'Скрыть'
             }}</Button>
-        <Popconfirm okText="ОК" cancelText="Отмена" @confirm="exportPlan">
+        <!-- <Popconfirm okText="ОК" cancelText="Отмена" @confirm="exportPlan">
             <template #title>
                 <Input v-model:value="exportFileName" placeholder="Наименование файла" />
             </template>
@@ -878,7 +878,7 @@ export default {
             <Button type="default">
                 <CloudUploadOutlined />Импорт плана
             </Button>
-        </Upload>
+        </Upload> -->
         <Button typr="default" @click="printPlan">
             <PrinterOutlined />Распечатать план в xlsx
         </Button>
