@@ -124,7 +124,7 @@ export default {
                 </Button>
                 <template #overlay>
                     <Menu>
-                        <MenuItem>
+                        <!-- <MenuItem>
                         <Upload v-model:file-list="uploadedFile" name="file" :before-upload="(ev) => processXlsx(ev)"
                             :showUploadList=false>
                             <Button type="primary" style="background-color: green;">
@@ -132,7 +132,7 @@ export default {
                                 Новый график
                             </Button>
                         </Upload>
-                        </MenuItem>
+                        </MenuItem> -->
                         <MenuItem>
                             <Upload v-model:file-list="uploadedFile" name="file" :before-upload="(ev) => processOrder(ev)"
                                 :showUploadList="false">
@@ -142,7 +142,7 @@ export default {
                                 </Button>
                             </Upload>
                         </MenuItem>
-                        <MenuItem>
+                        <!-- <MenuItem>
                             <Upload v-model:file-list="uploadedFile" name="file" :before-upload="(ev) => processDefaults(ev)"
                                 :showUploadList="false"> 
                                 <Button type="primary" style="background-color: green;">
@@ -150,8 +150,8 @@ export default {
                                     Нормы планирования
                                 </Button>
                             </Upload>
-                        </MenuItem>
-                        <MenuItem>
+                        </MenuItem> -->
+                        <!-- <MenuItem>
                             <Upload v-model:file-list="uploadedFile" name="file" :before-upload="(ev) => processFormulas(ev)"
                                 :showUploadList="false">
                                 <Button type="primary" style="background-color: green;">
@@ -159,7 +159,7 @@ export default {
                                     Бланк на варку
                                 </Button>
                             </Upload>
-                        </MenuItem>
+                        </MenuItem> -->
                     </Menu>
                 </template>
             </Dropdown>
