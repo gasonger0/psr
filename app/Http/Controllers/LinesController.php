@@ -107,15 +107,39 @@ class LinesController extends Controller
     public static function getDefaults($line_id = false)
     {
         $defs =  [
-            // [
-            //     'line_id' => 33,
-            //     'title' => 'СТАРАЯ вертикальная установка',
-            //     'time' => '7:00-9:00',
-            //     'people' => 5,
-            //     'prep' => 60,
-            //     'end' => 30
-            // ],
-            // 34, 35, 38, 39, 40
+            [
+                'line_id' => 33,
+                'title' => 'СТАРАЯ вертикальная установка',
+                'time' => null,
+                'people' => 3,
+                'prep' => 0,
+                'end' => 10
+            ],
+            [
+                'line_id' => 34,
+                'title' => 'Резка суфле-уп.',
+                'time' => null,
+                'people' => 2,
+                'prep' => 10,
+                'end' => 10
+            ],
+            [
+                'line_id' => 40,
+                'title' => 'Сборка подарочного набора',
+                'time' => null,
+                'people' => 1,
+                'prep' => 0,
+                'end' => 0 
+            ],
+            [
+                'line_id' => 47,
+                'title' => 'Варочный участок',
+                'time' => null,
+                'people' => 1,
+                'prep' => 0,
+                'end' => 0
+            ],
+            // 34, 40, 47
             [
                 'line_id' => 44,
                 'title' => 'ВАРКА СУФЛЕ',

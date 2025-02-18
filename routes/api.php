@@ -11,7 +11,7 @@ use App\Http\Controllers\ResponsibleController;
 use App\Http\Controllers\SlotsController;
 use App\Http\Controllers\TableController;
 use App\Http\Controllers\WorkersController;
-use App\Models\ProductsPlan;
+use App\Http\Controllers\LinesExtraController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 
@@ -23,7 +23,7 @@ Route::group(['middleware' => ['web']], function () {
  ******/
 Route::get( '/get_lines',           [LinesController::class,                'getList'   ]); 
 Route::post('/save_line',           [LinesController::class,                'save'      ]);
-Route::post('/down_line',           [LinesController::class,                'down'      ]);
+Route::post('/down_line',           [LinesExtraController::class,           'down'      ]);
 Route::post('/delete_line',         [LinesController::class,                'delete'    ]);
 
 /*********
