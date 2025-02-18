@@ -132,7 +132,7 @@ class ProductsPlanController extends Controller
                     $plan->amount = $post['amount'];
                     $plan->save();
 
-                    $this->checkPackPlans($old->line_id, $old->plan_product_id, $post['started_at'], $post['ended_at']);
+                    $this->checkPackPlans($old->line_id, $plan->plan_product_id, $post['started_at'], $post['ended_at']);
                     // Добавка про 15 минут и проверка на конфликты каждый раз
                     // Узнать у натальи, ставим ли мы упааковку после текущей или вместо (скорее всего первое)
                     //}
@@ -200,9 +200,9 @@ class ProductsPlanController extends Controller
             ->where('ended_at', '>=', $start)
             ->where('date', $date)
             ->orderBy('ended_at', 'DESC')
-            ->first()->get();
+            ->first();
         if ($lastPlan) {
-            $plan = ProductsPlan::where('plan_product_id', '=', $prod_id)->get();
+            $plan = ProductsPlan::where('plan_product_id', '=', $prod_id)->first();
             $diff = Carbon::parse($plan->started_at)->diff(Carbon::parse($lastPlan->ended_at));
             $plan->started_at = $lastPlan->ended_at;
             $plan->ended_at = Carbon::parse($plan->started_at)->addMinutes($diff)->format('H:i:s');
@@ -246,7 +246,7 @@ class ProductsPlanController extends Controller
 
         $date = $request->post('date');
         if (!$date) {
-            return;
+            $date = session('date') ?? (new \DateTime())->format('Y-m-d');
         }
         ProductsPlan::where('date', $date)->delete();
         $def = LinesController::getDefaults();
