@@ -76,7 +76,7 @@ class LinesController extends Controller
                     $request->post('ended_at'),
                     $end
                 );
-                ProductsPlanController::afterLineUpdate($request->post('line_id'), $request->post('started_at'), $start, $request->post('ended_at'), $end);
+                // ProductsPlanController::afterLineUpdate($request->post('line_id'), $request->post('started_at'), $start, $request->post('ended_at'), $end);
                 if ($line->cancel_reason != null) {
                     $d = Slots::where('line_id', '=', $line->line_id)->where('started_at', '<=', $start)->get('worker_id')->toArray();
                     $d = array_map(function ($a) {
