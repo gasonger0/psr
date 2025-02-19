@@ -35,6 +35,7 @@ class ProductsPlanController extends Controller
     public function addPlan(Request $request)
     {
         $date = session('date') ?? (new \DateTime())->format('Y-m-d');
+        // $timeZone = new \DateTimeZone('Europe/Moscow');
         if ($post = $request->post()) {
             if (!isset($post['plan_product_id']) || $post['plan_product_id'] == null) {
                 $plan = new ProductsPlan();
@@ -44,36 +45,6 @@ class ProductsPlanController extends Controller
                 $plan->slot_id = $slot['product_slot_id'];
                 $plan->workers_count = $slot['people_count'];
                 $plan->type_id = $post['type_id'];
-
-                // if (isset($post['delay']) && isset($post['packs'])) {
-                //     foreach ($post['packs'] as $pack) {
-                //         $plan = new ProductsPlan();
-                //         $slot = ProductsSlots::find($pack)->toArray();
-                //         $plan->product_id = $slot['product_id'];
-                //         $plan->line_id = $slot['line_id'];
-                //         $plan->slot_id = $slot['product_slot_id'];
-                //         $plan->workers_count = $slot['people_count'];
-                //         $plan->date = $date;
-                //         // $plan->hardware = $post['hardware'];
-                //         $plan->type_id = 2;
-
-                //         $start = new \DateTime($post['started_at']);
-
-                //         $start->add(new \DateInterval('PT' . $post['delay'] . 'M'));
-
-                //         $plan->started_at = $start->format('H:i:s');
-                //         $duration = ceil($post['amount'] / ($slot['perfomance'] ? $slot['perfomance'] : 1) * 60);
-
-                //         $start->add(new \DateInterval('PT' . $duration . 'M'));
-
-                //         $plan->ended_at = $start->format('H:i:s');
-                //         $plan->amount = $post['amount'];
-                //         $plan->save();
-
-                //         $this->checkPackPlans($slot['line_id'], $plan->plan_product_id, $plan->started_at, $plan->ended_at);
-                //     }
-                // }
-                // return true;
             } else {
                 $plan = ProductsPlan::find($post['plan_product_id']);
             }
@@ -90,23 +61,25 @@ class ProductsPlanController extends Controller
 
             $this->checkPlans($plan->line_id, $plan->plan_product_id, $post['started_at'], $post['ended_at']);
             
-            if (isset($post['delay']) && isset($post['packs']) && $post['plan_product_id'] == null) {
-                $timeZone = new \DateTimeZone('Europe/Moscow');
+            if (isset($post['delay']) && isset($post['packs'])) {
+                    print_r('PACKS');
+
                 foreach ($post['packs'] as $pack) {
                     $plan = ProductsPlan::where('slot_id', '=', $pack)->first();
                     if (!$plan) {
                         $plan = new ProductsPlan();
                     }
                     $slot = ProductsSlots::find($pack)->toArray();
+                    $plan->date = $date;
                     $plan->product_id = $slot['product_id'];
                     $plan->line_id = $slot['line_id'];
                     $plan->slot_id = $slot['product_slot_id'];
                     $plan->workers_count = $slot['people_count'];
                     $plan->hardware = $post['hardware'];
                     $plan->type_id = 2;
-                    $start = new \DateTime($post['ended_at'], $timeZone);
+                    $start = new \DateTime($post['ended_at']);
                     $start->add(new \DateInterval('PT' . $post['delay'] . 'M'));
-                    $plan->started_at = $start->format('H:i:s');
+                    $plan->started_at = strval($start->format('H:i:s'));
                     $duration = ceil($post['amount'] / ($slot['perfomance'] ? $slot['perfomance'] : 1) * 60);
                     $start->add(new \DateInterval('PT' . $duration . 'M'));
                     $start->add(new \DateInterval('PT15M'));        // 15 минут на упаковку
@@ -114,14 +87,16 @@ class ProductsPlanController extends Controller
                     $plan->amount = $post['amount'];
                     $plan->save();
 
-                    $this->checkPackPlans($plan->line_id, $plan->plan_product_id, $post['started_at'], $post['ended_at']);
+                    var_dump('Pack check. Current params:' . $plan->started_at . ', ' . $plan->ended_at);
+                    // var_dump($plan->toArray());
+                    $this->checkPlans($plan->line_id, $plan->plan_product_id, $plan->started_at, $plan->ended_at);
                     // Добавка про 15 минут и проверка на конфликты каждый раз
                     // Узнать у натальи, ставим ли мы упааковку после текущей или вместо (скорее всего первое)
                     //}
                 }
             }
-            $plans = ProductsPlan::where('line_id', '=', $post['line_id'])
-                ->where('date', session('date') ?? (new \DateTime('now', $timeZone))->format('Y-m-d'))
+            $plans = ProductsPlan::where('line_id', '=', $plan->line_id)
+                ->where('date', session('date') ?? (new \DateTime('now'))->format('Y-m-d'))
                 ->orderBy('started_at', 'ASC')
                 ->get()
                 ->toArray();
@@ -134,66 +109,123 @@ class ProductsPlanController extends Controller
         }
     }
 
-    public function checkPlans($line_id, $prod_id, $start, $end)
-    {
+    // public function checkPlans($line_id, $prod_id, $start, $end)
+    // {
+    //     $date = session('date') ?? (new \DateTime())->format('Y-m-d');
+    //     // Получаем планы, которые внутри нового
+    //     $plans = ProductsPlan::where('line_id', '=', $line_id)
+    //     ->where('plan_product_id', '!=', $prod_id)
+    //         ->where('ended_at', '>=', $start)
+    //         ->where('date', $date)
+    //         ->where('date', $date)
+    //         ->where('started_at', '<=', $start)
+    //         ->where('ended_at', '>=', $start)
+    //         ->orderBy('started_at', 'ASC')
+    //         ->get()
+    //         ->toArray();
+    //     if (count($plans) > 1) {
+    //         $timeZone = new \DateTimeZone('Europe/Moscow'); 
+    //         $plans = array_filter($plans, function ($item) use ($prod_id) {
+    //             return $item['plan_product_id'] != $prod_id;
+    //         });
+    //         $planOne = $plans[0];
+    //         // Если есть, то ставим новую ГП после той, внутрь которой попадаем и ставим новые ГП
+    //         $diff = Carbon::parse($planOne['ended_at'], $timeZone)->diffInMinutes(Carbon::parse($start, $timeZone));
+    //         $pl = ProductsPlan::where('plan_product_id', '=', $prod_id)->first();
+    //         $pl->started_at = $planOne['ended_at'];
+    //         $pl->ended_at = Carbon::parse($end, $timeZone)->addMinutes($diff)->format('H:i:s');
+    //         $pl->save();
+    //         $plans = ProductsPlan::where('line_id', '=', $line_id)
+    //             ->where('started_at', '>=', $start)
+    //             ->where('date', $date)
+    //             ->where('plan_product_id', '!=', $prod_id)
+    //             ->orderBy('started_at', 'ASC')
+    //             ->get();
+    //         $end = $pl->ended_at;
+    //         foreach ($plans as $plan) {
+    //             // Те, которые надо сдвинуть
+    //             $plan->started_at = $end;
+    //             $end = Carbon::parse($plan->ended_at, $timeZone)->addMinutes($diff)->format('H:i:s');
+    //             $plan->ended_at = $end;
+    //             $plan->save();
+    //         }
+    //     }
+    // }
+
+    // public function checkPackPlans($line_id, $prod_id, $start, $end)
+    // {
+    //     ///??????
+    //     $date = session('date') ?? (new \DateTime())->format('Y-m-d');
+    //     $timeZone = new \DateTimeZone('Europe/Moscow');
+    //     // Проверка - залезаем ли мы началом новой ГП на окончание предыдущей
+    //     $plans = ProductsPlan::where('line_id', '=', $line_id)
+    //         ->where('plan_product_id', '!=', $prod_id)
+    //         ->where('ended_at', '>=', $start)
+    //         ->where('date', $date)
+    //         ->orderBy('ended_at', 'DESC')
+    //         ->first();
+    //     if ($plans) {
+    //         $plan = ProductsPlan::where('plan_product_id', '=', $prod_id)->where('date', '=', $date)->first();
+    //         // Если такая есть, то считаем, сколько минут идёт перекрытие
+    //         $diff = Carbon::parse($plan->started_at, $timeZone)->diff(Carbon::parse($lastPlan->ended_at, $timeZone));
+    //         $plan->started_at = $lastPlan->ended_at;
+    //         $plan->ended_at = Carbon::parse($plan->started_at, $timeZone)->addMinutes($diff)->format('H:i:s');
+    //         $plan->save();
+    //     }
+    // }
+
+    public function checkPlans($line_id, $prod_id, $start, $end) {
         $date = session('date') ?? (new \DateTime())->format('Y-m-d');
-        // Получаем планы, которые внутри нового
-        $plans = ProductsPlan::where('line_id', '=', $line_id)
-            ->where('date', $date)
-            ->where('started_at', '<=', $start)
+        // $timeZone = new \DateTimeZone('Europe/Moscow');
+        // Проверка - залезаем ли мы началом новой ГП на окончание предыдущей
+        $upPlan = ProductsPlan::where('line_id', '=', $line_id)
+            ->where('plan_product_id', '!=', $prod_id)
             ->where('ended_at', '>=', $start)
+            ->where('started_at', '<=', $start) 
+            ->where('date', $date)
             ->orderBy('started_at', 'ASC')
-            ->get()
-            ->toArray();
-        if (count($plans) > 1) {
-            $timeZone = new \DateTimeZone('Europe/Moscow'); 
-            $plans = array_filter($plans, function ($item) use ($prod_id) {
-                return $item['plan_product_id'] != $prod_id;
-            });
-            $planOne = $plans[0];
-            // Если есть, то ставим новую ГП после той, внутрь которой попадаем и ставим новые ГП
-            $diff = Carbon::parse($planOne['ended_at'], $timeZone)->diffInMinutes(Carbon::parse($start, $timeZone));
-            $pl = ProductsPlan::where('plan_product_id', '=', $prod_id)->first();
-            $pl->started_at = $planOne['ended_at'];
-            $pl->ended_at = Carbon::parse($end, $timeZone)->addMinutes($diff)->format('H:i:s');
-            $pl->save();
-            $plans = ProductsPlan::where('line_id', '=', $line_id)
-                ->where('started_at', '>=', $start)
-                ->where('date', $date)
-                ->where('plan_product_id', '!=', $prod_id)
-                ->orderBy('started_at', 'ASC')
-                ->get();
-            $end = $pl->ended_at;
-            foreach ($plans as $plan) {
-                // Те, которые надо сдвинуть
-                $plan->started_at = $end;
-                $end = Carbon::parse($plan->ended_at, $timeZone)->addMinutes($diff)->format('H:i:s');
-                $plan->ended_at = $end;
-                $plan->save();
+            ->first();
+        // Проверка - залезаем ли мы концом новой ГП на начало следующей
+        $downPlan = ProductsPlan::where('line_id', '=', $line_id)
+            ->where('plan_product_id', '!=', $prod_id)
+            ->where('started_at', '>=', $end)
+            ->where('ended_at', '<=', $end)
+            ->where('date', $date)
+            ->orderBy('started_at', 'ASC')
+            ->first();
+
+
+        if ($upPlan || $downPlan) {
+            $topShift = $upPlan ? abs(Carbon::parse($upPlan->ended_at)->diffInMinutes(Carbon::parse($start))) : 0;
+            $downShift = $downPlan ? abs(Carbon::parse($end)->diffInMinutes(Carbon::parse($downPlan->started_at))) : 0;
+            var_dump("SHIFTs: " . $topShift . ', ' . $downShift);
+            $shift = $topShift + $downShift;
+            if ($shift != 0) {
+                $s1 =  Carbon::parse($start)->addMinutes($shift)->format('H:i:s');
+                $s2 =  Carbon::parse($end)->addMinutes($shift)->format('H:i:s');
+                // var_dump('CHANGES:',$start,$s1, $end, $s2, $topShift, $downShift);
+                $plan = ProductsPlan::where('plan_product_id', $prod_id)
+                    ->where('date', $date)
+                    ->where('line_id', $line_id)
+                    ->first();
+                var_dump($start, $plan->started_at, $end, $plan->ended_at);
+                $plan->update([
+                    'started_at' => Carbon::parse($start)->addMinutes($topShift)->format('H:i:s'),
+                    'ended_at' => Carbon::parse($end)->addMinutes($topShift)->format('H:i:s')
+                ]);
+
+                ProductsPlan::where('line_id', '=', $line_id)
+                    ->where('plan_product_id', '!=', $prod_id)
+                    ->where('started_at', '>=', $start)
+                    ->where('date', $date)
+                    ->each(function($p) use($shift) {
+                        $p->started_at = Carbon::parse($p->started_at)->addMinutes($shift)->format('H:i:s');
+                        $p->ended_at = Carbon::parse($p->ended_at)->addMinutes($shift)->format('H:i:s');
+                        $p->save();
+                    });
             }
         }
     }
-
-    public function checkPackPlans($line_id, $prod_id, $start, $end)
-    {
-        ///??????
-        $date = session('date') ?? (new \DateTime())->format('Y-m-d');
-        $timeZone = new \DateTimeZone('Europe/Moscow');
-        $lastPlan = ProductsPlan::where('line_id', '=', $line_id)
-            ->where('plan_product_id', '!=', $prod_id)
-            ->where('ended_at', '>=', $start)
-            ->where('date', $date)
-            ->orderBy('ended_at', 'DESC')
-            ->first();
-        if ($lastPlan) {
-            $plan = ProductsPlan::where('plan_product_id', '=', $prod_id)->first();
-            $diff = Carbon::parse($plan->started_at, $timeZone)->diff(Carbon::parse($lastPlan->ended_at, $timeZone));
-            $plan->started_at = $lastPlan->ended_at;
-            $plan->ended_at = Carbon::parse($plan->started_at, $timeZone)->addMinutes($diff)->format('H:i:s');
-            $plan->save();
-        }
-    }
-
     public function delPlan(Request $request)
     {
         $plan = ProductsPlan::find($request->post('product_plan_id'));
