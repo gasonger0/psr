@@ -196,19 +196,14 @@ class ProductsPlanController extends Controller
 
 
         if ($upPlan || $downPlan) {
-            $topShift = $upPlan ? abs(Carbon::parse($upPlan->ended_at)->diffInMinutes(Carbon::parse($start))) : 0;
-            $downShift = $downPlan ? abs(Carbon::parse($end)->diffInMinutes(Carbon::parse($downPlan->started_at))) : 0;
-            var_dump("SHIFTs: " . $topShift . ', ' . $downShift);
+            $topShift = $upPlan ? Carbon::parse($start)->diffInMinutes(Carbon::parse($upPlan->ended_at)) : 0;
+            $downShift = $downPlan ? Carbon::parse($downPlan->started_at)->diffInMinutes(Carbon::parse($end)) : 0;
             $shift = $topShift + $downShift;
             if ($shift != 0) {
-                $s1 =  Carbon::parse($start)->addMinutes($shift)->format('H:i:s');
-                $s2 =  Carbon::parse($end)->addMinutes($shift)->format('H:i:s');
-                // var_dump('CHANGES:',$start,$s1, $end, $s2, $topShift, $downShift);
                 $plan = ProductsPlan::where('plan_product_id', $prod_id)
                     ->where('date', $date)
                     ->where('line_id', $line_id)
                     ->first();
-                var_dump($start, $plan->started_at, $end, $plan->ended_at);
                 $plan->update([
                     'started_at' => Carbon::parse($start)->addMinutes($topShift)->format('H:i:s'),
                     'ended_at' => Carbon::parse($end)->addMinutes($topShift)->format('H:i:s')
