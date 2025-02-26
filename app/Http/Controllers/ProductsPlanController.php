@@ -253,7 +253,7 @@ class ProductsPlanController extends Controller
                 if ($packs) {
                     foreach ($packs as $pack) {
                         $start_diff = Carbon::parse($pack->started_at)->diffInMinutes(Carbon::parse($old_start));
-                        $duration = Carbon::parse($pack->ended_at)->diffInMinutes(Carbon::parse($pack->started_at));
+                        $duration = abs(Carbon::parse($pack->ended_at)->diffInMinutes(Carbon::parse($pack->started_at)));
                         $pack->started_at = Carbon::parse($pack->started_at)->addMinutes($start_diff)->format('H:i:s');
                         $pack->ended_at = Carbon::parse($pack->started_at)->addMinutes($duration)->format('H:i:s');
                         $pack->save();
