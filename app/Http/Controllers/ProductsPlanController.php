@@ -62,7 +62,6 @@ class ProductsPlanController extends Controller
             $this->checkPlans($plan->line_id, $plan->plan_product_id, $post['started_at'], $post['ended_at']);
             
             if (isset($post['delay']) && isset($post['packs'])) {
-                    print_r('PACKS');
 
                 foreach ($post['packs'] as $pack) {
                     $plan = ProductsPlan::where('slot_id', '=', $pack)->first();
@@ -77,10 +76,10 @@ class ProductsPlanController extends Controller
                     $plan->workers_count = $slot['people_count'];
                     $plan->hardware = $post['hardware'];
                     $plan->type_id = 2;
-                    $start = new \DateTime($post['ended_at']);
+                    $start = new \DateTime($post['started_at']);
                     $start->add(new \DateInterval('PT' . $post['delay'] . 'M'));
                     $plan->started_at = strval($start->format('H:i:s'));
-                    $duration = ceil($post['amount'] / ($slot['perfomance'] ? $slot['perfomance'] : 1) * 60);
+                    $duration = ceil($post['amount'] * eval($slot['parts2kg']) * eval($slot['amount2parts']) / ($slot['perfomance'] ? $slot['perfomance'] : 1) * 60);
                     $start->add(new \DateInterval('PT' . $duration . 'M'));
                     $start->add(new \DateInterval('PT15M'));        // 15 минут на упаковку
                     $plan->ended_at = $start->format('H:i:s');
@@ -246,8 +245,21 @@ class ProductsPlanController extends Controller
             foreach ($data as $item) {
                 $id = $item['plan_product_id'];
                 unset($item['plan_product_id']);
-                // var_dump($item);
-                ProductsPlan::where('plan_product_id', '=', $id)->get()->first()->update($item);
+                $prod = ProductsPlan::where('plan_product_id', '=', $id)->get()->first();
+                $old_start = $prod->started_at;
+                $prod->update($item);
+                self::checkPlans($prod->line_id, $prod->plan_product_id, $prod->started_at, $prod->ended_at);
+                $packs = ProductsPlan::where('product_id', '=', $prod->product_id)->where('type_id', '=', 2)->get();
+                if ($packs) {
+                    foreach ($packs as $pack) {
+                        $start_diff = Carbon::parse($pack->started_at)->diffInMinutes(Carbon::parse($old_start));
+                        $duration = Carbon::parse($pack->ended_at)->diffInMinutes(Carbon::parse($pack->started_at));
+                        $pack->started_at = Carbon::parse($pack->started_at)->addMinutes($start_diff)->format('H:i:s');
+                        $pack->ended_at = Carbon::parse($pack->started_at)->addMinutes($duration)->format('H:i:s');
+                        $pack->save();
+                        self::checkPlans($pack->line_id, $pack->plan_product_id, $pack->started_at, $pack->ended_at);
+                    }
+                }
             }
         }
     }
