@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\LinesExtra;
 use App\Models\ProductsPlan;
 use App\Models\ProductsSlots;
+use App\Models\ProductsDictionary;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -69,6 +70,7 @@ class ProductsPlanController extends Controller
                         $plan = new ProductsPlan();
                     }
                     $slot = ProductsSlots::find($pack)->toArray();
+		            $product = ProductsDictionary::where('product_id', '=', $slot['product_id'])->first();
                     $plan->date = $date;
                     $plan->product_id = $slot['product_id'];
                     $plan->line_id = $slot['line_id'];
@@ -79,7 +81,7 @@ class ProductsPlanController extends Controller
                     $start = new \DateTime($post['started_at']);
                     $start->add(new \DateInterval('PT' . $post['delay'] . 'M'));
                     $plan->started_at = strval($start->format('H:i:s'));
-                    $duration = ceil($post['amount'] * eval($slot['parts2kg']) * eval($slot['amount2parts']) / ($slot['perfomance'] ? $slot['perfomance'] : 1) * 60);
+                    $duration = ceil($post['amount'] * eval("return " . $product['parts2kg'] . ";") * eval("return " . $product['amount2parts'] . ";") / ($slot['perfomance'] ? $slot['perfomance'] : 1) * 60);
                     $start->add(new \DateInterval('PT' . $duration . 'M'));
                     $start->add(new \DateInterval('PT15M'));        // 15 минут на упаковку
                     $plan->ended_at = $start->format('H:i:s');
