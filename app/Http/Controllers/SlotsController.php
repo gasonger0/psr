@@ -255,6 +255,8 @@ class SlotsController extends Controller
             // var_dump($mergeRange);
             $i+=2;
         }
-        $file->downloadAs('График.xlsx');
+        $date = session('date') ?? (new \DateTime())->format('Y-m-d');
+        $name = 'График_' . date('d_m_Y', strtotime($date)) . '.xlsx';
+        $file->downloadAs($name);
     }
 }

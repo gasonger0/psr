@@ -7,6 +7,7 @@ use App\Models\ProductsPlan;
 use App\Models\ProductsSlots;
 use App\Models\ProductsDictionary;
 use Carbon\Carbon;
+use Date;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -49,6 +50,7 @@ class ProductsPlanController extends Controller
             } else {
                 $plan = ProductsPlan::find($post['plan_product_id']);
             }
+            $oldAm = $plan->amount;
             $plan->started_at = $post['started_at'];
             $plan->ended_at = $post['ended_at'];
             $plan->amount = $post['amount'];
@@ -61,7 +63,22 @@ class ProductsPlanController extends Controller
             $plan->save();
 
             $this->checkPlans($plan->line_id, $plan->plan_product_id, $post['started_at'], $post['ended_at']);
-            
+            if (!isset($post['delay']) || !$post['delay']) {
+                ProductsPlan::where('product_id', '=', $plan->product_id)
+                    ->where('type_id', '=', 2)
+                    ->where('date', $date)
+                    ->where('amount', $oldAm)
+                    ->each(function($p) use($post) {
+                        $p->amount = $post['amount'];
+                        $prod = ProductsDictionary::where('product_id', '=', $p->product_id)->first();
+                        $duration = ceil($post['amount'] * eval("return " . $prod['parts2kg'] . ";") * eval("return " . $prod['amount2parts'] . ";") / ($p->perfomance ? $p->perfomance : 1) * 60);
+                        $p->started_at = new DateTime($post['started_at']);
+                        $p->ended_at = new DateTime($post['started_at'])->add(new \DateInterval('PT' . $duration . 'M'))->add(new \DateInterval('PT15M'))->format('H:i:s');
+                        $p->save();
+                        ProductsPlanController::checkPlans($p->line_id, $p->plan_product_id, $p->started_at, $p->ended_at);
+                    });
+            }
+
             if (isset($post['delay']) && isset($post['packs'])) {
 
                 foreach ($post['packs'] as $pack) {
@@ -175,7 +192,7 @@ class ProductsPlanController extends Controller
     //     }
     // }
 
-    public function checkPlans($line_id, $prod_id, $start, $end) {
+    public static function checkPlans($line_id, $prod_id, $start, $end) {
         $date = session('date') ?? (new \DateTime())->format('Y-m-d');
         // $timeZone = new \DateTimeZone('Europe/Moscow');
         // Проверка - залезаем ли мы началом новой ГП на окончание предыдущей

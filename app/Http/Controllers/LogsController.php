@@ -89,7 +89,7 @@ class LogsController extends Controller
                         $diff = abs($newTime->diffInHours(Carbon::createFromFormat('H:i:s', $oldTime)));
 
                         $comps = Workers::whereIn('worker_id', explode(',', $f[$i]['workers']))->get(['worker_id','company']);
-                        if ($comps) {
+                        if (count($comps)>0) {
                             $buf = [];
                             foreach ($comps as $comp) {
                                 if (!isset($buf[$line_id])) $buf[$line_id] = [];
@@ -115,10 +115,12 @@ class LogsController extends Controller
                     $diff = abs($newTime->diffInHours($oldTime));
 
                     $comps = Workers::whereIn('worker_id', explode(',',$f[$i]['workers']))->get('company');
-                    if($comps){
+                    if(count($comps)>0){
                         $buf = [];
                         foreach ($comps as $comp) {
-                            if (!isset($buf[$line_id])) $buf[$line_id] = [];
+                            if (!isset($buf[$line_id])) {
+                                $buf[$line_id] = [];
+                            }
                             if (isset($buf[$line_id][$comp->company])) {
                                 $buf[$line_id][$comp->company] += 1;
                             } else {
@@ -152,7 +154,8 @@ class LogsController extends Controller
             }
         }
         $xlsx = SimpleXLSXGen::fromArray($columns);
-        $name = 'Простои_' . date('d_m_Y-H:i:s', time()) . '.xlsx';
+        $date = session('date') ?? (new \DateTime())->format('Y-m-d');
+        $name = 'Простои_' . date('d_m_Y', strtotime($date)) . '.xlsx';
         $xlsx->downloadAs($name);
         // return $name;
     }

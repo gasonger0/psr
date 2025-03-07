@@ -450,9 +450,13 @@ export default {
             fd.append('new_line_id', line_id);
             fd.append('worker_id', worker_id);
             fd.append('old_line_id', worker.current_line_id);
+            let oldLine = worker.current_line_id;
             axios.post('/api/change_slot', fd)
                 .then(async (response) => {
                     this.lines.find((el) => el.line_id == line_id).count_current += 1;
+                    if (oldLine != line_id && oldLine > 0) {
+                        this.lines.find((el) => el.line_id == oldLine).count_current -= 1;
+                    }
                     this.getSlots();
                     this.processData();
                     this.$emit('data-recieved', this.$data);

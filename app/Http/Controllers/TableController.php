@@ -438,7 +438,7 @@ class TableController extends Controller
             $responsibles[$f['responsible_id']] = $f['title'];
         }
 
-        $lines = json_decode(LinesController::getList());
+        $lines = json_decode(LinesController::getList(), true);
         $lines = array_filter($lines, function ($el) use ($linesFromPlans) {
             return in_array($el['line_id'], $linesFromPlans);
         });
@@ -641,6 +641,8 @@ class TableController extends Controller
                     's' => [0, 0],
                     'k' => [0, 0]
                 ];
+
+                $array[] = [];
             }
 
             if($sheet == 1) {
@@ -719,9 +721,9 @@ class TableController extends Controller
             ->mergeCells('R4:AB4')
             ->mergeCells('AC4:AC6')
             ->mergeCells('M5:N5');
-        ;
-
-        $name = 'План_' . date('d_m_Y', time()) . '.xlsx';
+        
+        $date = session('date') ?? (new \DateTime())->format('Y-m-d');
+        $name = 'План_' . date('d_m_Y', strtotime($date)) . '.xlsx';
         $xlsx->downloadAs($name);
 
         // return $name;
