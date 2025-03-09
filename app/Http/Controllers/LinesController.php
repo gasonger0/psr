@@ -37,9 +37,9 @@ class LinesController extends Controller
 
         $line->type_id = $array['type_id'];
         $line->save();
-        LinesExtraController::add($line->line_id, 
-            array_merge($array, self::getDefaults($line->line_id))
-        );
+        $data = array_merge($array, self::getDefaults($line->line_id));
+        print_r($data);
+        LinesExtraController::add($line->line_id, $data);
         return $line->line_id;
     }
 
