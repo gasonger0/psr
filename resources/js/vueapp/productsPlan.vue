@@ -519,12 +519,14 @@ export default {
                     }, 0);
                     this.lines.forEach(el => {
                         let items = this.plans.filter(i => i.line_id == el.line_id);
+                        if(items.length > 0) {
                         let positions = items.map(i => i.position);
                         let minPos = Math.min(...positions);
                         let maxPos = Math.max(...positions);
                         console.log(minPos, maxPos, items);
                         el.time[0] = dayjs(items.find(i => i.position == minPos).started_at, 'HH:mm:ss');
                         el.time[1] = dayjs(items.find(i => i.position == maxPos).ended_at, 'HH:mm:ss');
+                        }
                     });
                     this.$emit('getBoils', sum.toFixed(2));
                     this.showLoader = false;
