@@ -5,10 +5,11 @@ import axios from 'axios';
 import Loading from './loading.vue';
 import dayjs from 'dayjs';
 import { ColorPicker } from 'vue-color-kit';
-import 'vue-color-kit/dist/vue-color-kit.css'
+import 'vue-color-kit/dist/vue-color-kit.css';
 import { ForwardOutlined, LoginOutlined, PlusCircleOutlined, StopOutlined, InfoCircleOutlined, UserDeleteOutlined, UserSwitchOutlined, UserAddOutlined, RightOutlined, LeftOutlined, PrinterOutlined } from '@ant-design/icons-vue';
 </script>
 <script>
+dayjs.locale('ru-ru');
 export default {
     data() {
         return {

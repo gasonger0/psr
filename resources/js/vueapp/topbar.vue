@@ -7,6 +7,7 @@ import locale from 'ant-design-vue/es/date-picker/locale/ru_RU';
 import axios from 'axios';
 </script>
 <script>
+dayjs.locale('ru-ru');
 export default {
     props: {
         boils: {

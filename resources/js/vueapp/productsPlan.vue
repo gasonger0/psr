@@ -301,6 +301,8 @@ export default {
                             // console.log(endTime);
                             endTime = endTime.add(this.active.line.prep_time, 'minute');
                             this.active.showError = (endTime.format('HH:mm') < this.active.ended_at.format('HH:mm'));
+                            let children = Array.from(ev.target.parentNode.children);
+                            this.active.position = children.indexOf(ev.target);
                             this.confirmPlanOpen = true;
                         }
                     } else {
@@ -325,13 +327,15 @@ export default {
                                 }
                                 cards[i].ended_at = dayjs(cards[i].started_at, 'HH:mm:ss').add(timeDiff, 'minutes').format('HH:mm:ss');
                             }
+                            let index = children.indexOf(ev.target);
                             this.showLoader = true;
                             axios.post('/api/change_plan', 
                                 cards.map(el => {
                                     return {
                                         plan_product_id: el.plan_product_id,
                                         started_at: el.started_at,
-                                        ended_at: el.ended_at
+                                        ended_at: el.ended_at,
+                                        position: index
                                     }
                                 })
                             ).then(response => {
@@ -491,7 +495,8 @@ export default {
                         colon: this.active.colon,
                         hardware: this.active.hardware,
                         packs: this.active.packs,
-                        delay: this.active.packTime
+                        delay: this.active.packTime,
+                        position: this.active.position
                     }
                 ).then(async () => {
                     // this.active = ref({});
@@ -512,6 +517,14 @@ export default {
                         }
                         return accumulator;
                     }, 0);
+                    this.lines.forEach(el => {
+                        let items = this.plans.filter(i => i.line_id == el.line_id);
+                        let positions = items.map(i => i.position);
+                        let minPos = Math.min(...positions);
+                        let maxPos = Math.max(...positions);
+                        el.time[0] = dayjs(items.find(i => i.position == minPos).started_at, 'HH:mm:ss');
+                        el.time[1] = dayjs(items.find(i => i.position == maxPos).ended_at, 'HH:mm:ss');
+                    });
                     this.$emit('getBoils', sum.toFixed(2));
                     this.showLoader = false;
                 });
@@ -574,9 +587,9 @@ export default {
         filterPlans(line_id) {
             let a = this.plans.filter(el => el.line_id == line_id)
                 .sort((a, b) => {
-                    if (a.started_at == b.started_at) {
+                    if (a.position == b.position) {
                         return 0;
-                    } else if (a.started_at < b.started_at) {
+                    } else if (a.position < b.position) {
                         return -1;
                     } else {
                         return 1;

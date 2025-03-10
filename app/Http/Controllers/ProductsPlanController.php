@@ -13,9 +13,9 @@ use Illuminate\Support\Facades\DB;
 
 class ProductsPlanController extends Controller
 {
-    static public function getAll() {
-        return ProductsPlan::all()->toJson();
-    }
+    // static public function getAll() {
+    //     return ProductsPlan::all()->toJson();
+    // }
     static public function getList(Request $request)
     {
         $date = session('date') ?? (new \DateTime())->format('Y-m-d');
@@ -56,6 +56,7 @@ class ProductsPlanController extends Controller
             $plan->amount = $post['amount'];
             $plan->date = $date;
             $plan->hardware = isset($post['hardware']) ? $post['hardware'] : 0;
+            $plan->position = isset($post['position']) ? $post['position'] : 1;
 
             if (isset($post['colon'])) {
                 $plan->colon = is_array($post['colon']) ? implode(';', $post['colon']) : $post['colon'];
@@ -75,7 +76,7 @@ class ProductsPlanController extends Controller
                         $p->started_at = new DateTime($post['started_at']);
                         $p->ended_at = new DateTime($post['started_at'])->add(new \DateInterval('PT' . $duration . 'M'))->add(new \DateInterval('PT15M'))->format('H:i:s');
                         $p->save();
-                        ProductsPlanController::checkPlans($p->line_id, $p->plan_product_id, $p->started_at, $p->ended_at);
+                        ProductsPlanController::checkPlans($p->line_id, $p->plan_product_id, $p->started_at, $p->ended_at, $p->position);
                     });
             }
 
@@ -192,7 +193,7 @@ class ProductsPlanController extends Controller
     //     }
     // }
 
-    public static function checkPlans($line_id, $prod_id, $start, $end) {
+    public static function checkPlans($line_id, $prod_id, $start, $end, $position = null) {
         $date = session('date') ?? (new \DateTime())->format('Y-m-d');
         // $timeZone = new \DateTimeZone('Europe/Moscow');
         // Проверка - залезаем ли мы началом новой ГП на окончание предыдущей
@@ -200,6 +201,7 @@ class ProductsPlanController extends Controller
             ->where('plan_product_id', '!=', $prod_id)
             ->where('ended_at', '>=', $start)
             ->where('started_at', '<=', $start) 
+            ->where('postion', '<=', $position)
             ->where('date', $date)
             ->orderBy('started_at', 'ASC')
             ->first();
@@ -208,6 +210,7 @@ class ProductsPlanController extends Controller
             ->where('plan_product_id', '!=', $prod_id)
             ->where('started_at', '>=', $end)
             ->where('ended_at', '<=', $end)
+            ->where('postion', '>=', $position)
             ->where('date', $date)
             ->orderBy('started_at', 'ASC')
             ->first();
@@ -230,10 +233,12 @@ class ProductsPlanController extends Controller
                 ProductsPlan::where('line_id', '=', $line_id)
                     ->where('plan_product_id', '!=', $prod_id)
                     ->where('started_at', '>=', $start)
+                    ->where('position', '>=', $position)
                     ->where('date', $date)
                     ->each(function($p) use($shift) {
                         $p->started_at = Carbon::parse($p->started_at)->addMinutes($shift)->format('H:i:s');
                         $p->ended_at = Carbon::parse($p->ended_at)->addMinutes($shift)->format('H:i:s');
+                        $p->position += 1;
                         $p->save();
                     });
             }
@@ -267,7 +272,7 @@ class ProductsPlanController extends Controller
                 $prod = ProductsPlan::where('plan_product_id', '=', $id)->get()->first();
                 $old_start = $prod->started_at;
                 $prod->update($item);
-                self::checkPlans($prod->line_id, $prod->plan_product_id, $prod->started_at, $prod->ended_at);
+                self::checkPlans($prod->line_id, $prod->plan_product_id, $prod->started_at, $prod->ended_at,$data['position']);
                 $packs = ProductsPlan::where('product_id', '=', $prod->product_id)->where('type_id', '=', 2)->get();
                 if ($packs) {
                     foreach ($packs as $pack) {

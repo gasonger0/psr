@@ -577,9 +577,9 @@ class TableController extends Controller
                         } else if (mb_strpos(mb_strtolower($product['title']), 'суфле') !== false) {
                             $sum['s'][0] += $kg;
                             $sum['s'][1] += $boils;
-                        } else if (mb_strpos(mb_strtolower($product['title']), 'конфеты') !== false) {
+                        } else if (mb_strpos(mb_strtolower($product['title']), 'конфет') !== false) {
                             $sum['k'][0] += $kg;
-                            $sum['k'][0] += $boils;
+                            $sum['k'][1] += $boils;
                         } else {
                             // Если не сработал ни один паттерн, считаем, что это зефир
                             $sum['z'][0] += $kg;
