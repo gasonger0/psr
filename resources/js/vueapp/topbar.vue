@@ -21,6 +21,7 @@ export default {
         return {
             uploadedFile: ref(null),
             date: dayjs(new Date(sessionStorage.getItem('date'))),
+            planMode: sessionStorage.getItem('planMode'),
             boardMode: this.$props.boardMode
         }
     },
@@ -99,7 +100,8 @@ export default {
         updatesession(obj, datestring) {
             let date = dayjs(obj).format('YYYY-MM-DD');
             axios.post('/api/update_session', {
-                date: date
+                date: date,
+                // planMode: this.planMode
             }).then(response => {
                 if (response) {
                     sessionStorage.setItem('date', date);
@@ -210,6 +212,9 @@ export default {
         </div>
         <div>
             <DatePicker v-model:value="date" format="DD.MM.YYYY" mode="date" @change="updatesession" :locale="locale" />
+            <!-- <Switch v-model:checked="planMode" checked-children="Ночь" 
+                un-checked-children="День" 
+                @change="updatesession" /> -->
             <!-- <span style="height:fit-content;font-size: 18px;font-weight: 600;">{{ date }}</span> -->
             <img src="./logo.png" alt="" style="height:32px;">
         </div>

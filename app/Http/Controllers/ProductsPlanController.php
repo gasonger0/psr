@@ -194,7 +194,7 @@ class ProductsPlanController extends Controller
     // }
 
     public static function checkPlans($line_id, $prod_id, $start, $end, $position = null) {
-        $position = $position ?? 1;
+        // $position = $position ?? 1;
         $date = session('date') ?? (new \DateTime())->format('Y-m-d');
         // $timeZone = new \DateTimeZone('Europe/Moscow');
         // Проверка - залезаем ли мы началом новой ГП на окончание предыдущей
@@ -202,7 +202,9 @@ class ProductsPlanController extends Controller
             ->where('plan_product_id', '!=', $prod_id)
             ->where('ended_at', '>=', $start)
             ->where('started_at', '<=', $start) 
-            ->where('position', '<=', $position)
+            ->when($position !== null, function ($query) use ($position) {
+                $query->where('position', '<=', $position);
+            })
             ->where('date', $date)
             ->orderBy('started_at', 'ASC')
             ->first();
@@ -211,7 +213,9 @@ class ProductsPlanController extends Controller
             ->where('plan_product_id', '!=', $prod_id)
             ->where('started_at', '>=', $end)
             ->where('ended_at', '<=', $end)
-            ->where('postion', '>=', $position)
+            ->when($position !== null, function ($query) use ($position) {
+                $query->where('position', '<=', $position);
+            })
             ->where('date', $date)
             ->orderBy('started_at', 'ASC')
             ->first();
