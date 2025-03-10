@@ -63,7 +63,7 @@ class ProductsPlanController extends Controller
             }
             $plan->save();
 
-            $this->checkPlans($plan->line_id, $plan->plan_product_id, $post['started_at'], $post['ended_at']);
+            $this->checkPlans($plan->line_id, $plan->plan_product_id, $post['started_at'], $post['ended_at'], $post['position']);
             if (!isset($post['delay']) || !$post['delay']) {
                 ProductsPlan::where('product_id', '=', $plan->product_id)
                     ->where('type_id', '=', 2)
@@ -74,7 +74,7 @@ class ProductsPlanController extends Controller
                         $prod = ProductsDictionary::where('product_id', '=', $p->product_id)->first();
                         $duration = ceil($post['amount'] * eval("return " . $prod['parts2kg'] . ";") * eval("return " . $prod['amount2parts'] . ";") / ($p->perfomance ? $p->perfomance : 1) * 60);
                         $p->started_at = new DateTime($post['started_at']);
-                        $p->ended_at = new DateTime($post['started_at'])->add(new \DateInterval('PT' . $duration . 'M'))->add(new \DateInterval('PT15M'))->format('H:i:s');
+                        $p->ended_at = (new DateTime($post['started_at']))->add(new \DateInterval('PT' . $duration . 'M'))->add(new \DateInterval('PT15M'))->format('H:i:s');
                         $p->save();
                         ProductsPlanController::checkPlans($p->line_id, $p->plan_product_id, $p->started_at, $p->ended_at, $p->position);
                     });
@@ -194,6 +194,7 @@ class ProductsPlanController extends Controller
     // }
 
     public static function checkPlans($line_id, $prod_id, $start, $end, $position = null) {
+        $position = $position ?? 1;
         $date = session('date') ?? (new \DateTime())->format('Y-m-d');
         // $timeZone = new \DateTimeZone('Europe/Moscow');
         // Проверка - залезаем ли мы началом новой ГП на окончание предыдущей
@@ -201,7 +202,7 @@ class ProductsPlanController extends Controller
             ->where('plan_product_id', '!=', $prod_id)
             ->where('ended_at', '>=', $start)
             ->where('started_at', '<=', $start) 
-            ->where('postion', '<=', $position)
+            ->where('position', '<=', $position)
             ->where('date', $date)
             ->orderBy('started_at', 'ASC')
             ->first();
@@ -281,7 +282,7 @@ class ProductsPlanController extends Controller
                         $pack->started_at = Carbon::parse($pack->started_at)->addMinutes($start_diff)->format('H:i:s');
                         $pack->ended_at = Carbon::parse($pack->started_at)->addMinutes($duration)->format('H:i:s');
                         $pack->save();
-                        self::checkPlans($pack->line_id, $pack->plan_product_id, $pack->started_at, $pack->ended_at);
+                        self::checkPlans($pack->line_id, $pack->plan_product_id, $pack->started_at, $pack->ended_at, $pack->position);
                     }
                 }
             }

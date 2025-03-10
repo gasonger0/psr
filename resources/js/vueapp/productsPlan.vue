@@ -522,6 +522,7 @@ export default {
                         let positions = items.map(i => i.position);
                         let minPos = Math.min(...positions);
                         let maxPos = Math.max(...positions);
+                        console.log(minPos, maxPos, items);
                         el.time[0] = dayjs(items.find(i => i.position == minPos).started_at, 'HH:mm:ss');
                         el.time[1] = dayjs(items.find(i => i.position == maxPos).ended_at, 'HH:mm:ss');
                     });
