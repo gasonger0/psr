@@ -52,6 +52,7 @@ class LinesExtraController extends Controller
         $extra->after_time = $fields['after_time'] ?? $extra->after_time;
         $extra->extra_title = $fields['extra_title'] ?? $extra->extra_title;
         if ($fields['started_at']) {
+            var_dump('Updated line time');
             $extra->started_at = strval($fields['started_at']);
             $extra->ended_at = strval($fields['ended_at']);
             $extra->cancel_reason = $fields['cancel_reason'] ?? $extra->cancel_reason;
