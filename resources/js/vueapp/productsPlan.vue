@@ -474,7 +474,14 @@ export default {
             } else if (this.active.slot.type_id == 2) {
                 this.active.ended_at = this.active.ended_at.add(15, 'minute');
             }
-            this.active.showError = this.active.line.ended_at < this.active.ended_at.format('HH:mm');
+            let plans = this.plans.filter(el => el.line_id == this.active.line.line_id);
+            plans = plans.map(el => el.started_at);
+            for (let i = 0; i < plans.length; i++) {
+                if(plans[i].started_at >= this.active.started_at && plans[i+1].started_at < this.active.started_at) {
+                    this.active.position = i;
+                }
+            }
+            // this.active.showError = this.active.line.ended_at < this.active.ended_at.format('HH:mm');
         },
         changeAmount() {
             let prod = this.products.find(i => i.product_id == this.active.slot.product_id);
