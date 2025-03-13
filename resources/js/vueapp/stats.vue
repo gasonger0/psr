@@ -1,5 +1,5 @@
 <script setup>
-import { Table, Switch, Modal, TimeRangePicker, Button } from 'ant-design-vue';
+import { Table, Switch, Modal, TimePicker, Button } from 'ant-design-vue';
 import { ref } from 'vue';
 import dayjs from 'dayjs';
 import axios from 'axios';
@@ -74,6 +74,7 @@ export default {
         addUpdate(rec) {
             // console.log(rec);
             let item = null;
+            console.log(rec);
             if (rec.slot_id) {
                 let i = this.checkTime(rec.slot_id, rec.time[0], rec.time[1]);
                 if (!i) {
@@ -209,6 +210,14 @@ export default {
         <div class="table-container">
             <Table :dataSource="workers" :columns="lines" :pagination="{ pageSize: 6 }" small :scroll="{ x: 2000 }"
                 style="scrollbar-color: unset;">
+                <template #headerCell="{ column }">
+                    <div v-if="column.dataIndex != 'title' && column.dataIndex != 'break'" style="display: flex;flex-direction: column;align-items: center;">
+                        <span style="text-align:center">{{ column.title }}</span>
+                        <br>
+                        <span style="color:gray">{{ column.started_at.substr(0, 5) }} - {{ column.ended_at.substr(0, 5) }}</span>
+                    </div>
+                    <span v-else>{{ column.title }}</span>
+                </template>
                 <template #bodyCell="{ column, record, text }">
                     <template v-if="column.dataIndex != 'title' &&
                         record[column.dataIndex]">
@@ -216,11 +225,18 @@ export default {
                             {{ record[column.dataIndex]['time'][0].format('HH:mm') }} - {{
                                 record[column.dataIndex]['time'][1].format('HH:mm') }}
                         </template>
-                        <template v-else>
-                            <TimeRangePicker v-model:value="record[column.dataIndex]['time']"
-                                @change="(ev) => { addUpdate(record[column.dataIndex]); }" format="HH:mm"
-                                :showTime="true" :allowClear="true" type="time" :showDate="false" :size="'small'" 
-                                style="border-color: #1677ff"/>
+                        <template v-else >
+                            <div style="display:flex;justify-content: space-between;flex-direction: row;">
+                                <TimePicker v-model:value="record[column.dataIndex]['time'][0]"
+                                    @change="(ev) => { addUpdate(record[column.dataIndex]); }" format="HH:mm"
+                                    :showTime="true" :allowClear="true" type="time" :showDate="false" size="small"
+                                    style="border-color: #1677ff;width:47%;"/>
+                                <span> - </span>
+                                <TimePicker v-model:value="record[column.dataIndex]['time'][1]"
+                                    @change="(ev) => { addUpdate(record[column.dataIndex]); }" format="HH:mm"
+                                    :showTime="true" :allowClear="true" type="time" :showDate="false" size="small"
+                                    style="border-color: #1677ff;width:47%;"/>
+                            </div>
                         </template>
                     </template>
                     <template v-else-if="!record[column.dataIndex] && edit">
