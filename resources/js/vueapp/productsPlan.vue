@@ -278,7 +278,7 @@ export default {
 
                             let lastProd = this.plans.filter((el) => el.line_id == line_id);
                             if (lastProd.length > 0) {
-                                lastProd = lastProd.reduce((p, c) => p.ended_at > c.ended_at ? p : c);
+                                lastProd = lastProd.reduce((p, c) => p.position > c.position ? p : c);
                                 this.active.started_at = ref(dayjs(lastProd.ended_at, 'HH:mm'));
                             } else if (this.active.line.started_at != null) {
                                 this.active.started_at = ref(this.active.line.time[0]);
