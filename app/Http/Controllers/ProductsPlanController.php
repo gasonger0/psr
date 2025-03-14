@@ -238,7 +238,9 @@ class ProductsPlanController extends Controller
                 ProductsPlan::where('line_id', '=', $line_id)
                     ->where('plan_product_id', '!=', $prod_id)
                     ->where('started_at', '>=', $start)
-                    ->where('position', '>=', $position)
+                    ->when($position !== null, function ($query) use ($position) {
+                        $query->where('position', '<=', $position);
+                    })
                     ->where('date', $date)
                     ->each(function($p) use($shift) {
                         $p->started_at = Carbon::parse($p->started_at)->addMinutes($shift)->format('H:i:s');
