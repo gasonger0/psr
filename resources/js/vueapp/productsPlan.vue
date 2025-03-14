@@ -276,9 +276,12 @@ export default {
                             this.active.order_amount = ref(prod.order_amount);
                             this.active.title = prod.title;
 
+                            let children = Array.from(ev.target.parentNode.children);
+                            this.active.position = children.indexOf(ev.target);
+
                             let lastProd = this.plans.filter((el) => el.line_id == line_id);
                             if (lastProd.length > 0) {
-                                lastProd = lastProd.reduce((p, c) => p.position > c.position ? p : c);
+                                lastProd = lastProd.find(i => i.position == (this.active.position-1));
                                 this.active.started_at = ref(dayjs(lastProd.ended_at, 'HH:mm'));
                             } else if (this.active.line.started_at != null) {
                                 this.active.started_at = ref(this.active.line.time[0]);
@@ -301,8 +304,6 @@ export default {
                             // console.log(endTime);
                             endTime = endTime.add(this.active.line.prep_time, 'minute');
                             this.active.showError = (endTime.format('HH:mm') < this.active.ended_at.format('HH:mm'));
-                            let children = Array.from(ev.target.parentNode.children);
-                            this.active.position = children.indexOf(ev.target);
                             this.confirmPlanOpen = true;
                         }
                     } else {
