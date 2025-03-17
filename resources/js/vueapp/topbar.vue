@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue';
 import { Upload, Button, Switch, Dropdown, Menu, MenuItem, DatePicker } from 'ant-design-vue';
-import { BarChartOutlined, UploadOutlined, EditOutlined, TeamOutlined, AppstoreOutlined, DatabaseOutlined, FileExcelOutlined, TableOutlined, CalendarOutlined } from '@ant-design/icons-vue';
+import { BarChartOutlined, UploadOutlined, EditOutlined, TeamOutlined, AppstoreOutlined, DatabaseOutlined, FileExcelOutlined, TableOutlined, CalendarOutlined, CheckCircleFilled, CheckCircleOutlined } from '@ant-design/icons-vue';
 import dayjs from 'dayjs';
 import locale from 'ant-design-vue/es/date-picker/locale/ru_RU';
 import axios from 'axios';
@@ -21,8 +21,9 @@ export default {
         return {
             uploadedFile: ref(null),
             date: dayjs(new Date(sessionStorage.getItem('date'))),
-            planMode: sessionStorage.getItem('planMode'),
-            boardMode: this.$props.boardMode
+            isDay: ref(sessionStorage.getItem('isDay') == 'true'),
+            boardMode: this.$props.boardMode,
+            showAccept: ref(false)
         }
     },
     methods: {
@@ -97,17 +98,20 @@ export default {
             // console.log(prod);
             this.$emit('change-board');
         },
-        updatesession(obj, datestring) {
-            let date = dayjs(obj).format('YYYY-MM-DD');
+        updatesession() {
+            let date = this.date.format('YYYY-MM-DD');
+            if (date) {
             axios.post('/api/update_session', {
                 date: date,
-                // planMode: this.planMode
+                isDay: this.isDay
             }).then(response => {
                 if (response) {
                     sessionStorage.setItem('date', date);
+                    sessionStorage.setItem('isDay', this.isDay)
                     window.location.reload();      
                 }
             })
+            }
         }
     },
     mounted() {
@@ -211,12 +215,11 @@ export default {
             </div>
         </div>
         <div>
-            <DatePicker v-model:value="date" format="DD.MM.YYYY" mode="date" @change="updatesession" :locale="locale" />
-            <!-- <Switch v-model:checked="planMode" checked-children="Ночь" 
-                un-checked-children="День" 
-                @change="updatesession" /> -->
+            <DatePicker v-model:value="date" format="DD.MM.YYYY" mode="date" @change="showAccept=true" :locale="locale" />
+            <Switch v-model:checked="isDay" @change="showAccept = true" checkedChildren="День" unCheckedChildren="Ночь"/>
             <!-- <span style="height:fit-content;font-size: 18px;font-weight: 600;">{{ date }}</span> -->
-            <img src="./logo.png" alt="" style="height:32px;">
+            <img src="./logo.png" alt="" style="height:32px;" v-if="!showAccept"> 
+            <CheckCircleOutlined style="color:green;height:32px;width:32px;font-size:32px;" @click="updatesession" v-else/>
         </div>
     </div>
 </template>

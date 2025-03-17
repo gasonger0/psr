@@ -18,6 +18,9 @@ class controlsession
         if ($request->cookie('date')) {
             config(['app.date' => $request->cookie('date')]);
         }
+        if (boolval($request->cookie('isDay'))) {
+            config(['app.isday' => boolval($request->cookie('isDay'))]);
+        }
         return $next($request);
     }
 }

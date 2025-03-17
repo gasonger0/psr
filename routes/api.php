@@ -111,12 +111,15 @@ Route::group(['middleware' => ['web']], function () {
      *******/
     Route::post('/update_session', function (Request $request) {
         if ($request) {
-            $value = $request->post('date');
+            $dateValue = $request->post('date');
+            $timeValue = $request->post('isDay');
         }else{
-            $value = $request->cookie('date');
+            $dateValue = $request->cookie('date');
+            $timeValue = boolval($request->cookie('isDay'));
         }
         $response = response('Set Cookie');
-        $response->cookie('date', $value, 60);
+        $response->cookie('date', $dateValue, 60);
+        $response->cookie('isDay', $timeValue, 60);
         return $response;
         
     });

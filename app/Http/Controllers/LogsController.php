@@ -159,12 +159,12 @@ class LogsController extends Controller
         $xlsx->downloadAs($name);
         // return $name;
     }
-    static public function clear($date = null)
+    static public function clear($date = null, $isDay)
     {
         if (!$date) {
             return;
         }
-        Logs::where('date', $date)->each(function($log) {
+        Logs::where('date', $date)->where('isDay', $isDay)->each(function($log) {
             $log->delete();
         });
     }

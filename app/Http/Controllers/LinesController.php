@@ -16,10 +16,11 @@ class LinesController extends Controller
     {   
         $result = [];
         $date = $request->cookie('date');
-        Lines::all()->each(function ($line) use(&$result, $date)  {
-            $line_extra = LinesExtraController::get($date, $line->line_id);
+        $isDay = boolval($request->cookie('isDay'));
+        Lines::all()->each(function ($line) use(&$result, $date, $isDay)  {
+            $line_extra = LinesExtraController::get($date, $isDay, $line->line_id);
             if (!$line_extra) {
-                $line_extra = LinesExtraController::add($date,$line->line_id, self::getDefaults($line->line_id));
+                $line_extra = LinesExtraController::add($date,$isDay, $line->line_id, self::getDefaults($line->line_id));
             }
             $result[] = array_merge($line->toArray(), $line_extra->toArray());
         });
@@ -27,7 +28,7 @@ class LinesController extends Controller
         return json_encode($result);
     }
 
-    static public function add($array)
+    static public function add($date, $isDay, $array)
     {
         if (empty($array['title']))
             return;
@@ -40,14 +41,14 @@ class LinesController extends Controller
         $line->save();
         $data = array_merge($array, self::getDefaults($line->line_id));
         print_r($data);
-        LinesExtraController::add($line->line_id, $data);
+        LinesExtraController::add($date, $isDay, $line->line_id, $data);
         return $line->line_id;
     }
 
     static public function save(Request $request)
     {
         if ($request->post('line_id') == -1) {
-            $id = self::add($request->post());
+            $id = self::add($request->cookie('date'), boolval($request->cookie('isDay')),$request->post());
             if ($id) {
                 return json_encode([
                     "success" => true,
@@ -61,7 +62,7 @@ class LinesController extends Controller
         }
         $line = Lines::find($request->post('line_id'));
         if ($line) {
-            $d = LinesExtraController::update($line->line_id, $request->post());
+            $d = LinesExtraController::update($request->cookie('date'), boolval($request->cookie('isDay')), $line->line_id, $request->post());
             $start = $d['start'];
             $end = $d['end'];
             $line->color = $request->post('color');
@@ -72,6 +73,7 @@ class LinesController extends Controller
             if ($request->post('started_at')) {
                 SlotsController::afterLineUpdate(
                     $request->cookie('date'),
+                    boolval($request->cookie('isDay')),
                     $request->post('line_id'),
                     $request->post('started_at'),
                     $start,
@@ -91,7 +93,7 @@ class LinesController extends Controller
                         'people_count' => $request->post('workers_count'),
                         'type' => 3,
                         'workers' => implode(',', $d),
-                    ],[],['date' => $request->cookie('date')]);
+                    ],[],['date' => $request->cookie('date'), 'isDay' => boolval($request->cookie('isDay'))]);
                     LogsController::add($request);
                 }
             }
