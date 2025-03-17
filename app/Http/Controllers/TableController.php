@@ -226,7 +226,7 @@ class TableController extends Controller
         if ($xlsx = SimpleXLSX::parse($request->files->get('file')->getRealPath())) {
 
             // ProductsOrder::truncate();
-            $date = session('date') ?? (new \DateTime())->format('Y-m-d');
+            $date = $request->cookie('date');
             $cats = Products_categories::get(['title', 'category_id'])->toArray();
             $products = ProductsDictionary::get(['title', 'product_id', 'category_id'])->toArray();
             foreach ($cats as &$cat) {
@@ -418,9 +418,10 @@ class TableController extends Controller
         }
         return $arr;
     }
-    public function dowloadForPrint()
+    public function dowloadForPrint(Request $request)
     {
-        $plans = json_decode(ProductsPlanController::getList(new Request()), true);
+        $date = $request->cookie('date');
+        $plans = json_decode(ProductsPlanController::getList($request), true);
 
         $linesFromPlans = array_unique(array_map(function ($el) {
             return $el['line_id'];
@@ -438,7 +439,7 @@ class TableController extends Controller
             $responsibles[$f['responsible_id']] = $f['title'];
         }
 
-        $lines = json_decode(LinesController::getList(), true);
+        $lines = json_decode(LinesController::getList($request), true);
         $lines = array_filter($lines, function ($el) use ($linesFromPlans) {
             return in_array($el['line_id'], $linesFromPlans);
         });
@@ -648,7 +649,7 @@ class TableController extends Controller
             if($sheet == 1) {
                 $dating = array_merge(
                     Lines::find(42)->toArray(),
-                    LinesExtraController::get(42)->toArray()
+                    LinesExtraController::get($date, 42)->toArray()
                 );
 
                 $array[] = ['', '<style bgcolor="#B7DEE8"><b>ОТВЕТСТВЕННЫЕ: ' . $dating['master'] . ',' . $dating['engineer'] . '</b></style>'];
@@ -722,7 +723,6 @@ class TableController extends Controller
             ->mergeCells('AC4:AC6')
             ->mergeCells('M5:N5');
         
-        $date = session('date') ?? (new \DateTime())->format('Y-m-d');
         $name = 'План_' . date('d_m_Y', strtotime($date)) . '.xlsx';
         $xlsx->downloadAs($name);
 
@@ -976,7 +976,7 @@ class TableController extends Controller
     //     return json_encode($array);
     // }
     static public function getPlans(){
-        //$date =  session('date') ?? (new \DateTime())->format('Y-m-d');
+        //$date =  cookie('date') ?? (new \DateTime())->format('Y-m-d');
         $plans = [];
         ProductsPlan::all()->each(function($plan) use (&$plans) {
             if (!isset($plans[strval($plan->date)]) && $plan->date != null) {

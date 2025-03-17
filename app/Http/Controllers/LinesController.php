@@ -12,13 +12,14 @@ use Carbon\Carbon;
 
 class LinesController extends Controller
 {
-    static public function getList()
+    static public function getList(Request $request)
     {   
         $result = [];
-        Lines::all()->each(function ($line) use(&$result)  {
-            $line_extra = LinesExtraController::get($line->line_id);
+        $date = $request->cookie('date');
+        Lines::all()->each(function ($line) use(&$result, $date)  {
+            $line_extra = LinesExtraController::get($date, $line->line_id);
             if (!$line_extra) {
-                $line_extra = LinesExtraController::add($line->line_id, self::getDefaults($line->line_id));
+                $line_extra = LinesExtraController::add($date,$line->line_id, self::getDefaults($line->line_id));
             }
             $result[] = array_merge($line->toArray(), $line_extra->toArray());
         });
@@ -70,6 +71,7 @@ class LinesController extends Controller
 
             if ($request->post('started_at')) {
                 SlotsController::afterLineUpdate(
+                    $request->cookie('date'),
                     $request->post('line_id'),
                     $request->post('started_at'),
                     $start,
@@ -82,14 +84,14 @@ class LinesController extends Controller
                     $d = array_map(function ($a) {
                         return $a['worker_id'];
                     }, $d);
-                    $request = new Request([], [
+                    $request = new Request([],[
                         'line_id' => $line->line_id,
                         'action' => 'Перенос времени работы линии',
                         'extra' => 'Причина: ' . $request->post('cancel_reason_extra') . PHP_EOL . 'Старое время: ' . $start,
                         'people_count' => $request->post('workers_count'),
                         'type' => 3,
                         'workers' => implode(',', $d),
-                    ]);
+                    ],[],['date' => $request->cookie('date')]);
                     LogsController::add($request);
                 }
             }

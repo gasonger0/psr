@@ -12,13 +12,13 @@ use Shuchkin\SimpleXLSXGen;
 
 class SlotsController extends Controller
 {
-    static public function getList()
+    static public function getList(Request $request)
     {
-        $date = session('date') ?? (new \DateTime())->format('Y-m-d');
+        $date = $request->cookie('date');
         return Slots::where('date', '=', $date)->get()->toJson();
     }
 
-    static public function add($line_id = null, $worker_id = null, $start = null, $end = null)
+    static public function add($date, $line_id = null, $worker_id = null, $start = null, $end = null)
     {
         if (!$line_id)
             return;
@@ -31,7 +31,6 @@ class SlotsController extends Controller
         $slot->worker_id = $worker_id;
         $diff = (new \DateTime($start))->diff(new \DateTime($end));
         $slot->time_planned = $diff->h * 60 + $diff->i;
-        $date = session('date') ?? (new \DateTime())->format('Y-m-d');
         $slot->date = $date;
         $slot->save();
 
@@ -40,7 +39,7 @@ class SlotsController extends Controller
 
     static public function change(Request $request)
     {
-        $date = session('date') ?? (new \DateTime())->format('Y-m-d');
+        $date = $request->cookie('date');
         $oldSlot = Slots::where(
             'worker_id',
             '=',
@@ -60,8 +59,9 @@ class SlotsController extends Controller
             if (!$line) {
                 return -1;
             }
-            $extra = LinesExtraController::get($line->line_id);
+            $extra = LinesExtraController::get($date, $line->line_id);
             SlotsController::add(
+                $request->cookie('date'),
                 $line->line_id,
                 $request->worker_id,
                 now('Europe/Moscow')->format('H:i:s'),
@@ -100,7 +100,7 @@ class SlotsController extends Controller
                 $slot->started_at = Carbon::parse($r['started_at'])->format('H:i:s'); 
                 $slot->ended_at = Carbon::parse($r['ended_at'])->format('H:i:s');
                 $slot->worker_id = $r['worker_id'];
-                $slot->date = session('date') ?? (new \DateTime())->format('Y-m-d');
+                $slot->date = cookie('date') ?? (new \DateTime())->format('Y-m-d');
                 $diff = (new \DateTime($slot->started_at))->diff(new \DateTime($slot->ended_at));
                 $slot->time_planned = $diff->h * 60 + $diff->i;
                 $slot->save();
@@ -119,7 +119,7 @@ class SlotsController extends Controller
     static public function delete(Request $request)
     {
         if (!($id = $request->post('worker_id'))) return;
-        $date = session('date') ?? (new \DateTime())->format('Y-m-d');
+        $date = $request->cookie('date');
         if  ($request->post('delete')){
             Slots::where('worker_id', '=', $id)
                 ->where('date', $date)->delete();
@@ -133,9 +133,8 @@ class SlotsController extends Controller
         return;
     }
 
-    static public function afterLineUpdate($line_id, $newStart, $oldStart, $newEnd, $oldEnd)
+    static public function afterLineUpdate($date, $line_id, $newStart, $oldStart, $newEnd, $oldEnd)
     {
-        $date = session('date') ?? (new \DateTime())->format('Y-m-d');
         $slots = Slots::where('line_id', '=', $line_id)
             ->where('started_at', '=', $oldStart)
             ->where('date', $date)
@@ -155,9 +154,8 @@ class SlotsController extends Controller
         }
     }
 
-    static public function down($lineId, $downFrom)
+    static public function down($date, $lineId, $downFrom)
     {
-        $date = session('date') ?? (new \DateTime())->format('Y-m-d');
         $slots = Slots::where('line_id', '=', $lineId)->where('started_at', '<', $downFrom)->where('date', $date)->get();
         // var_dump($slots, $downFrom, $lineId);
         foreach ($slots as $slot) {
@@ -184,6 +182,7 @@ class SlotsController extends Controller
         $oldSlot->save();
 
         return SlotsController::add(
+            $request->cookie('date'),
             $oldSlot->line_id,
             $data['new_worker_id'],
             now('Europe/Moscow')->format('H:i:s'),
@@ -201,13 +200,13 @@ class SlotsController extends Controller
         });
     }
 
-    static function print(Request $resuest) {
+    static function print(Request $request) {
         $lines = Lines::all()->toArray();
         $titles = call_user_func_array('array_merge', array_map(function($line){
             return [$line['title'], ''];
         }, $lines));
         $columns = [array_merge(['Работник'], $titles)];
-        $date = session('date') ?? (new \DateTime())->format('Y-m-d');
+        $date = $request->cookie('date');
         Workers::all()->each(function($worker) use($lines, &$columns, $date){
             $row = [$worker->title];
             foreach ($lines as $line) {
@@ -255,7 +254,6 @@ class SlotsController extends Controller
             // var_dump($mergeRange);
             $i+=2;
         }
-        $date = session('date') ?? (new \DateTime())->format('Y-m-d');
         $name = 'График_' . date('d_m_Y', strtotime($date)) . '.xlsx';
         $file->downloadAs($name);
     }

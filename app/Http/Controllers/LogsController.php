@@ -13,7 +13,7 @@ class LogsController extends Controller
 {
     static public function add(Request $request)
     {
-        $date = session('date') ?? (new \DateTime())->format('Y-m-d');
+        $date = $request->cookie('date');
         if (empty($request->post())) return -1;
         $log = new Logs();
 
@@ -31,9 +31,9 @@ class LogsController extends Controller
         return;
     }
 
-    static public function getAll()
+    static public function getAll(Request $request)
     {
-        $date = session('date') ?? (new \DateTime())->format('Y-m-d');
+        $date = $request->cookie('date');
         $logs = Logs::where('date', $date)->orderBy('created_at', 'DESC')->get()->toArray();
         foreach ($logs as &$log) {
             $log['line'] = Lines::find($log['line_id'])->title;
@@ -41,9 +41,9 @@ class LogsController extends Controller
         return json_encode($logs);
     }
 
-    static public function logXlsx()
+    static public function logXlsx(Request $request)
     {
-        $data = self::getAll();
+        $data = self::getAll($request);
         $data = json_decode($data, true, 512, JSON_OBJECT_AS_ARRAY);
         $columns = [[
             'ИД',
@@ -154,7 +154,7 @@ class LogsController extends Controller
             }
         }
         $xlsx = SimpleXLSXGen::fromArray($columns);
-        $date = session('date') ?? (new \DateTime())->format('Y-m-d');
+        $date = $request->cookie('date');
         $name = 'Простои_' . date('d_m_Y', strtotime($date)) . '.xlsx';
         $xlsx->downloadAs($name);
         // return $name;

@@ -9,15 +9,13 @@ use Illuminate\Support\Facades\Session;
 
 class LinesExtraController extends Controller
 {
-    public static function get($line_id)
+    public static function get($date,$line_id)
     {
-        $date = session('date') ?? (new \DateTime())->format('Y-m-d');
         return LinesExtra::where('line_id', $line_id)->where('date', $date)->first();
     }
 
-    public static function add($line_id, $fields = [])
+    public static function add($date,$line_id, $fields = [])
     {
-        $date = session('date') ?? (new \DateTime())->format('Y-m-d');
         $extra = new LinesExtra();
         $extra->line_id = $line_id;
         $extra->date = $date;
@@ -41,9 +39,9 @@ class LinesExtraController extends Controller
         return $extra;
     }
 
-    public static function update($line_id, $fields = null)
+    public static function update($date, $line_id, $fields = null)
     {
-        $date = session('date') ?? (new \DateTime())->format('Y-m-d');
+
         $extra = LinesExtra::where('line_id', $line_id)->where('date', $date)->first();
         $oldEnd = $extra->ended_at;
         $oldStart = $extra->started_at;
@@ -71,7 +69,7 @@ class LinesExtraController extends Controller
 
     static public function down(Request $request)
     {
-        $date = session('date') ?? (new \DateTime())->format('Y-m-d');
+        $date = $request->cookie('date');
         $line = LinesExtra::where('line_id', $request->post('id'))->where('date', $date)->first();
         $downFrom = $line->down_from;
         if ($downFrom != null) {
@@ -79,7 +77,7 @@ class LinesExtraController extends Controller
             $line->down_time = $line->down_time + $diff->h * 60 + $diff->i;
             $line->down_from = null;
             $line->save();
-            SlotsController::down($line->line_id, $downFrom);
+            SlotsController::down($request->cookie('date'), $line->line_id, $downFrom);
         } else {
             $line->down_from = now('Europe/Moscow');
             $line->save();
