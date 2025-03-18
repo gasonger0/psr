@@ -12,19 +12,19 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('slots', function(Blueprint $table) {
-            $table->boolean('isDay')->default(true); 
+            $table->boolean('isDay'); 
         });
         Schema::table('logs', function(Blueprint $table) {
-            $table->boolean('isDay')->default(true); 
+            $table->boolean('isDay'); 
         });
         Schema::table('products_plan', function(Blueprint $table) {
-            $table->boolean('isDay')->default(true); 
+            $table->boolean('isDay'); 
         });
         Schema::table('products_order', function(Blueprint $table) {
-            $table->boolean('isDay')->default(true);
+            $table->boolean('isDay');
         });
         Schema::table('line_extra', function (Blueprint $table) {
-            $table->boolean('isDay')->default(true);
+            $table->boolean('isDay');
         });
     }
 

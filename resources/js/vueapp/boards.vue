@@ -633,7 +633,7 @@ export default {
                 </Card>
             </section>
         </div>
-        <div class="line" v-for="line in lines" :data-id="line.line_id" :class="line.done ? 'done-line' : ''">
+        <div class="line" v-for="line in lines" :data-id="line.line_id" :class="(line.done || !line.has_plans) ? 'done-line' : ''">
             <Card :bordered="false" class="head"
                 :headStyle="{ 'background-color': (line.color ? line.color : '#1677ff') }">
                 <template #title>

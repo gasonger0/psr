@@ -103,7 +103,7 @@ export default {
             if (date) {
             axios.post('/api/update_session', {
                 date: date,
-                isDay: this.isDay
+                isDay: Number(this.isDay)
             }).then(response => {
                 if (response) {
                     sessionStorage.setItem('date', date);

@@ -984,9 +984,10 @@ class TableController extends Controller
     static public function getPlans(){
         $plans = [];
         ProductsPlan::all()->each(function($plan) use (&$plans) {
-            if (!isset($plans[strval($plan->date)]) && $plan->date != null) {
+            if (!isset($plans[strval($plan->date) . ':' . strval($plan->isDay)]) && $plan->date != null && $plan->isDay != null) {
                 $plans[strval($plan->date)] = [
                     'date' => $plan->date,
+                    'isDay' => $plan->isDay,
                     'plan' => true,
                     'order' => count(ProductsOrder::where('date', $plan->date)->get()->toArray()) > 0,
                     'workers' => count(Slots::where('date', $plan->date)->get()->toArray()) > 0

@@ -214,7 +214,7 @@ export default {
                     <div v-if="column.dataIndex != 'title' && column.dataIndex != 'break'" style="display: flex;flex-direction: column;align-items: center;">
                         <span style="text-align:center">{{ column.title }}</span>
                         <br>
-                        <span style="color:gray">{{ column.started_at.substr(0, 5) }} - {{ column.ended_at.substr(0, 5) }}</span>
+                        <span style="color:gray" v-if="column.started_at && column.ended_at">{{ column.started_at.substr(0, 5) }} - {{ column.ended_at.substr(0, 5) }}</span>
                     </div>
                     <span v-else>{{ column.title }}</span>
                 </template>

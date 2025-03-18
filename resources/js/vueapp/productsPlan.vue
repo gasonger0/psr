@@ -278,9 +278,10 @@ export default {
 
                             let children = Array.from(ev.target.parentNode.children);
                             this.active.position = children.indexOf(ev.target);
-
+                            console.log('POSITION:', this.active.position);
                             let lastProd = this.plans.filter((el) => el.line_id == line_id);
-                            if (lastProd.length > 0 && this.position > 0) {
+                            if (lastProd.length > 0 && this.active.position > 0) {
+                                console.log(lastProd);
                                 lastProd = lastProd.find(i => i.position == (this.active.position-1));
                                 this.active.started_at = ref(dayjs(lastProd.ended_at, 'HH:mm'));
                             } else if (this.active.line.started_at != null) {

@@ -16,13 +16,15 @@ class LinesController extends Controller
     {   
         $result = [];
         $date = $request->cookie('date');
+        // var_dump($request->cookie());
         $isDay = boolval($request->cookie('isDay'));
         Lines::all()->each(function ($line) use(&$result, $date, $isDay)  {
             $line_extra = LinesExtraController::get($date, $isDay, $line->line_id);
             if (!$line_extra) {
                 $line_extra = LinesExtraController::add($date,$isDay, $line->line_id, self::getDefaults($line->line_id));
             }
-            $result[] = array_merge($line->toArray(), $line_extra->toArray());
+            $has_plans = ProductsPlan::where('date', $date)->where('isDay', $isDay)->where('line_id', $line->line_id)->count() > 0;
+            $result[] = array_merge($line->toArray(), $line_extra->toArray(), ['has_plans' => $has_plans]);
         });
             
         return json_encode($result);
@@ -114,7 +116,7 @@ class LinesController extends Controller
             [
                 'line_id' => 33,
                 'title' => 'СТАРАЯ вертикальная установка',
-                'time' => null,
+                'time' => '8:00-12:00',
                 'people' => 3,
                 'prep' => 0,
                 'end' => 10
@@ -122,7 +124,7 @@ class LinesController extends Controller
             [
                 'line_id' => 34,
                 'title' => 'Резка суфле-уп.',
-                'time' => null,
+                'time' => '8:00-12:00',
                 'people' => 2,
                 'prep' => 10,
                 'end' => 10
@@ -130,7 +132,7 @@ class LinesController extends Controller
             [
                 'line_id' => 40,
                 'title' => 'Сборка подарочного набора',
-                'time' => null,
+                'time' => '8:00-12:00',
                 'people' => 1,
                 'prep' => 0,
                 'end' => 0 
@@ -138,7 +140,7 @@ class LinesController extends Controller
             [
                 'line_id' => 47,
                 'title' => 'Варочный участок',
-                'time' => null,
+                'time' => '8:00-12:00',
                 'people' => 1,
                 'prep' => 0,
                 'end' => 0
