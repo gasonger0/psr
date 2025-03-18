@@ -280,7 +280,7 @@ export default {
                             this.active.position = children.indexOf(ev.target);
 
                             let lastProd = this.plans.filter((el) => el.line_id == line_id);
-                            if (lastProd.length > 0) {
+                            if (lastProd.length > 0 && this.position > 0) {
                                 lastProd = lastProd.find(i => i.position == (this.active.position-1));
                                 this.active.started_at = ref(dayjs(lastProd.ended_at, 'HH:mm'));
                             } else if (this.active.line.started_at != null) {
