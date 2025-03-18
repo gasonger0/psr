@@ -9,16 +9,20 @@ use Illuminate\Support\Facades\Session;
 
 class LinesExtraController extends Controller
 {
-    public static function get($date,$line_id)
+    public static function get($date,$isDay, $line_id)
     {
-        return LinesExtra::where('line_id', $line_id)->where('date', $date)->first();
+        return LinesExtra::where('line_id', $line_id)
+            ->where('date', $date)
+            ->where('isDay', $isDay)
+            ->first();
     }
 
-    public static function add($date,$line_id, $fields = [])
+    public static function add($date, $isDay, $line_id, $fields = [])
     {
         $extra = new LinesExtra();
         $extra->line_id = $line_id;
         $extra->date = $date;
+        $extra->isDay = $isDay;
         if ($fields) {
             if ($fields['time']) {
                 $time = explode('-', $fields['time']);
@@ -39,10 +43,13 @@ class LinesExtraController extends Controller
         return $extra;
     }
 
-    public static function update($date, $line_id, $fields = null)
+    public static function update($date, $isDay, $line_id, $fields = null)
     {
 
-        $extra = LinesExtra::where('line_id', $line_id)->where('date', $date)->first();
+        $extra = LinesExtra::where('line_id', $line_id)
+            ->where('date', $date)
+            ->where('isDay', $isDay)
+            ->first();
         $oldEnd = $extra->ended_at;
         $oldStart = $extra->started_at;
         $extra->workers_count = $fields['workers_count'] ?? $extra->workers_count;
@@ -70,14 +77,18 @@ class LinesExtraController extends Controller
     static public function down(Request $request)
     {
         $date = $request->cookie('date');
-        $line = LinesExtra::where('line_id', $request->post('id'))->where('date', $date)->first();
+        $isDay = boolval($request->cookie('isDay'));
+        $line = LinesExtra::where('line_id', $request->post('id'))
+            ->where('date', $date)
+            ->where('isDay', $isDay)
+            ->first();
         $downFrom = $line->down_from;
         if ($downFrom != null) {
             $diff = (new \DateTime($downFrom))->diff(new \DateTime());
             $line->down_time = $line->down_time + $diff->h * 60 + $diff->i;
             $line->down_from = null;
             $line->save();
-            SlotsController::down($request->cookie('date'), $line->line_id, $downFrom);
+            SlotsController::down($request->cookie('date'), boolval($request->cookie('isDay')), $line->line_id, $downFrom);
         } else {
             $line->down_from = now('Europe/Moscow');
             $line->save();

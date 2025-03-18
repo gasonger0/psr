@@ -227,6 +227,7 @@ class TableController extends Controller
 
             // ProductsOrder::truncate();
             $date = $request->cookie('date');
+            $isDay = boolval($request->cookie('isDay'));
             $cats = Products_categories::get(['title', 'category_id'])->toArray();
             $products = ProductsDictionary::get(['title', 'product_id', 'category_id'])->toArray();
             foreach ($cats as &$cat) {
@@ -271,7 +272,10 @@ class TableController extends Controller
             }
             foreach ($amounts as $amount) {
                 if ($val = $amount['amount']) {
-                    $am = ProductsOrder::where('product_id', '=', $amount['product_id'])->where('date', $date)->get();
+                    $am = ProductsOrder::where('product_id', '=', $amount['product_id'])
+                        ->where('date', $date)
+                        ->where('isDay', $isDay)
+                        ->get();
                     if ($am->count() > 0) {
                         foreach ($am as $i) {
                             $i->amount = $val;
@@ -282,6 +286,7 @@ class TableController extends Controller
                         $order->product_id = $amount['product_id'];
                         $order->amount = $val;
                         $order->date = $date;
+                        $order->isDay = $isDay;
                         $order->save();
                     }
                 }
@@ -421,6 +426,7 @@ class TableController extends Controller
     public function dowloadForPrint(Request $request)
     {
         $date = $request->cookie('date');
+        $isDay = boolval($request->cookie('isDay'));
         $plans = json_decode(ProductsPlanController::getList($request), true);
 
         $linesFromPlans = array_unique(array_map(function ($el) {
@@ -649,7 +655,7 @@ class TableController extends Controller
             if($sheet == 1) {
                 $dating = array_merge(
                     Lines::find(42)->toArray(),
-                    LinesExtraController::get($date, 42)->toArray()
+                    LinesExtraController::get($date, $isDay, 42)->toArray()
                 );
 
                 $array[] = ['', '<style bgcolor="#B7DEE8"><b>ОТВЕТСТВЕННЫЕ: ' . $dating['master'] . ',' . $dating['engineer'] . '</b></style>'];
@@ -976,7 +982,6 @@ class TableController extends Controller
     //     return json_encode($array);
     // }
     static public function getPlans(){
-        //$date =  cookie('date') ?? (new \DateTime())->format('Y-m-d');
         $plans = [];
         ProductsPlan::all()->each(function($plan) use (&$plans) {
             if (!isset($plans[strval($plan->date)]) && $plan->date != null) {

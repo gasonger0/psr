@@ -19,8 +19,10 @@ class ProductsPlanController extends Controller
     static public function getList(Request $request)
     {
         $date = $request->cookie('date');
+        $isDay = boolval($request->cookie('isDay'));
         if (!($id = $request->post('product_id'))) {
             return ProductsPlan::where('date', $date)
+                ->where('isDay', $isDay)
                 ->join('products_dictionary', 'products_plan.product_id', '=', 'products_dictionary.product_id')
                 ->select('products_plan.*', DB::raw('products_dictionary.title as title'))
                 ->get()
@@ -29,6 +31,7 @@ class ProductsPlanController extends Controller
         } else {
             return ProductsPlan::where('product_id', '=', $id)
                 ->where('date', $date)
+                ->where('isDay', $isDay)
                 ->get()
                 ->toJson();
         }
@@ -37,6 +40,7 @@ class ProductsPlanController extends Controller
     public function addPlan(Request $request)
     {
         $date = $request->cookie('date');
+        $isDay = boolval($request->cookie('isDay'));
         // $timeZone = new \DateTimeZone('Europe/Moscow');
         if ($post = $request->post()) {
             if (!isset($post['plan_product_id']) || $post['plan_product_id'] == null) {
@@ -55,6 +59,7 @@ class ProductsPlanController extends Controller
             $plan->ended_at = $post['ended_at'];
             $plan->amount = $post['amount'];
             $plan->date = $date;
+            $plan->isDay = $isDay;
             $plan->hardware = isset($post['hardware']) ? $post['hardware'] : 0;
             $plan->position = isset($post['position']) ? $post['position'] : 1;
 
@@ -63,20 +68,21 @@ class ProductsPlanController extends Controller
             }
             $plan->save();
 
-            $this->checkPlans($date, $plan->line_id, $plan->plan_product_id, $post['started_at'], $post['ended_at'], $post['position']);
+            $this->checkPlans($date, $isDay, $plan->line_id, $plan->plan_product_id, $post['started_at'], $post['ended_at'], $post['position']);
             if (!isset($post['delay']) || !$post['delay']) {
                 ProductsPlan::where('product_id', '=', $plan->product_id)
                     ->where('type_id', '=', 2)
                     ->where('date', $date)
+                    ->where('isDay', $isDay)
                     ->where('amount', $oldAm)
-                    ->each(function($p) use($post) {
+                    ->each(function($p) use($post, $date, $isDay) {
                         $p->amount = $post['amount'];
                         $prod = ProductsDictionary::where('product_id', '=', $p->product_id)->first();
                         $duration = ceil($post['amount'] * eval("return " . $prod['parts2kg'] . ";") * eval("return " . $prod['amount2parts'] . ";") / ($p->perfomance ? $p->perfomance : 1) * 60);
-                        $p->started_at = new DateTime($post['started_at']);
-                        $p->ended_at = (new DateTime($post['started_at']))->add(new \DateInterval('PT' . $duration . 'M'))->add(new \DateInterval('PT15M'))->format('H:i:s');
+                        $p->started_at = new \DateTime($post['started_at']);
+                        $p->ended_at = (new \DateTime($post['started_at']))->add(new \DateInterval('PT' . $duration . 'M'))->add(new \DateInterval('PT15M'))->format('H:i:s');
                         $p->save();
-                        ProductsPlanController::checkPlans($date, $p->line_id, $p->plan_product_id, $p->started_at, $p->ended_at, $p->position);
+                        ProductsPlanController::checkPlans($date, $isDay, $p->line_id, $p->plan_product_id, $p->started_at, $p->ended_at, $p->position);
                     });
             }
 
@@ -90,6 +96,7 @@ class ProductsPlanController extends Controller
                     $slot = ProductsSlots::find($pack)->toArray();
 		            $product = ProductsDictionary::where('product_id', '=', $slot['product_id'])->first();
                     $plan->date = $date;
+                    $plan->isDay = $isDay;
                     $plan->product_id = $slot['product_id'];
                     $plan->line_id = $slot['line_id'];
                     $plan->slot_id = $slot['product_slot_id'];
@@ -102,8 +109,9 @@ class ProductsPlanController extends Controller
                     $duration = ceil($post['amount'] * eval("return " . $product['parts2kg'] . ";") * eval("return " . $product['amount2parts'] . ";") / ($slot['perfomance'] ? $slot['perfomance'] : 1) * 60);
                     $start->add(new \DateInterval('PT' . $duration . 'M'));
                     $start->add(new \DateInterval('PT15M'));        // 15 минут на упаковку
-                    if ($start < $post['ended_at']) {
-                        $plan->ended_at = $post['ended_at'];
+                    $endPrev = (new \DateTime($post['ended_at']))->add(new \DateInterval('PT15M'))->add(new \DateInterval('PT' . $duration . 'M'));
+                    if ($start < $endPrev) {
+                        $plan->ended_at = $endPrev->format('H:i:s');
                     }else {
                         $plan->ended_at = $start->format('H:i:s');
                     }
@@ -112,92 +120,28 @@ class ProductsPlanController extends Controller
 
                     var_dump('Pack check. Current params:' . $plan->started_at . ', ' . $plan->ended_at);
                     // var_dump($plan->toArray());
-                    $this->checkPlans($date, $plan->line_id, $plan->plan_product_id, $plan->started_at, $plan->ended_at);
+                    $this->checkPlans($date, $isDay, $plan->line_id, $plan->plan_product_id, $plan->started_at, $plan->ended_at);
                     // Добавка про 15 минут и проверка на конфликты каждый раз
                     // Узнать у натальи, ставим ли мы упааковку после текущей или вместо (скорее всего первое)
                     //}
                 }
             }
             $plans = ProductsPlan::where('line_id', '=', $plan->line_id)
-                ->where('date', cookie('date') ?? (new \DateTime('now'))->format('Y-m-d'))
+                ->where('date', $date)
+                ->where('isDay', $isDay)
                 ->orderBy('started_at', 'ASC')
                 ->get()
                 ->toArray();
             $minStartedAt = $plans ? min(array_column($plans, 'started_at')) : null;
             $maxEndedAt = $plans ? max(array_column($plans, 'ended_at')) : null;
             
-            LinesExtraController::update($date, $plan->line_id, ['started_at' => $minStartedAt, 'ended_at' => $maxEndedAt]);
+            LinesExtraController::update($date, $isDay, $plan->line_id, ['started_at' => $minStartedAt, 'ended_at' => $maxEndedAt]);
 
             return true;
         }
     }
 
-    // public function checkPlans($line_id, $prod_id, $start, $end)
-    // {
-    //     global $date;
-    //     // Получаем планы, которые внутри нового
-    //     $plans = ProductsPlan::where('line_id', '=', $line_id)
-    //     ->where('plan_product_id', '!=', $prod_id)
-    //         ->where('ended_at', '>=', $start)
-    //         ->where('date', $date)
-    //         ->where('date', $date)
-    //         ->where('started_at', '<=', $start)
-    //         ->where('ended_at', '>=', $start)
-    //         ->orderBy('started_at', 'ASC')
-    //         ->get()
-    //         ->toArray();
-    //     if (count($plans) > 1) {
-    //         $timeZone = new \DateTimeZone('Europe/Moscow'); 
-    //         $plans = array_filter($plans, function ($item) use ($prod_id) {
-    //             return $item['plan_product_id'] != $prod_id;
-    //         });
-    //         $planOne = $plans[0];
-    //         // Если есть, то ставим новую ГП после той, внутрь которой попадаем и ставим новые ГП
-    //         $diff = Carbon::parse($planOne['ended_at'], $timeZone)->diffInMinutes(Carbon::parse($start, $timeZone));
-    //         $pl = ProductsPlan::where('plan_product_id', '=', $prod_id)->first();
-    //         $pl->started_at = $planOne['ended_at'];
-    //         $pl->ended_at = Carbon::parse($end, $timeZone)->addMinutes($diff)->format('H:i:s');
-    //         $pl->save();
-    //         $plans = ProductsPlan::where('line_id', '=', $line_id)
-    //             ->where('started_at', '>=', $start)
-    //             ->where('date', $date)
-    //             ->where('plan_product_id', '!=', $prod_id)
-    //             ->orderBy('started_at', 'ASC')
-    //             ->get();
-    //         $end = $pl->ended_at;
-    //         foreach ($plans as $plan) {
-    //             // Те, которые надо сдвинуть
-    //             $plan->started_at = $end;
-    //             $end = Carbon::parse($plan->ended_at, $timeZone)->addMinutes($diff)->format('H:i:s');
-    //             $plan->ended_at = $end;
-    //             $plan->save();
-    //         }
-    //     }
-    // }
-
-    // public function checkPackPlans($line_id, $prod_id, $start, $end)
-    // {
-    //     ///??????
-    //     global $date;
-    //     $timeZone = new \DateTimeZone('Europe/Moscow');
-    //     // Проверка - залезаем ли мы началом новой ГП на окончание предыдущей
-    //     $plans = ProductsPlan::where('line_id', '=', $line_id)
-    //         ->where('plan_product_id', '!=', $prod_id)
-    //         ->where('ended_at', '>=', $start)
-    //         ->where('date', $date)
-    //         ->orderBy('ended_at', 'DESC')
-    //         ->first();
-    //     if ($plans) {
-    //         $plan = ProductsPlan::where('plan_product_id', '=', $prod_id)->where('date', '=', $date)->first();
-    //         // Если такая есть, то считаем, сколько минут идёт перекрытие
-    //         $diff = Carbon::parse($plan->started_at, $timeZone)->diff(Carbon::parse($lastPlan->ended_at, $timeZone));
-    //         $plan->started_at = $lastPlan->ended_at;
-    //         $plan->ended_at = Carbon::parse($plan->started_at, $timeZone)->addMinutes($diff)->format('H:i:s');
-    //         $plan->save();
-    //     }
-    // }
-
-    public static function checkPlans($date,$line_id, $prod_id, $start, $end, $position = null) {
+    public static function checkPlans($date, $isDay, $line_id, $prod_id, $start, $end, $position = null) {
         // Проверка - залезаем ли мы началом новой ГП на окончание предыдущей
         $upPlan = ProductsPlan::where('line_id', '=', $line_id)
             ->where('plan_product_id', '!=', $prod_id)
@@ -207,6 +151,7 @@ class ProductsPlanController extends Controller
                 $query->where('position', '<=', $position);
             })
             ->where('date', $date)
+            ->where('isDay', $isDay)
             ->orderBy('started_at', 'ASC')
             ->first();
         // Проверка - залезаем ли мы концом новой ГП на начало следующей
@@ -218,6 +163,7 @@ class ProductsPlanController extends Controller
                 $query->where('position', '<=', $position);
             })
             ->where('date', $date)
+            ->where('isDay', $isDay)
             ->orderBy('started_at', 'ASC')
             ->first();
 
@@ -229,6 +175,7 @@ class ProductsPlanController extends Controller
             if ($shift != 0) {
                 $plan = ProductsPlan::where('plan_product_id', $prod_id)
                     ->where('date', $date)
+                    ->where('isDay', $isDay)
                     ->where('line_id', $line_id)
                     ->first();
                 $plan->update([
@@ -243,6 +190,7 @@ class ProductsPlanController extends Controller
                         $query->where('position', '<=', $position);
                     })
                     ->where('date', $date)
+                    ->where('isDay', $isDay)
                     ->each(function($p) use($shift) {
                         $p->started_at = Carbon::parse($p->started_at)->addMinutes($shift)->format('H:i:s');
                         $p->ended_at = Carbon::parse($p->ended_at)->addMinutes($shift)->format('H:i:s');
@@ -272,6 +220,7 @@ class ProductsPlanController extends Controller
         // Ид записей, которые надо менять местами и их порядок
         $data = $request->post();
         $date = $request->cookie('date');
+        $isDay = boolval($request->cookie('isDay'));
         if (!$data) {
             return -1;
         } else {
@@ -281,7 +230,7 @@ class ProductsPlanController extends Controller
                 $prod = ProductsPlan::where('plan_product_id', '=', $id)->get()->first();
                 $old_start = $prod->started_at;
                 $prod->update($item);
-                self::checkPlans($date, $prod->line_id, $prod->plan_product_id, $prod->started_at, $prod->ended_at,$data['position']);
+                self::checkPlans($date, $isDay, $prod->line_id, $prod->plan_product_id, $prod->started_at, $prod->ended_at,$data['position']);
                 $packs = ProductsPlan::where('product_id', '=', $prod->product_id)->where('type_id', '=', 2)->get();
                 if ($packs) {
                     foreach ($packs as $pack) {
@@ -290,7 +239,7 @@ class ProductsPlanController extends Controller
                         $pack->started_at = Carbon::parse($pack->started_at)->addMinutes($start_diff)->format('H:i:s');
                         $pack->ended_at = Carbon::parse($pack->started_at)->addMinutes($duration)->format('H:i:s');
                         $pack->save();
-                        self::checkPlans($date, $pack->line_id, $pack->plan_product_id, $pack->started_at, $pack->ended_at, $pack->position);
+                        self::checkPlans($date, $isDay, $pack->line_id, $pack->plan_product_id, $pack->started_at, $pack->ended_at, $pack->position);
                     }
                 }
             }
@@ -301,18 +250,22 @@ class ProductsPlanController extends Controller
     {
 
         $date = $request->post('date');
+        $isDay = boolval($request->cookie('isDay'));
         if (!$date) {
             $date = $request->cookie('date');
         }
-        ProductsPlan::where('date', $date)->delete();
+        ProductsPlan::where('date', $date)->where('isDay', $isDay)->delete();
         $def = LinesController::getDefaults();
         foreach ($def as $d) {
-            LinesExtra::where('line_id', '=', $d['line_id'])->where('date', $date)->each(function ($item) { 
-                $item->delete();
-            });
+            LinesExtra::where('line_id', '=', $d['line_id'])
+                ->where('date', $date)
+                ->where('isDay', $isDay)
+                ->each(function ($item) { 
+                    $item->delete();
+                });
         }
-        LogsController::clear($date);
-        SlotsController::clear($date);
+        LogsController::clear($date, $isDay);
+        SlotsController::clear($date, $isDay);
         return;
     }
 

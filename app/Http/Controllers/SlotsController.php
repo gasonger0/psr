@@ -15,10 +15,14 @@ class SlotsController extends Controller
     static public function getList(Request $request)
     {
         $date = $request->cookie('date');
-        return Slots::where('date', '=', $date)->get()->toJson();
+        $isDay = boolval($request->cookie('isDay'));
+        return Slots::where('date', '=', $date)
+            ->where('isDay', $isDay)
+            ->get()
+            ->toJson();
     }
 
-    static public function add($date, $line_id = null, $worker_id = null, $start = null, $end = null)
+    static public function add($date, $isDay, $line_id = null, $worker_id = null, $start = null, $end = null)
     {
         if (!$line_id)
             return;
@@ -32,6 +36,7 @@ class SlotsController extends Controller
         $diff = (new \DateTime($start))->diff(new \DateTime($end));
         $slot->time_planned = $diff->h * 60 + $diff->i;
         $slot->date = $date;
+        $slot->isDay = $isDay;
         $slot->save();
 
         return $slot->slot_id;
@@ -40,6 +45,7 @@ class SlotsController extends Controller
     static public function change(Request $request)
     {
         $date = $request->cookie('date');
+        $isDay = boolval($request->cookie('isDay'));
         $oldSlot = Slots::where(
             'worker_id',
             '=',
@@ -52,6 +58,10 @@ class SlotsController extends Controller
             'date',
             '=',
             $date
+        )->where(
+            'isDay',
+            '=',
+            $isDay
         )->first();
 
         if (!$oldSlot) {
@@ -59,9 +69,10 @@ class SlotsController extends Controller
             if (!$line) {
                 return -1;
             }
-            $extra = LinesExtraController::get($date, $line->line_id);
+            $extra = LinesExtraController::get($date, $isDay, $line->line_id);
             SlotsController::add(
-                $request->cookie('date'),
+                $date,
+                $isDay,
                 $line->line_id,
                 $request->worker_id,
                 now('Europe/Moscow')->format('H:i:s'),
@@ -100,7 +111,8 @@ class SlotsController extends Controller
                 $slot->started_at = Carbon::parse($r['started_at'])->format('H:i:s'); 
                 $slot->ended_at = Carbon::parse($r['ended_at'])->format('H:i:s');
                 $slot->worker_id = $r['worker_id'];
-                $slot->date = cookie('date') ?? (new \DateTime())->format('Y-m-d');
+                $slot->date = $request->cookie('date');
+                $slot->isDay = boolval($request->cookie('isDay'));
                 $diff = (new \DateTime($slot->started_at))->diff(new \DateTime($slot->ended_at));
                 $slot->time_planned = $diff->h * 60 + $diff->i;
                 $slot->save();
@@ -120,9 +132,12 @@ class SlotsController extends Controller
     {
         if (!($id = $request->post('worker_id'))) return;
         $date = $request->cookie('date');
+        $isDay = boolval($request->cookie('isDay'));
         if  ($request->post('delete')){
             Slots::where('worker_id', '=', $id)
-                ->where('date', $date)->delete();
+                ->where('date', $date)
+                ->where('isDay', $isDay)
+                ->delete();
         }else {
             $worker = Slots::find($request->post('slot_id'));
             if ($worker) {
@@ -133,11 +148,12 @@ class SlotsController extends Controller
         return;
     }
 
-    static public function afterLineUpdate($date, $line_id, $newStart, $oldStart, $newEnd, $oldEnd)
+    static public function afterLineUpdate($date, $time, $line_id, $newStart, $oldStart, $newEnd, $oldEnd)
     {
         $slots = Slots::where('line_id', '=', $line_id)
             ->where('started_at', '=', $oldStart)
             ->where('date', $date)
+            ->where('isDay', $time)
             ->get();
         foreach ($slots as $slot) {
             $slot->started_at = $newStart;
@@ -147,6 +163,7 @@ class SlotsController extends Controller
         $slots = Slots::where('line_id', '=', $line_id)
             ->where('ended_at', '=', $oldEnd)
             ->where('date', $date)
+            ->where('isDay', $time)
             ->get();
         foreach ($slots as $slot) {
             $slot->ended_at = $newEnd;
@@ -154,9 +171,12 @@ class SlotsController extends Controller
         }
     }
 
-    static public function down($date, $lineId, $downFrom)
+    static public function down($date,$isDay, $lineId, $downFrom)
     {
-        $slots = Slots::where('line_id', '=', $lineId)->where('started_at', '<', $downFrom)->where('date', $date)->get();
+        $slots = Slots::where('line_id', '=', $lineId)
+            ->where('started_at', '<', $downFrom)
+            ->where('date', $date)
+            ->where('isDay', $isDay)->get();
         // var_dump($slots, $downFrom, $lineId);
         foreach ($slots as $slot) {
             if ($slot->ended_at < now('Europe/Moscow')) {
@@ -183,6 +203,7 @@ class SlotsController extends Controller
 
         return SlotsController::add(
             $request->cookie('date'),
+            boolval($request->cookie('isDay')),
             $oldSlot->line_id,
             $data['new_worker_id'],
             now('Europe/Moscow')->format('H:i:s'),
@@ -190,12 +211,12 @@ class SlotsController extends Controller
         );
     }
 
-    static public function clear($date = null)
+    static public function clear($date = null, $isDay) 
     {
         if (!$date) {
             return;
         }
-        Slots::where('date', $date)->each(function($slot) {
+        Slots::where('date', $date)->where('isDay', $isDay)->each(function($slot) {
             $slot->delete();
         });
     }
@@ -207,12 +228,14 @@ class SlotsController extends Controller
         }, $lines));
         $columns = [array_merge(['Работник'], $titles)];
         $date = $request->cookie('date');
-        Workers::all()->each(function($worker) use($lines, &$columns, $date){
+        $isDay = boolval($request->cookie('isDay'));
+        Workers::all()->each(function($worker) use($lines, &$columns, $date, $isDay){
             $row = [$worker->title];
             foreach ($lines as $line) {
                 $slot = Slots::where('worker_id', '=', $worker->worker_id)
                     ->where('line_id', '=', $line['line_id'])
                     ->where('date', '=', $date)
+                    ->where('isDay', '=', $isDay)
                     ->first();
                 if ($slot) {
                     $row[] = $slot->started_at;
