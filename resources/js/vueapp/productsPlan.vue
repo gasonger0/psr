@@ -139,7 +139,7 @@ export default {
                                     prod.current_line_id = el.line_id;
                                 }
                                 if (el.type_id == 1) {
-                                    el.boils = el.amount * eval(prod.kg2boil) * prod.amount2parts * prod.parts2kg;
+                                    el.boils = eval(el.amount) * eval(prod.kg2boil) * eval(prod.amount2parts) * eval(prod.parts2kg);
                                     prod.amounts_fact[0] = el.amount;
                                 }
                                 if (el.type_id == 2) {
@@ -314,8 +314,10 @@ export default {
                             let ids = children.map(el => el.dataset.id);
                             console.log(ids);
                             let cards = [];
-                            ids.forEach(el => {
-                                cards.push(this.plans.find(f => f.plan_product_id == el));
+                            ids.forEach((el, k) => {
+                                let pl = this.plans.find(f => f.plan_product_id == el);
+                                pl.position = k;
+                                cards.push(pl);
                             })
                             console.log(cards);
                             for (let i in cards) {
@@ -329,7 +331,8 @@ export default {
                                 }
                                 cards[i].ended_at = dayjs(cards[i].started_at, 'HH:mm:ss').add(timeDiff, 'minutes').format('HH:mm:ss');
                             }
-                            let index = children.indexOf(ev.target);
+                            // let index = children.indexOf(ev.target);
+                            // cards.find(el => el.plan_product_id == ev.target.dataset.id).position = index;
                             this.showLoader = true;
                             axios.post('/api/change_plan', 
                                 cards.map(el => {
@@ -337,7 +340,7 @@ export default {
                                         plan_product_id: el.plan_product_id,
                                         started_at: el.started_at,
                                         ended_at: el.ended_at,
-                                        position: index
+                                        position: el.position
                                     }
                                 })
                             ).then(response => {

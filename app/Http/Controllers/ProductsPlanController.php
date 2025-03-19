@@ -128,11 +128,11 @@ class ProductsPlanController extends Controller
                         $position = 0;
                     }
                     $plan->position = $position + 1;
-                    
+                    $plan->save();
 
                     var_dump('Pack check. Current params:' . $plan->started_at . ', ' . $plan->ended_at);
                     // var_dump($plan->toArray());
-                    $this->checkPlans($date, $isDay, $plan->line_id, $plan->plan_product_id, $plan->started_at, $plan->ended_at);
+                    $this->checkPlans($date, $isDay, $plan->line_id, $plan->plan_product_id, $plan->started_at, $plan->ended_at, $position);
                     // Добавка про 15 минут и проверка на конфликты каждый раз
                     // Узнать у натальи, ставим ли мы упааковку после текущей или вместо (скорее всего первое)
                     //}
@@ -165,6 +165,8 @@ class ProductsPlanController extends Controller
         }   
         // Проверка - залезаем ли мы началом новой ГП на окончание предыдущей
         $upPlan = ProductsPlan::where('position', '<=', $position)
+            ->where('ended_at', '>=', $start)
+            ->where('started_at', '<=', $start) 
             ->where('line_id', '=', $line_id)
             ->where('plan_product_id', '!=', $prod_id)
             ->where('date', $date)
@@ -173,6 +175,8 @@ class ProductsPlanController extends Controller
             ->first();
         // Проверка - залезаем ли мы концом новой ГП на начало следующей
         $downPlan = ProductsPlan::where('position', '>=', $position)
+            ->where('started_at', '<=', $end)
+            ->where('ended_at', '>=', $end)
             ->where('line_id', '=', $line_id)
             ->where('plan_product_id', '!=', $prod_id)
             ->where('date', $date)
@@ -199,6 +203,7 @@ class ProductsPlanController extends Controller
                     ]);
                 }
                 ProductsPlan::where('position', '>=', $position)
+                    ->where('started_at', '>=', $start)
                     ->where('line_id', '=', $line_id)
                     ->where('plan_product_id', '!=', $prod_id)
                     ->where('date', $date)

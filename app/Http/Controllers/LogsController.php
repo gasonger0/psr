@@ -55,11 +55,11 @@ class LogsController extends Controller
         ]];
         foreach ($data as $col) {
             unset($col['updated_at']);
-            $col['created_at'] = Carbon::parse($col['created_at'])->format('H:i:s');
+            // $col['created_at'] = ;
             $columns[] = [
                 $col['log_id'],
                 $col['line'],
-                $col['created_at'],
+                Carbon::parse($col['created_at'])->format('H:i:s'),
                 $col['action'],
                 $col['extra'],
                 $col['people_count']

@@ -504,12 +504,12 @@ class TableController extends Controller
                 }, $linePlans);
                 
                 array_multisort(
-                    array_column($linePlans, 'started_at'),
+                    array_column($linePlans, 'position'),
                     SORT_ASC,
                     $linePlans
                 );
-                $line['started_at'] = $linePlans[0]['started_at'];
-                $line['ended_at'] = (last($linePlans))['ended_at'];
+                // $line['started_at'] = $linePlans[0]['started_at'];
+                // $line['ended_at'] = (last($linePlans))['ended_at'];
                 $line['items'] = [];
                 $hardwares = array_filter(array_unique(array_column($linePlans, 'hardware')));
 
@@ -574,9 +574,9 @@ class TableController extends Controller
                     
                     foreach ($hw['items'] as $product) {
                         $crates = intval($product['amount']);
-                        $parts = eval ('return ceil(' . $crates . '*' . floatval($product['amount2parts']) . ');');
-                        $kg = eval ('return ceil(' . $parts . '*' . floatval($product['parts2kg']) . ');');
-                        $boils = eval ('return ceil(' . $kg . '*' . floatval($product['kg2boil']) . ');');
+                        eval('$parts = ceil(' . $crates . '*' . $product['amount2parts'] . ');');
+                        eval('$kg = ceil(' . $parts . '*' . $product['parts2kg'] . ');');
+                        eval('$boils = ' . $kg . '*' . $product['kg2boil'] . ';');
 
                         if (mb_strpos(mb_strtolower($product['title']), 'зефир') !== false) {
                             $sum['z'][0] += $kg;
@@ -593,9 +593,9 @@ class TableController extends Controller
                             $sum['z'][1] += $boils;
                         }
 
-                        $prec = eval ('return ' . $boils . '*' . floatval($product['cars']) . ';');
+                        eval('$prec =  ' . $boils . '*' . floatval($product['cars']) . ';');
                         $cars = round($prec, 0, PHP_ROUND_HALF_DOWN);
-                        $plates = eval ('return ' . ($prec - $cars) . '*' . floatval($product['cars2plates']) . ';');
+                        eval('$plates = ' . ($prec - $cars) . '*' . floatval($product['cars2plates']) . ';');
                         $array[] = [
                             '',
                             $product['title'],
@@ -843,6 +843,7 @@ class TableController extends Controller
     //         }
     //     }
     // }
+
     public function getFile(Request $request)
     {
         $data = $request->post();
