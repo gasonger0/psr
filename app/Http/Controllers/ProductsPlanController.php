@@ -118,6 +118,18 @@ class ProductsPlanController extends Controller
                     $plan->amount = $post['amount'];
                     $plan->save();
 
+                    $position = ProductsPlan::where('date', '=', $date)
+                        ->where('isDay', '=', $isDay)
+                        ->where('line_id', '=', $plan->line_id)
+                        ->where('type_id', '=', 2)
+                        ->where('started_at', '<', $plan->started_at)
+                        ->max('position');
+                    if ($position === null) {
+                        $position = 0;
+                    }
+                    $plan->position = $position + 1;
+                    
+
                     var_dump('Pack check. Current params:' . $plan->started_at . ', ' . $plan->ended_at);
                     // var_dump($plan->toArray());
                     $this->checkPlans($date, $isDay, $plan->line_id, $plan->plan_product_id, $plan->started_at, $plan->ended_at);
@@ -141,7 +153,7 @@ class ProductsPlanController extends Controller
         }
     }
 
-    public static function checkPlans($date, $isDay, $line_id, $prod_id, $start, $end, $position = null) {
+    public static function checkPlans($date, $isDay, $line_id, $prod_id, $start, $end, $position) {
         // Проверка, не ставим ли мы план первым
         $check = ProductsPlan::where('line_id', '=', $line_id)
             ->where('date', $date)
@@ -150,13 +162,9 @@ class ProductsPlanController extends Controller
             ->count();
         if ($check == 0) {
             return;
-        }
+        }   
         // Проверка - залезаем ли мы началом новой ГП на окончание предыдущей
-        $upPlan = ProductsPlan::where('ended_at', '>=', $start)
-            ->where('started_at', '<=', $start) 
-            ->when($position !== null, function ($query) use ($position) {
-                $query->orWhere('position', '<=', $position);
-            })
+        $upPlan = ProductsPlan::where('position', '<=', $position)
             ->where('line_id', '=', $line_id)
             ->where('plan_product_id', '!=', $prod_id)
             ->where('date', $date)
@@ -164,11 +172,7 @@ class ProductsPlanController extends Controller
             ->orderBy('position', 'ASC')
             ->first();
         // Проверка - залезаем ли мы концом новой ГП на начало следующей
-        $downPlan = ProductsPlan::where('started_at', '>=', $end)
-            ->where('ended_at', '<=', $end)
-            ->when($position !== null, function ($query) use ($position) {
-                $query->orWhere('position', '>=', $position);
-            })
+        $downPlan = ProductsPlan::where('position', '>=', $position)
             ->where('line_id', '=', $line_id)
             ->where('plan_product_id', '!=', $prod_id)
             ->where('date', $date)
@@ -194,10 +198,7 @@ class ProductsPlanController extends Controller
                         'ended_at' => Carbon::parse($end)->addMinutes($topShift)->format('H:i:s')
                     ]);
                 }
-                ProductsPlan::where('started_at', '>=', $start)
-                    ->when($position !== null, function ($query) use ($position) {
-                        $query->where('position', '>=', $position);
-                    })
+                ProductsPlan::where('position', '>=', $position)
                     ->where('line_id', '=', $line_id)
                     ->where('plan_product_id', '!=', $prod_id)
                     ->where('date', $date)
