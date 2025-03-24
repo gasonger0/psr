@@ -406,8 +406,8 @@ export default {
                 .then((response) => {
                     this.$emit('notify', 'success', 'Сохранено');
                     let i = this.lines.find(el => el.line_id == record['line_id']);
-                    i.started_at = dayjs(record.started_at.format('HH:mm'));
-                    i.ended_at = dayjs(record.ended_at.format('HH:mm'));
+                    // i.started_at = dayjs(record.started_at.format('HH:mm'));
+                    // i.ended_at = dayjs(record.ended_at.format('HH:mm'));
 
                     let arr = [];
                     if (i.master) {

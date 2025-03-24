@@ -24,8 +24,17 @@ class TableController extends Controller
     static $MCE = '</middle></center>';
     private static $skipPhrases = ['подготовительное время', 'заключительное время'];
     private static $colons = ['', 'Варочная колонка №1', 'Варочная колонка №2'];
-    private static $hardware = ['', 'Мондомикс', 'Торнадо', 'Китайский аэрос', 'Завёрточная машина №1', 'Завёрточная машина №2', 'Завёрточные машины №1, №2'];
-    private static function makeArrayHeader()
+    private static $hardware = [
+        0 => 'Без оборудования', 
+        1 => 'Мондомикс', 
+        2 => 'Торнадо', 
+        3 => 'Китайский аэрос', 
+        4 => 'Завёрточная машина №1', 
+        5 => 'Завёрточная машина №2', 
+        6 => 'Завёрточные машины №1, №2'
+    ];
+    
+    private static function makeArrayHeader($date, $isDay)
     {
         return
             [
@@ -62,11 +71,11 @@ class TableController extends Controller
                 ],
                 [
                     '<style height="52">Дата</style>',
-                    '<style height="52">' . date('d_m_Y-H:i:s', time()) . '</style>'
+                    '<style height="52">' . date('d_m_Y', strtotime($date)) . '</style>'
                 ],
                 [
                     '<style height="52">Смена:</style>',
-                    '',
+                    $isDay ? 'День' : 'Ночь',
                     '',
                     'план:',
                     '',
@@ -472,7 +481,7 @@ class TableController extends Controller
         });
         unset($lines);
 
-        $arr = [self::makeArrayHeader(), self::makeArrayHeader()];
+        $arr = [self::makeArrayHeader($date, $isDay), self::makeArrayHeader($date, $isDay)];
 
 
         foreach ($linesFiltered as $sheet => &$lines) {
@@ -511,7 +520,7 @@ class TableController extends Controller
                 // $line['started_at'] = $linePlans[0]['started_at'];
                 // $line['ended_at'] = (last($linePlans))['ended_at'];
                 $line['items'] = [];
-                $hardwares = array_filter(array_unique(array_column($linePlans, 'hardware')));
+                $hardwares = array_unique(array_column($linePlans, 'hardware'));
 
                 if (count($hardwares) != 0) {
                     foreach ($hardwares as $hw) {
@@ -538,7 +547,7 @@ class TableController extends Controller
                 if (is_array($line['engineer'])) {
                     $line['engineer'] = $line['engineer'][0] . '.' . mb_substr($line['engineer'][1], 0, 1) . '.';
                 }
-                $array[] = ['', '<style bgcolor="#D8E4BC"><b>' . $line['title'] . '</b> (' . $line['extra_title'] . ')</style>', '', '', '', '', '', '', '', '', '', $line['workers_count'], $line['started_at'], Carbon::parse($line['ended_at'])->addMinutes($line['after_time'])->format('H:i:s')];
+                $array[] = ['', '<style bgcolor="#D8E4BC"><b>' . $line['title'] . '</b> (' . $line['extra_title'] . ')</style>', '', '', '', '', '', '', '', '', '', $line['workers_count'], $line['started_at'], $line['ended_at']];
                 if ($line['has_detector']) {
                     $array[] = ['', '<style bgcolor="#fc8c03"><b><i>МЕТАЛОДЕТЕКТОР</i></b></style>', '', '', '', '', '', '', '', '', '', '', $line['detector_start'], $line['detector_end']];
                 }
@@ -556,7 +565,12 @@ class TableController extends Controller
                     if (isset($hw['hwTitle'])) {
                         $array[] = ['', '<style bgcolor="#D8E4BC"><b>' . mb_strtoupper($hw['hwTitle']) . '</b></style>'];
                     }
-                    $colon = array_filter(array_unique(array_column($hw['items'], 'colon')));
+                    $colons = [];
+                    foreach ($hw['items'] as $h){
+                        $c = explode(';', $h['colon']);
+                        $colons = array_merge($colons, $c);
+                    }
+                    $colon = array_filter(array_unique($colons));
                     if (count($colon) >= 2) {
                         $colon = [1, 2];
                     } else {
@@ -593,9 +607,9 @@ class TableController extends Controller
                             $sum['z'][1] += $boils;
                         }
 
-                        eval('$prec =  ' . $boils . '*' . floatval($product['cars']) . ';');
-                        $cars = round($prec, 0, PHP_ROUND_HALF_DOWN);
-                        eval('$plates = ' . ($prec - $cars) . '*' . floatval($product['cars2plates']) . ';');
+                        eval('$prec =  ' . $boils . '*' . $product['cars'] . ';');
+                        $cars = floor($prec);
+                        eval('$plates = ' . ($prec - $cars) . '*' . $product['cars2plates'] . ';');
                         $array[] = [
                             '',
                             $product['title'],
@@ -605,7 +619,8 @@ class TableController extends Controller
                             self::$MCS . $boils . self::$MCE,
                             self::$MCS . $cars . self::$MCE,
                             '<b>т</b>',
-                            self::$MCS . $plates . self::$MCE,
+                            // $prec,
+                            self::$MCS . ceil($plates) . self::$MCE,
                             '<b>под</b>',
                             self::$MCS . '<b>' . $prec . '</b>' . self::$MCE,
                             $product['workers_count'],
