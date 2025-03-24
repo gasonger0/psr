@@ -214,7 +214,7 @@ export default {
                     <div v-if="column.dataIndex != 'title' && column.dataIndex != 'break'" style="display: flex;flex-direction: column;align-items: center;">
                         <span style="text-align:center">{{ column.title }}</span>
                         <br>
-                        <span style="color:gray" v-if="column.started_at && column.ended_at">{{ column.started_at.substr(0, 5) }} - {{ column.ended_at.substr(0, 5) }}</span>
+                        <span style="color:gray" v-if="column.started_at && column.ended_at">{{ column.started_at.format('HH:mm') }} - {{ column.ended_at.format('HH:mm') }}</span>
                     </div>
                     <span v-else>{{ column.title }}</span>
                 </template>
@@ -230,14 +230,14 @@ export default {
                                 <TimePicker v-model:value="record[column.dataIndex]['time'][0]"
                                     @change="(ev) => { addUpdate(record[column.dataIndex]); }" format="HH:mm"
                                     :showTime="true" :allowClear="true" type="time" :showDate="false" size="small"
-                                    style="border-color: #1677ff;width:47%;"
-                                    :status="record[column.dataIndex]['time'][0].isBefore(lines.find(el => el.line_id == column.dataIndex).started_at) ? 'error' : ''"/>
+                                    style="border-color: #1677ff;width:47%;" />
+                                    <!-- :status="record[column.dataIndex]['time'][0].isBefore(lines.find(el => el.line_id == column.dataIndex).started_at) ? 'error' : ''"/> -->
                                 <span> - </span>
                                 <TimePicker v-model:value="record[column.dataIndex]['time'][1]"
                                     @change="(ev) => { addUpdate(record[column.dataIndex]); }" format="HH:mm"
                                     :showTime="true" :allowClear="true" type="time" :showDate="false" size="small"
-                                    style="border-color: #1677ff;width:47%;"
-                                    :status="record[column.dataIndex]['time'][1].isAfter(lines.find(el => el.line_id == column.dataIndex).ended_at) ? 'error' : ''"/>
+                                    style="border-color: #1677ff;width:47%;"/>
+                                    <!-- :status="record[column.dataIndex]['time'][1].isAfter(lines.find(el => el.line_id == column.dataIndex).ended_at) ? 'error' : ''"/> -->
                             </div>
                         </template>
                     </template>

@@ -60,7 +60,7 @@ class ProductsPlanController extends Controller
             $plan->amount = $post['amount'];
             $plan->date = $date;
             $plan->isDay = $isDay;
-            $plan->hardware = isset($post['hardware']) ? $post['hardware'] : 0;
+            $plan->hardware = isset($post['hardware']) && $post['hardware'] != null ? $post['hardware'] : 0;
             $plan->position = isset($post['position']) ? $post['position'] : 0;
 
             if (isset($post['colon'])) {
@@ -133,6 +133,17 @@ class ProductsPlanController extends Controller
                     var_dump('Pack check. Current params:' . $plan->started_at . ', ' . $plan->ended_at);
                     // var_dump($plan->toArray());
                     $this->checkPlans($date, $isDay, $plan->line_id, $plan->plan_product_id, $plan->started_at, $plan->ended_at, $position);
+
+                    $plans = ProductsPlan::where('line_id', '=', $plan->line_id)
+                        ->where('date', $date)
+                        ->where('isDay', $isDay)
+                        ->orderBy('position', 'ASC')
+                        ->get()
+                        ->toArray();
+                    $minStartedAt = $plans[0]['started_at'];
+                    $maxEndedAt = end($plans)['ended_at'];
+                    LinesExtraController::update($date, $isDay, $plan->line_id, ['started_at' => $minStartedAt, 'ended_at' => $maxEndedAt]);
+
                     // Добавка про 15 минут и проверка на конфликты каждый раз
                     // Узнать у натальи, ставим ли мы упааковку после текущей или вместо (скорее всего первое)
                     //}
@@ -141,11 +152,11 @@ class ProductsPlanController extends Controller
             $plans = ProductsPlan::where('line_id', '=', $plan->line_id)
                 ->where('date', $date)
                 ->where('isDay', $isDay)
-                ->orderBy('started_at', 'ASC')
+                ->orderBy('position', 'ASC')
                 ->get()
                 ->toArray();
-            $minStartedAt = $plans ? min(array_column($plans, 'started_at')) : null;
-            $maxEndedAt = $plans ? max(array_column($plans, 'ended_at')) : null;
+                $minStartedAt = $plans[0]['started_at'];
+                $maxEndedAt = end($plans)['ended_at'];
             
             LinesExtraController::update($date, $isDay, $plan->line_id, ['started_at' => $minStartedAt, 'ended_at' => $maxEndedAt]);
 
@@ -217,6 +228,7 @@ class ProductsPlanController extends Controller
             }
         }
     }
+
     public function delPlan(Request $request)
     {
         $plan = ProductsPlan::find($request->post('product_plan_id'));
@@ -239,6 +251,21 @@ class ProductsPlanController extends Controller
             //delete();
         }
         $plan->delete();
+
+        $plans = ProductsPlan::where('line_id', '=', $plan->line_id)
+            ->where('date', $request->cookie('date'))
+            ->where('isDay', $request->cookie('isDay'))
+            ->orderBy('position', 'ASC')
+            ->get()
+            ->toArray();
+        $minStartedAt = $plans[0]['started_at'];
+        $maxEndedAt = end($plans)['ended_at'];
+        LinesExtraController::update(
+            $request->cookie('date'), 
+            $request->cookie('isDay'), 
+            $plan->line_id, 
+            ['started_at' => $minStartedAt, 'ended_at' => $maxEndedAt]
+        );
 
         // Автоматом подтягивать время продукции в линиях, чтобы само вставало друг за другом, без промежутков ???
         return true;
@@ -301,26 +328,4 @@ class ProductsPlanController extends Controller
         SlotsController::clear($date, $isDay);
         return;
     }
-
-    // public static function afterLineUpdate($line_id, $newStart, $oldStart, $newEnd, $oldEnd)
-    // {
-    //     global $date;
-    //     $slots = ProductsPlan::where('line_id', '=', $line_id)
-    //         ->where('started_at', '=', $oldStart)
-    //         ->where('date', $date)
-    //         ->get();
-    //     foreach ($slots as $slot) {
-    //         $slot->started_at = $newStart;
-    //         $slot->save();
-    //     }
-
-    //     $slots = ProductsPlan::where('line_id', '=', $line_id)
-    //         ->where('ended_at', '=', $oldEnd)
-    //         ->where('date', $date)
-    //         ->get();
-    //     foreach ($slots as $slot) {
-    //         $slot->ended_at = $newEnd;
-    //         $slot->save();
-    //     }
-    // }
 }

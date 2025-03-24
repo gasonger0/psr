@@ -538,8 +538,10 @@ export default {
                         let maxPos = Math.max(...positions);
                         console.log(minPos, maxPos, items);
                         el.started_at = dayjs(items.find(i => i.position == minPos).started_at, 'HH:mm:ss');
+                        el.started_at = el.started_at.add(-el.prep_time, 'minute');
                         el.ended_at = dayjs(items.find(i => i.position == maxPos).ended_at, 'HH:mm:ss');
-                        }
+                        el.ended_at = el.ended_at.add(el.prep_time, 'minute');
+                    }
                     });
                     this.$emit('getBoils', sum.toFixed(2));
                     this.showLoader = false;
@@ -776,8 +778,8 @@ export default {
                 .then((response) => {
                     this.$emit('notify', 'success', 'Сохранено');
                     let i = this.lines.find(el => el.line_id == record['line_id']);
-                    i.started_at = dayjs(record.started_at.format('HH:mm'));
-                    i.ended_at = dayjs(record.ended_at.format('HH:mm'));
+                    // i.started_at = dayjs(record.started_at.format('HH:mm'));
+                    // i.ended_at = dayjs(record.ended_at.format('HH:mm'));
                     let arr = [];
                     if (i.master) {
                         let f = this.responsible.find(m => m.responsible_id == i.master);
@@ -1007,10 +1009,12 @@ export default {
                             <Input v-model:value="line.workers_count" type="number" placeholder="10 человек" />
                         </span>
                         <span>Время работы:</span><br />
+                        <div style="display: flex; justify-content: space-between;">
                         <TimePicker v-model:value="line.started_at" format="HH:mm" :showTime="true" :allowClear="true"
-                            type="time" :showDate="false" style="width:fit-content;" />
+                            type="time" :showDate="false" style="width:47%;" />
                         <TimePicker v-model:value="line.ended_at" format="HH:mm" :showTime="true" :allowClear="true"
-                            type="time" :showDate="false" style="width:fit-content;" />
+                            type="time" :showDate="false" style="width:47%;" />
+                        </div>
                         <span>Подготовительное время(мин):</span><Input v-model:value="line.prep_time"
                             placeholder="0" />
                         <span>Заключительное время(мин):</span><Input v-model:value="line.after_time" placeholder="0" />

@@ -20,6 +20,9 @@ export default {
             }, {
                 title: 'Дата',
                 dataIndex: 'date'
+            },{
+                title: 'Смена',
+                dataIndex: 'isDay'
             }, {
                 title: 'Анализ заказов',
                 dataIndex: 'order'
@@ -66,6 +69,14 @@ export default {
                 <template #bodyCell="{ column, record, text }">
                     <template v-if="column.dataIndex == 'delete'">
                         <DeleteOutlined @click="clear(record.date)" />
+                    </template>
+                    <template v-if="column.dataIndex == 'isDay'">
+                        <template v-if="record[column.dataIndex]">
+                            День
+                        </template>
+                        <template v-else>
+                            Ночь
+                        </template>
                     </template>
                     <template v-if="column.dataIndex != 'date' && column.dataIndex != 'delete'">
                         <template v-if="record[column.dataIndex]">
