@@ -860,7 +860,7 @@ class TableController extends Controller
                 'Список рабочих',
                 'Отработано часов по плану',
                 'Отработано часов по факту',
-                'в т.ч. Простои',
+                'Простои',
                 'Итого часов',
                 'КТУ',
                 'Итого часов с КТУ',
@@ -973,15 +973,7 @@ class TableController extends Controller
         }
         return $result;
     }
-    // static public function downloadPlanJson(Request $request)
-    // {
-    //     $array = [
-    //         'lines' => LinesController::getList(),
-    //         'plans' => ProductsPlanController::getAll(),
-    //         'workersSlots' => SlotsController::getList()
-    //     ];
-    //     return json_encode($array);
-    // }
+
     static public function getPlans(){
         $plans = [];
         ProductsPlan::all()->each(function($plan) use (&$plans) {

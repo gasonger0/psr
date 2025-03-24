@@ -671,18 +671,16 @@ export default {
             let line_id = this.active.slot.line_id;
             let prod = this.products.find(i => i.product_id == this.active.slot.product_id);
             let hw = this.active.hardware;
-            let newSlot = (isPack ? prod.slots[2] : prod.slots[1]).filter(function (n) {
-                return n.line_id == line_id && n.hardware == hw;
-            });
-            // console.log(prod.slots[1]);
-            // console.log(prod);
-            if (!newSlot || newSlot.length == 0) {
-                newSlot = (isPack ? prod.slots[2] : prod.slots[1]).filter(function (n) {
-                    return n.line_id == line_id && n.hardware == null;
+                let newSlot = (isPack ? prod.slots[2] : prod.slots[1]).filter(function (n) {
+                    return n.line_id == line_id && n.hardware == hw;
                 });
-            }
+                if (!newSlot || newSlot.length == 0) {
+                    newSlot = (isPack ? prod.slots[2] : prod.slots[1]).filter(function (n) {
+                        return n.line_id == line_id && n.hardware == null;
+                    });
+                }
+            
             if (newSlot) {
-                // console.log('newSlot:', newSlot);
                 if (newSlot.length > 1 && !slot_id) {
                     this.active.selection = newSlot;
                     newSlot = newSlot[0];
@@ -698,11 +696,18 @@ export default {
                 this.active.time = (this.active.amount * prod.amount2parts * prod.parts2kg / this.active.perfomance).toFixed(2);
                 this.active.ended_at = ref(this.active.started_at.add(this.active.time, 'hour'));
                 // console.log(this.active.selection);
-                if (this.active.slot.type_id == 1) {
+                // if (this.active.slot.type_id == 1) {
                     this.active.ended_at = this.active.ended_at.add(10, 'minute');
-                } else if (this.active.slot.type_id == 2) {
-                    this.active.ended_at = this.active.ended_at.add(15, 'minute');
-                }
+                // } else if (this.active.slot.type_id == 2) {
+                // }
+                this.active.showError = (this.active.line.ended_at < this.active.ended_at.format('HH:mm'));
+            }
+            if (isPack && this.active.hardware != null){
+                let perf = [4,5].includes(this.active.hardware) ? 143.5 : 287;
+                this.active.perfomance = this.active.perfomance + perf;
+                this.active.time = (this.active.amount * prod.amount2parts * prod.parts2kg / this.active.perfomance).toFixed(2);
+                this.active.ended_at = ref(this.active.started_at.add(this.active.time, 'hour'));
+                this.active.ended_at = this.active.ended_at.add(15, 'minute');
                 this.active.showError = (this.active.line.ended_at < this.active.ended_at.format('HH:mm'));
             }
         },
@@ -1119,6 +1124,7 @@ export default {
         </div>
         <div v-if="active.slot.type_id == 2">
             <RadioGroup v-model:value="active.hardware" @change="handleHardware(null, true)">
+                <RadioButton :value="null">Нет</RadioButton>
                 <RadioButton :value="4">
                     <Tooltip title="Завёрточная машина №1">ЗМ №1</Tooltip>
                 </RadioButton>

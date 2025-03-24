@@ -38,9 +38,6 @@ export default {
                 dataIndex: 'line_id',
                 width: '40%'
             }, {
-                title: 'Оборудование',
-                dataIndex: 'hardware'
-            }, {
                 title: 'Кол-во сотрудников',
                 dataIndex: 'people_count'
             }, {
@@ -80,11 +77,6 @@ export default {
                 { value: 1, label: 'ТОРНАДО' },
                 { value: 2, label: 'Мондомикс' },
                 { value: 3, label: 'Китайский Аэрос' }
-            ],
-            packHardwares: [
-                { value: 4, label: 'ЗМ №1'},
-                { value: 5, label: 'ЗМ №2'},
-                { value: 6, label: 'ЗМ №1, №2'},
             ]
         }
     },
@@ -304,12 +296,9 @@ export default {
                                     <template v-if="['people_count', 'perfomance'].find(el => el == column.dataIndex)">
                                         <InputNumber v-model:value="record[column.dataIndex]" />
                                     </template>
-                                    <template v-else-if="column.dataIndex == 'hardware'">
+                                    <template v-else-if="column.dataIndex == 'hardware' && k == 1">
                                         <Select v-model:value="record[column.dataIndex]" style="width: 100%;"
-                                            :options="k == 1 ? hardwares : packHardwares">
-                                            <!-- <SelectOption v-for="(v, k) in hardwares" :key="k" :value="k">
-                                                {{ v }}
-                                            </SelectOption> -->
+                                            :options="hardwares">
                                         </Select>
                                     </template>
                                     <template v-else-if="column.dataIndex == 'product_slot_id'">
