@@ -290,10 +290,8 @@ export default {
                             el.edit = false;
                             el.color = ref(el.color);
                             el.showDelete = ref(false);
-                            el.time = ref([
-                                el.started_at ? dayjs(el.started_at, 'hh:mm') : dayjs(),
-                                el.ended_at ? dayjs(el.ended_at, 'HH:mm') : dayjs()
-                            ]);
+                            el.started_at = el.started_at ? dayjs(el.started_at, 'hh:mm') : dayjs(),
+                            el.ended_at  = el.ended_at ? dayjs(el.ended_at, 'HH:mm') : dayjs()
                             el.detector_time = ref([
                                 el.detector_start ? dayjs(el.detector_start, 'hh:mm') : dayjs(),
                                 el.detector_end ? dayjs(el.detector_end, 'HH:mm') : dayjs()
@@ -371,8 +369,8 @@ export default {
                 fd.append('extra_title', record['extra_title']);
             }
 
-            fd.append('started_at', record.time[0].format('HH:mm'));
-            fd.append('ended_at', record.time[1].format('HH:mm'));
+            fd.append('started_at', record.started_at.format('HH:mm'));
+            fd.append('ended_at', record.ended_at.format('HH:mm'));
             if (record.has_detector) {
                 fd.append('has_detector', record.has_detector);
                 fd.append('detector_start', record.detector_time[0].format('HH:mm'));
@@ -408,8 +406,8 @@ export default {
                 .then((response) => {
                     this.$emit('notify', 'success', 'Сохранено');
                     let i = this.lines.find(el => el.line_id == record['line_id']);
-                    i.started_at = dayjs(record.time[0].format('HH:mm'));
-                    i.ended_at = dayjs(record.time[1].format('HH:mm'));
+                    i.started_at = dayjs(record.started_at.format('HH:mm'));
+                    i.ended_at = dayjs(record.ended_at.format('HH:mm'));
 
                     let arr = [];
                     if (i.master) {
@@ -612,7 +610,9 @@ export default {
                     <Input v-model:value="newWorkerFields.company" />
                     <br>
                     <span>Обед:</span>
-                    <TimeRangePicker v-model:value="newWorkerFields.break" format="HH:mm" :showTime="true"
+                    <TimePicker v-model:value="newWorkerFields.break[0]" format="HH:mm" :showTime="true"
+                        :allowClear="true" type="time" :showDate="false" style="width:fit-content;" />
+                    <TimePicker v-model:value="newWorkerFields.break[1]" format="HH:mm" :showTime="true"
                         :allowClear="true" type="time" :showDate="false" style="width:fit-content;" />
                     <Button type="primary" style="width:100%" @click="addWorker">
                         Сохранить
@@ -699,7 +699,9 @@ export default {
                                 type="time" :showDate="false" style="width:fit-content;" />
                         </span> -->
                         <span>Время работы:</span><br />
-                        <TimeRangePicker v-model:value="line.time" format="HH:mm" :showTime="true" :allowClear="true"
+                        <TimePicker v-model:value="line.started_at" format="HH:mm" :showTime="true" :allowClear="true"
+                            type="time" :showDate="false" style="width:fit-content;" />
+                        <TimePicker v-model:value="line.ended_at" format="HH:mm" :showTime="true" :allowClear="true"
                             type="time" :showDate="false" style="width:fit-content;" />
                         <Select v-model:value="line.cancel_reason" placeholder="Причина переноса старта"
                             style="margin-top: 10px; width: 100%;">

@@ -259,8 +259,12 @@ class ProductsPlanController extends Controller
                 $prod = ProductsPlan::where('plan_product_id', '=', $id)->get()->first();
                 $old_start = $prod->started_at;
                 $prod->update($item);
-                self::checkPlans($date, $isDay, $prod->line_id, $prod->plan_product_id, $prod->started_at, $prod->ended_at,$data['position']);
-                $packs = ProductsPlan::where('product_id', '=', $prod->product_id)->where('type_id', '=', 2)->get();
+                self::checkPlans($date, $isDay, $prod->line_id, $prod->plan_product_id, $prod->started_at, $prod->ended_at,$item['position']);
+                $packs = ProductsPlan::where('product_id', '=', $prod->product_id)
+                    ->where('type_id', '=', 2)
+                    ->where('date', '=', $date)
+                    ->where('isDay', '=', $isDay)
+                    ->get();
                 if ($packs) {
                     foreach ($packs as $pack) {
                         $start_diff = Carbon::parse($pack->started_at)->diffInMinutes(Carbon::parse($old_start));

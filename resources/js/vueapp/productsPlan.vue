@@ -285,7 +285,7 @@ export default {
                                 lastProd = lastProd.find(i => i.position == (this.active.position-1));
                                 this.active.started_at = ref(dayjs(lastProd.ended_at, 'HH:mm'));
                             } else if (this.active.line.started_at != null) {
-                                this.active.started_at = ref(this.active.line.time[0]);
+                                this.active.started_at = ref(this.active.line.started_at);
                                 if (this.active.line.prep_time) {
                                     this.active.started_at = this.active.started_at.add(this.active.line.prep_time, 'minute');
                                 }
@@ -301,7 +301,7 @@ export default {
                             } else {
                                 // console.log(1, this.active.slot.type_id)
                             }
-                            let endTime = this.active.line.time[1];
+                            let endTime = this.active.line.ended_at;
                             // console.log(endTime);
                             endTime = endTime.add(this.active.line.prep_time, 'minute');
                             this.active.showError = (endTime.format('HH:mm') < this.active.ended_at.format('HH:mm'));
@@ -312,14 +312,14 @@ export default {
                             ev.target.classList.remove(`selected`);
                             let children = Array.from(ev.target.parentNode.children);
                             let ids = children.map(el => el.dataset.id);
-                            console.log(ids);
+                            console.log("Cards ids:",ids);
                             let cards = [];
                             ids.forEach((el, k) => {
                                 let pl = this.plans.find(f => f.plan_product_id == el);
                                 pl.position = k;
                                 cards.push(pl);
                             })
-                            console.log(cards);
+                            console.log("Cards:", cards);
                             for (let i in cards) {
                                 let timeDiff = dayjs(cards[i].ended_at, 'HH:mm:ss').diff(dayjs(cards[i].started_at, 'HH:mm:ss'), 'minutes');
                                 if (i == 0) {
@@ -331,6 +331,7 @@ export default {
                                 }
                                 cards[i].ended_at = dayjs(cards[i].started_at, 'HH:mm:ss').add(timeDiff, 'minutes').format('HH:mm:ss');
                             }
+                            console.log("Cards:", cards);
                             // let index = children.indexOf(ev.target);
                             // cards.find(el => el.plan_product_id == ev.target.dataset.id).position = index;
                             this.showLoader = true;
@@ -472,7 +473,7 @@ export default {
             //     this.active.started_at;
             // }
             this.active.ended_at = this.active.started_at.add(this.active.time, 'hour');
-            let endTime = this.active.line.time[1];
+            let endTime = this.active.line.ended_at;
             endTime = endTime.add(this.active.line.prep_time, 'minute');
             if (this.active.slot.type_id == 1) {
                 this.active.ended_at = this.active.ended_at.add(10, 'minute');
@@ -536,8 +537,8 @@ export default {
                         let minPos = Math.min(...positions);
                         let maxPos = Math.max(...positions);
                         console.log(minPos, maxPos, items);
-                        el.time[0] = dayjs(items.find(i => i.position == minPos).started_at, 'HH:mm:ss');
-                        el.time[1] = dayjs(items.find(i => i.position == maxPos).ended_at, 'HH:mm:ss');
+                        el.started_at = dayjs(items.find(i => i.position == minPos).started_at, 'HH:mm:ss');
+                        el.ended_at = dayjs(items.find(i => i.position == maxPos).ended_at, 'HH:mm:ss');
                         }
                     });
                     this.$emit('getBoils', sum.toFixed(2));
@@ -740,8 +741,8 @@ export default {
             }
 
 
-            fd.append('started_at', record.time[0].format('HH:mm'));
-            fd.append('ended_at', record.time[1].format('HH:mm'));
+            fd.append('started_at', record.started_at.format('HH:mm'));
+            fd.append('ended_at', record.ended_at.format('HH:mm'));
             // }
             if (record.workers_count) {
                 fd.append('workers_count', record.workers_count);
@@ -775,8 +776,8 @@ export default {
                 .then((response) => {
                     this.$emit('notify', 'success', 'Сохранено');
                     let i = this.lines.find(el => el.line_id == record['line_id']);
-                    i.started_at = dayjs(record.time[0].format('HH:mm'));
-                    i.ended_at = dayjs(record.time[1].format('HH:mm'));
+                    i.started_at = dayjs(record.started_at.format('HH:mm'));
+                    i.ended_at = dayjs(record.ended_at.format('HH:mm'));
                     let arr = [];
                     if (i.master) {
                         let f = this.responsible.find(m => m.responsible_id == i.master);
@@ -1006,7 +1007,9 @@ export default {
                             <Input v-model:value="line.workers_count" type="number" placeholder="10 человек" />
                         </span>
                         <span>Время работы:</span><br />
-                        <TimeRangePicker v-model:value="line.time" format="HH:mm" :showTime="true" :allowClear="true"
+                        <TimePicker v-model:value="line.started_at" format="HH:mm" :showTime="true" :allowClear="true"
+                            type="time" :showDate="false" style="width:fit-content;" />
+                        <TimePicker v-model:value="line.ended_at" format="HH:mm" :showTime="true" :allowClear="true"
                             type="time" :showDate="false" style="width:fit-content;" />
                         <span>Подготовительное время(мин):</span><Input v-model:value="line.prep_time"
                             placeholder="0" />
@@ -1040,7 +1043,7 @@ export default {
                 <template v-else>
                     <div class="line_sub-title">
 
-                        <span>Время работы: {{ line.time[0].format('HH:mm') }} - {{ line.time[1].format('HH:mm')
+                        <span>Время работы: {{ line.started_at.format('HH:mm') }} - {{ line.ended_at.format('HH:mm')
                             }}</span>
                         <br>
                         <span v-show="line.responsibles">Ответственные: <br />{{ line.responsibles }}</span>

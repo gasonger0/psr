@@ -977,13 +977,35 @@ class TableController extends Controller
     static public function getPlans(){
         $plans = [];
         ProductsPlan::all()->each(function($plan) use (&$plans) {
-            if (!isset($plans[strval($plan->date) . ':' . strval($plan->isDay)]) && $plan->date != null && $plan->isDay != null) {
-                $plans[strval($plan->date)] = [
+            if (!isset($plans[strval($plan->date) . ':' . $plan->isDay])) {
+                $plans[strval($plan->date) . ':' . $plan->isDay] = [
                     'date' => $plan->date,
                     'isDay' => $plan->isDay,
                     'plan' => true,
                     'order' => count(ProductsOrder::where('date', $plan->date)->get()->toArray()) > 0,
                     'workers' => count(Slots::where('date', $plan->date)->get()->toArray()) > 0
+                ];
+            }
+        });
+        ProductsOrder::all()->each(function($order) use (&$plans) {
+            if (!isset($plans[strval($order->date) . ':' . $order->isDay])) {
+                $plans[strval($order->date) . ':' . $order->isDay] = [
+                    'date' => $order->date,
+                    'isDay' => $order->isDay,
+                    'plan' => false,
+                    'order' => true,
+                    'workers' => count(Slots::where('date', $order->date)->get()->toArray()) > 0
+                ];
+            }
+        });
+        Slots::all()->each(function($slot) use (&$plans) {
+            if (!isset($plans[strval($slot->date) . ':' . $slot->isDay])) {
+                $plans[strval($slot->date) . ':' . $slot->isDay] = [
+                    'date' => $slot->date,
+                    'isDay' => $slot->isDay,
+                    'plan' => false,
+                    'order' => false,
+                    'workers' => true
                 ];
             }
         });

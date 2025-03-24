@@ -230,12 +230,14 @@ export default {
                                 <TimePicker v-model:value="record[column.dataIndex]['time'][0]"
                                     @change="(ev) => { addUpdate(record[column.dataIndex]); }" format="HH:mm"
                                     :showTime="true" :allowClear="true" type="time" :showDate="false" size="small"
-                                    style="border-color: #1677ff;width:47%;"/>
+                                    style="border-color: #1677ff;width:47%;"
+                                    :status="record[column.dataIndex]['time'][0].isBefore(lines.find(el => el.line_id == column.dataIndex).started_at) ? 'error' : ''"/>
                                 <span> - </span>
                                 <TimePicker v-model:value="record[column.dataIndex]['time'][1]"
                                     @change="(ev) => { addUpdate(record[column.dataIndex]); }" format="HH:mm"
                                     :showTime="true" :allowClear="true" type="time" :showDate="false" size="small"
-                                    style="border-color: #1677ff;width:47%;"/>
+                                    style="border-color: #1677ff;width:47%;"
+                                    :status="record[column.dataIndex]['time'][1].isAfter(lines.find(el => el.line_id == column.dataIndex).ended_at) ? 'error' : ''"/>
                             </div>
                         </template>
                     </template>
