@@ -96,13 +96,7 @@ export default {
         },
         async processData() {
             return new Promise((resolve, reject) => {
-                let curTime = new Date();
-                let timeString =
-                    (String(curTime.getHours()).length == 1 ? '0' + String(curTime.getHours()) : String(curTime.getHours()))
-                    + ':' +
-                    (String(curTime.getMinutes()).length == 1 ? '0' + String(curTime.getMinutes()) : String(curTime.getMinutes()))
-                    + ':' +
-                    (String(curTime.getSeconds()).length == 1 ? '0' + String(curTime.getSeconds()) : String(curTime.getSeconds()));
+                let timeString = dayjs();
                 this.slots.forEach(slot => {
                     if (slot.started_at < timeString && timeString < slot.ended_at) {
                         let worker = this.workers.find(worker => worker.worker_id == slot.worker_id);
@@ -184,7 +178,14 @@ export default {
             return new Promise((resolve, reject) => {
                 axios.get('/api/get_slots')
                     .then(response => {
-                        this.slots = response.data;
+                        this.slots = response.data.map(sl => {
+                            sl.started_at = dayjs(sl.started_at, "HH:mm:ss");
+                            sl.ended_at = dayjs(sl.ended_at, "HH:mm:ss");
+                            if (sl.started_at > sl.ended_at && sessionStorage.getItem('isDay') == "false") {
+                                sl.ended_at.add(1, 'day');
+                            }
+                            return sl;
+                        });
                         resolve(true);
                     })
                     .catch((err) => {
@@ -295,16 +296,16 @@ export default {
                             el.detector_time = ref([
                                 el.detector_start ? dayjs(el.detector_start, 'hh:mm') : dayjs(),
                                 el.detector_end ? dayjs(el.detector_end, 'HH:mm') : dayjs()
-                            ])
-                            //el.time = ref(dayjs(el.started_at, 'hh:mm'));
-                            let curTime = new Date();
+                            ]);
+                            if (el.ended_at < el.started_at && sessionStorage.isDay == "false") {
+                                el.ended_at.add(1, 'day');
+                            }
 
-                            let timeString =
-                                (String(curTime.getHours()).length == 1 ? '0' + String(curTime.getHours()) : String(curTime.getHours()))
-                                + ':' +
-                                (String(curTime.getMinutes()).length == 1 ? '0' + String(curTime.getMinutes()) : String(curTime.getMinutes()))
-                                + ':' +
-                                (String(curTime.getSeconds()).length == 1 ? '0' + String(curTime.getSeconds()) : String(curTime.getSeconds()));
+                            if (el.detector_end < el.detector_start && sessionStorage.isDay == "false") {
+                                el.detector_end.add(1, 'day');
+                            }
+
+                            let timeString = dayjs();
                             if (timeString > el.ended_at || timeString < el.started_at) {
                                 el.done = true;
                             } else {

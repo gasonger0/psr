@@ -34,6 +34,9 @@ export default {
                     ]),
                     worker_id: el.worker_id
                 };
+                if (sessionStorage.getItem("isDay") == "false" && el.break.time[0] > el.break.time[1]){
+                    el.break.time[1].add(1, 'day');
+                }
 
                 let slots = this.slots.filter((i) => {
                     if (i.worker_id == el.worker_id) {
@@ -177,6 +180,19 @@ export default {
 
                 // console.log(this.updSlots);
             }
+        },
+        checkStatus(record, index) {
+            if (record.worker_id || !record.time || !record.time[index]) {
+                return null;
+            }
+            let lineObj = this.lines.find(el => el.line_id == record.line_id);
+            if (!lineObj) {
+                return "error";
+            }
+            if (record.time[index].isBefore(lineObj.started_at) || record.time[index].isAfter(lineObj.ended)) {
+                return "error";
+            }
+            console.log("status is ok");
         }
     },
     updated() {
@@ -231,13 +247,13 @@ export default {
                                     @change="(ev) => { addUpdate(record[column.dataIndex]); }" format="HH:mm"
                                     :showTime="true" :allowClear="true" type="time" :showDate="false" size="small"
                                     style="border-color: #1677ff;width:47%;" />
-                                    <!-- :status="record[column.dataIndex]['time'][0].isBefore(lines.find(el => el.line_id == column.dataIndex).started_at) ? 'error' : ''"/> -->
+                                    <!-- :status="checkStatus(record[column.dataIndex], 0)"/> -->
                                 <span> - </span>
                                 <TimePicker v-model:value="record[column.dataIndex]['time'][1]"
                                     @change="(ev) => { addUpdate(record[column.dataIndex]); }" format="HH:mm"
                                     :showTime="true" :allowClear="true" type="time" :showDate="false" size="small"
-                                    style="border-color: #1677ff;width:47%;"/>
-                                    <!-- :status="record[column.dataIndex]['time'][1].isAfter(lines.find(el => el.line_id == column.dataIndex).ended_at) ? 'error' : ''"/> -->
+                                    style="border-color: #1677ff;width:47%;" />
+                                    <!-- :status="checkStatus(record[column.dataIndex], 1)"/> -->
                             </div>
                         </template>
                     </template>

@@ -126,14 +126,14 @@ export default {
                 axios.get('/api/get_product_plans')
                     .then((response) => {
                         let curTime = new Date();
-                        let timeString =
-                            (String(curTime.getHours()).length == 1 ? '0' + String(curTime.getHours()) : String(curTime.getHours()))
-                            + ':' +
-                            (String(curTime.getMinutes()).length == 1 ? '0' + String(curTime.getMinutes()) : String(curTime.getMinutes()))
-                            + ':' +
-                            (String(curTime.getSeconds()).length == 1 ? '0' + String(curTime.getSeconds()) : String(curTime.getSeconds()));
+                        let timeString = dayjs();
                         this.plans = response.data.map((el) => {
                             let prod = this.products.find((i) => i.product_id == el.product_id);
+                            el.started_at = dayjs(el.started_at);
+                            el.ended_at = dayjs(el.ended_at);
+                            if (el.ended_at < el.started_at && sessionStorage.isDay == "false") {
+                                el.ended_at.add(1, 'day');
+                            }
                             if (prod) {
                                 if (el.started_at < timeString && el.ended_at > timeString && el.line_id != null) {
                                     prod.current_line_id = el.line_id;
@@ -321,15 +321,15 @@ export default {
                             })
                             console.log("Cards:", cards);
                             for (let i in cards) {
-                                let timeDiff = dayjs(cards[i].ended_at, 'HH:mm:ss').diff(dayjs(cards[i].started_at, 'HH:mm:ss'), 'minutes');
+                                let timeDiff = cards[i].ended_at.diff(cards[i].started_at, 'minutes');
                                 if (i == 0) {
                                     let line = this.lines.find(el => el.line_id == cards[i].line_id);
-                                    cards[i].started_at = dayjs(line.started_at, 'HH:mm:ss').format('HH:mm:ss');
+                                    cards[i].started_at = line.started_at;
                                     // if (line.prep_time) {
                                 } else {
                                     cards[i].started_at = cards[i - 1].ended_at;
                                 }
-                                cards[i].ended_at = dayjs(cards[i].started_at, 'HH:mm:ss').add(timeDiff, 'minutes').format('HH:mm:ss');
+                                cards[i].ended_at = cards[i].started_at.add(timeDiff, 'minutes');
                             }
                             console.log("Cards:", cards);
                             // let index = children.indexOf(ev.target);
@@ -339,8 +339,8 @@ export default {
                                 cards.map(el => {
                                     return {
                                         plan_product_id: el.plan_product_id,
-                                        started_at: el.started_at,
-                                        ended_at: el.ended_at,
+                                        started_at: el.started_at.format('HH:mm:ss'),
+                                        ended_at: el.ended_at.format("HH:mm:ss"),
                                         position: el.position
                                     }
                                 })
@@ -538,8 +538,11 @@ export default {
                         let maxPos = Math.max(...positions);
                         console.log(minPos, maxPos, items);
                         el.started_at = dayjs(items.find(i => i.position == minPos).started_at, 'HH:mm:ss');
-                        el.started_at = el.started_at.add(-el.prep_time, 'minute');
                         el.ended_at = dayjs(items.find(i => i.position == maxPos).ended_at, 'HH:mm:ss');
+                        if (el.started_at > el.ended_at && sessionStorage.isDay == "false") {
+                            el.ended_at.add(1, 'day');
+                        }
+                        el.started_at = el.started_at.add(-el.prep_time, 'minute');
                         el.ended_at = el.ended_at.add(el.prep_time, 'minute');
                     }
                     });

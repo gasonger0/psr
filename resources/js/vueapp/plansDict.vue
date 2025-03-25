@@ -78,7 +78,7 @@ export default {
                             Ночь
                         </template>
                     </template>
-                    <template v-if="column.dataIndex != 'date' && column.dataIndex != 'delete'">
+                    <template v-else-if="column.dataIndex != 'date' && column.dataIndex != 'delete'">
                         <template v-if="record[column.dataIndex]">
                             <span>Да</span>
                         </template>
