@@ -231,7 +231,6 @@ export default {
                         <span style="text-align:center">{{ column.title }}</span>
                         <br>
                         <span style="color:gray" v-if="column.started_at && column.ended_at">{{ column.started_at.format('HH:mm') }} - {{ column.ended_at.format('HH:mm') }}</span>
-                        <span style="color:gray" v-if="column.started_at && column.ended_at">{{ column.started_at.format('HH:mm') }} - {{ column.ended_at.format('HH:mm') }}</span>
                     </div>
                     <span v-else>{{ column.title }}</span>
                 </template>
