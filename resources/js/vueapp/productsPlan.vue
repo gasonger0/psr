@@ -678,14 +678,14 @@ export default {
             let line_id = this.active.slot.line_id;
             let prod = this.products.find(i => i.product_id == this.active.slot.product_id);
             let hw = this.active.hardware;
-                let newSlot = (isPack ? prod.slots[2] : prod.slots[1]).filter(function (n) {
+            let newSlot = (isPack ? prod.slots[2] : prod.slots[1]).filter(function (n) {
                     return n.line_id == line_id && n.hardware == hw;
-                });
-                if (!newSlot || newSlot.length == 0) {
+            });
+            if (!newSlot || newSlot.length == 0) {
                     newSlot = (isPack ? prod.slots[2] : prod.slots[1]).filter(function (n) {
                         return n.line_id == line_id && n.hardware == null;
                     });
-                }
+            }
             
             if (newSlot) {
                 if (newSlot.length > 1 && !slot_id) {

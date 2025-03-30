@@ -61,7 +61,7 @@ class ProductsPlanController extends Controller
             $plan->date = $date;
             $plan->isDay = $isDay;
             $plan->hardware = isset($post['hardware']) && $post['hardware'] != null ? $post['hardware'] : 0;
-            $plan->position = isset($post['position']) ? $post['position'] : 0;
+            $plan->position = $post['position'];
 
             if (isset($post['colon'])) {
                 $plan->colon = is_array($post['colon']) ? implode(';', $post['colon']) : $post['colon'];
@@ -117,17 +117,50 @@ class ProductsPlanController extends Controller
                     }
                     $plan->amount = $post['amount'];
                     $plan->save();
+                    $dates = [
+                        "start" => new \DateTime($plan->started_at),
+                        "end" => new \DateTime($plan->ended_at)
+                    ];
 
-                    $position = ProductsPlan::where('date', '=', $date)
+                    if ($plan->started_at > $plan->ended_at) {
+                        // Пограничная позиция
+                        $dates['end']->add(new \DateInterval('PT1D'));
+                    }
+
+                    $positions = ProductsPlan::where('date', '=', $date)
                         ->where('isDay', '=', $isDay)
                         ->where('line_id', '=', $plan->line_id)
-                        ->where('type_id', '=', 2)
-                        ->where('started_at', '<', $plan->started_at)
-                        ->max('position');
-                    if ($position === null) {
-                        $position = 0;
+                        ->where('type_id', '=', 2);
+                    
+                    $position = false;
+
+                    foreach ($positions->get() as $pos){
+                        $d2 = [
+                            "start" => new \DateTime($pos->started_at),
+                            "end" => new \DateTime($pos->ended_at)
+                        ];
+                        if ($d2['start'] > $d2['end']) {
+                            $d2['end']->add(new \DateInterval('PT1D'));
+                        }
+
+                        if (!$position) {
+                            if($d2['start'] < $dates['end'] || ($dates['start'] < $d2['start'] && $d2['start'] < $dates['end'])) {
+                                $position = $pos->position+1;
+                            }
+                        } else {
+                            $pos->position+=1;
+                            $pos->save();
+                        }
                     }
-                    $plan->position = $position + 1;
+                    if ($position === FALSE) {
+                        $position = 0;
+                        $positions->each(function ($pos) use ($position) {
+                            $pos->position+=1;
+                            $pos->save();
+                        });
+                    }
+                    
+                    //$plan->position = $position + 1;
                     $plan->save();
 
                     var_dump('Pack check. Current params:' . $plan->started_at . ', ' . $plan->ended_at);
