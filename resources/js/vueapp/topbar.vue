@@ -108,7 +108,7 @@ export default {
                 if (response) {
                     sessionStorage.setItem('date', date);
                     sessionStorage.setItem('isDay', this.isDay)
-                    window.location.reload();      
+                    window.location.reload();
                 }
             })
             }
@@ -151,7 +151,7 @@ export default {
                         </MenuItem>
                         <!-- <MenuItem>
                             <Upload v-model:file-list="uploadedFile" name="file" :before-upload="(ev) => processDefaults(ev)"
-                                :showUploadList="false"> 
+                                :showUploadList="false">
                                 <Button type="primary" style="background-color: green;">
                                     <UploadOutlined />
                                     Нормы планирования
@@ -218,7 +218,7 @@ export default {
             <DatePicker v-model:value="date" format="DD.MM.YYYY" mode="date" @change="showAccept=true" :locale="locale" />
             <Switch v-model:checked="isDay" @change="showAccept = true" checkedChildren="День" unCheckedChildren="Ночь"/>
             <!-- <span style="height:fit-content;font-size: 18px;font-weight: 600;">{{ date }}</span> -->
-            <img src="./logo.png" alt="" style="height:32px;" v-if="!showAccept"> 
+            <img src="./logo.png" alt="" style="height:32px;" v-if="!showAccept">
             <CheckCircleOutlined style="color:green;height:32px;width:32px;font-size:32px;" @click="updatesession" v-else/>
         </div>
     </div>
