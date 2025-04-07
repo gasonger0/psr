@@ -538,7 +538,7 @@ export default {
                         let maxPos = Math.max(...positions);
                         console.log(minPos, maxPos, items);
                         el.started_at = dayjs(items.find(i => i.position == minPos).started_at, 'HH:mm:ss');
-                        el.started_at = el.started_at.add(-el.prep_time, 'minute');
+                        //el.started_at = el.started_at.add(-el.prep_time, 'minute');
                         el.ended_at = dayjs(items.find(i => i.position == maxPos).ended_at, 'HH:mm:ss');
                         if (el.started_at > el.ended_at && sessionStorage.isDay == "false") {
                             el.ended_at.add(1, 'day');

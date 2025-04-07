@@ -267,6 +267,7 @@ class ProductsPlanController extends Controller
         $plan = ProductsPlan::find($request->post('product_plan_id'));
         if ($plan) {
             ProductsPlan::where('product_id', '=', $plan->product_id)
+                ->where('plan_product_id', '!=', $plan->plan_product_id)
                 ->where('date', $plan->date)
                 ->where('isDay', $plan->isDay)
                 ->get()
@@ -281,9 +282,7 @@ class ProductsPlanController extends Controller
                         });
                     $item->delete();
             });
-            //delete();
         }
-        $plan->delete();
 
         $plans = ProductsPlan::where('line_id', '=', $plan->line_id)
             ->where('date', $request->cookie('date'))
@@ -291,15 +290,17 @@ class ProductsPlanController extends Controller
             ->orderBy('position', 'ASC')
             ->get()
             ->toArray();
-        $minStartedAt = $plans[0]['started_at'];
-        $maxEndedAt = end($plans)['ended_at'];
-        LinesExtraController::update(
-            $request->cookie('date'), 
-            $request->cookie('isDay'), 
-            $plan->line_id, 
-            ['started_at' => $minStartedAt, 'ended_at' => $maxEndedAt]
-        );
-
+        if ($plans) {
+            $minStartedAt = $plans[0]['started_at'];
+            $maxEndedAt = end($plans)['ended_at'];
+            LinesExtraController::update(
+                $request->cookie('date'), 
+                $request->cookie('isDay'), 
+                $plan->line_id, 
+                ['started_at' => $minStartedAt, 'ended_at' => $maxEndedAt]
+            );
+        }
+        $plan->delete();
         // Автоматом подтягивать время продукции в линиях, чтобы само вставало друг за другом, без промежутков ???
         return true;
     }
