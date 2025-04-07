@@ -129,8 +129,8 @@ export default {
                         let timeString = dayjs();
                         this.plans = response.data.map((el) => {
                             let prod = this.products.find((i) => i.product_id == el.product_id);
-                            el.started_at = dayjs(el.started_at);
-                            el.ended_at = dayjs(el.ended_at);
+                            el.started_at = dayjs(el.started_at, 'HH:mm:ss');
+                            el.ended_at = dayjs(el.ended_at, 'HH:mm:ss');
                             if (el.ended_at < el.started_at && sessionStorage.isDay == "false") {
                                 el.ended_at.add(1, 'day');
                             }
@@ -1066,7 +1066,7 @@ export default {
                     :data-order="k" :key="v.plan_product_id" draggable="true">
                     <template #title>
                         <div style="display:flex;align-items: center;justify-content: space-between;">
-                            <span>{{ v.started_at }} - {{ v.ended_at }}</span>
+                            <span>{{ v.started_at.format('HH:mm') }} - {{ v.ended_at.format('HH:mm') }}</span>
                             <Tooltip title="Убрать из плана">
                                 <DeleteOutlined style="height:fit-content; color:#ff4d4f;"
                                     @click="deletePlan(v.plan_product_id)" />
