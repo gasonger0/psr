@@ -12,8 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('products_order', function(Blueprint $table) {
-            $table->datetime('created_at')->default(now());
-            $table->datetime('updated_at')->default(now());
+            // $table->datetime('created_at')->default(now());
+            // $table->datetime('updated_at')->default(now());
         });
 
         Schema::table('products_plan', function(Blueprint $table) {
