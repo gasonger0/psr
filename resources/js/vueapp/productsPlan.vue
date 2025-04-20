@@ -324,7 +324,7 @@ export default {
                                 let timeDiff = cards[i].ended_at.diff(cards[i].started_at, 'minutes');
                                 if (i == 0) {
                                     let line = this.lines.find(el => el.line_id == cards[i].line_id);
-                                    cards[i].started_at = line.started_at;
+                                    cards[i].started_at = line.started_at.add(line.prep_time, 'minutes');
                                     // if (line.prep_time) {
                                 } else {
                                     cards[i].started_at = cards[i - 1].ended_at;

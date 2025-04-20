@@ -215,7 +215,7 @@ class ProductsPlanController extends Controller
             ->where('plan_product_id', '!=', $prod_id)
             ->where('date', $date)
             ->where('isDay', $isDay)
-            ->orderBy('position', 'ASC')
+            ->orderBy('position', 'DESC')
             ->first();
         // Проверка - залезаем ли мы концом новой ГП на начало следующей
         $downPlan = ProductsPlan::where('position', '>=', $position)
