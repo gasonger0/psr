@@ -56,7 +56,7 @@ export default {
             this.$emit('close-modal');
         }
     },
-    created() {
+    updated() {
         this.getPlans(); 
     }
 }

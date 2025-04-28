@@ -13,6 +13,7 @@ use App\Models\Responsible;
 use App\Models\Slots;
 use App\Models\Workers;
 use Carbon\Carbon;
+use Exception;
 use Illuminate\Http\Request;
 use Shuchkin\SimpleXLSX;
 use Shuchkin\SimpleXLSXGen;
@@ -991,39 +992,50 @@ class TableController extends Controller
 
     static public function getPlans(){
         $plans = [];
-        ProductsPlan::all()->each(function($plan) use (&$plans) {
-            if (!isset($plans[strval($plan->date) . ':' . $plan->isDay])) {
-                $plans[strval($plan->date) . ':' . $plan->isDay] = [
-                    'date' => $plan->date,
-                    'isDay' => $plan->isDay,
-                    'plan' => true,
-                    'order' => count(ProductsOrder::where('date', $plan->date)->get()->toArray()) > 0,
-                    'workers' => count(Slots::where('date', $plan->date)->get()->toArray()) > 0
-                ];
-            }
+        try {
+        ProductsPlan::chunk(50, function($planArray) use (&$plans) {
+            $planArray->each(function($plan) use (&$plans) {
+                if (!isset($plans[strval($plan->date) . ':' . $plan->isDay])) {
+                    $plans[strval($plan->date) . ':' . $plan->isDay] = [
+                        'date' => $plan->date,
+                        'isDay' => $plan->isDay,
+                        'plan' => true,
+                        'order' => count(ProductsOrder::where('date', $plan->date)->get()->toArray()) > 0,
+                        'workers' => count(Slots::where('date', $plan->date)->get()->toArray()) > 0
+                    ];
+                }
+            });
         });
-        ProductsOrder::all()->each(function($order) use (&$plans) {
-            if (!isset($plans[strval($order->date) . ':' . $order->isDay])) {
-                $plans[strval($order->date) . ':' . $order->isDay] = [
-                    'date' => $order->date,
-                    'isDay' => $order->isDay,
-                    'plan' => false,
-                    'order' => true,
-                    'workers' => count(Slots::where('date', $order->date)->get()->toArray()) > 0
-                ];
-            }
+        ProductsOrder::chunk(50, function($orderArray) use (&$plans) {
+            $orderArray->each(function($order) use (&$plans){
+                if (!isset($plans[strval($order->date) . ':' . $order->isDay])) {
+                    $plans[strval($order->date) . ':' . $order->isDay] = [
+                        'date' => $order->date,
+                        'isDay' => $order->isDay,
+                        'plan' => false,
+                        'order' => true,
+                        'workers' => count(Slots::where('date', $order->date)->get()->toArray()) > 0
+                    ];
+                }
+            });
         });
-        Slots::all()->each(function($slot) use (&$plans) {
-            if (!isset($plans[strval($slot->date) . ':' . $slot->isDay])) {
-                $plans[strval($slot->date) . ':' . $slot->isDay] = [
-                    'date' => $slot->date,
-                    'isDay' => $slot->isDay,
-                    'plan' => false,
-                    'order' => false,
-                    'workers' => true
-                ];
-            }
+        Slots::chunk(50, function($slotsArray) use (&$plans) {
+            $slotsArray->each(function($slot) use (&$plans) {
+                if (!isset($plans[strval($slot->date) . ':' . $slot->isDay])) {
+                    $plans[strval($slot->date) . ':' . $slot->isDay] = [
+                        'date' => $slot->date,
+                        'isDay' => $slot->isDay,
+                        'plan' => false,
+                        'order' => false,
+                        'workers' => true
+                    ];
+                }
+            });
         });
+        }catch(Exception $e) {
+            var_dump($e);
+            return $e;
+        }
         return json_encode(array_values($plans));
     }
 }
