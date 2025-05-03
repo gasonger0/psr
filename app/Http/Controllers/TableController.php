@@ -258,13 +258,14 @@ class TableController extends Controller
                         $row[1],
                         array_column($products, 'title')
                     );
+                    // var_dump($row, $product_index);
                     if ($product_index !== false) {
                         $amounts[] = [
                             'product_id' => $products[$product_index]['product_id'],
                             'amount' => $row[3]
                         ];
                         continue;
-                    } else if ($row[0] != null) {
+                    } else if (!strtotime($row[1]) && ($row[2]||$row[3]||$row[4]) ) {
                         $prod = new ProductsDictionary();
                         $prod->title = $row[1];
                         $prod->category_id = $curCat['category_id'];
@@ -280,8 +281,10 @@ class TableController extends Controller
                     $unrecognized[$k] = $row[1];
                 }
             }
+            // var_dump($amounts, $unrecognized);
             foreach ($amounts as $amount) {
-                if ($val = $amount['amount']) {
+                // var_dump($amount);
+                if (($val = $amount['amount']) && $amount['amount'] > 0) {
                     $am = ProductsOrder::where('product_id', '=', $amount['product_id'])
                         ->where('date', $date)
                         ->where('isDay', $isDay)

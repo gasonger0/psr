@@ -57,7 +57,9 @@ export default {
         }
     },
     updated() {
-        this.getPlans(); 
+        if (this.plans.length == 0) {
+            this.getPlans(); 
+        }
     }
 }
 </script>
