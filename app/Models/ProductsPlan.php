@@ -12,7 +12,19 @@ class ProductsPlan extends Model
     public $incrementing = true;
     public $fillable = [
         'started_at',
-        'ended_at'
+        'ended_at',
+        'product_id',
+        'line_id',
+        'slot_id',
+        'workers_count',
+        'type_id',
+        'started_at',
+        'ended_at',
+        'amount',
+        'date',
+        'isDay',
+        'hardware',
+        'position'
     ];
 
     public function setCreatedAtAttribute($value)

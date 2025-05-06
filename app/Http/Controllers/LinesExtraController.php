@@ -45,7 +45,6 @@ class LinesExtraController extends Controller
 
     public static function update($date, $isDay, $line_id, $fields = null)
     {
-
         $extra = LinesExtra::where('line_id', $line_id)
             ->where('date', $date)
             ->where('isDay', $isDay)
