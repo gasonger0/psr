@@ -544,7 +544,7 @@ export default {
                             el.ended_at.add(1, 'day');
                         }
                         el.started_at = el.started_at.add(-el.prep_time, 'minute');
-                        el.ended_at = el.ended_at.add(el.prep_time, 'minute');
+                        el.ended_at = el.ended_at.add(el.after_time, 'minute');
                     }
                     });
                     this.$emit('getBoils', sum.toFixed(2));
@@ -1149,20 +1149,20 @@ export default {
                 </RadioButton>
             </RadioGroup>
         </div>
+        <!-- <br> -->
+        <Checkbox v-model:checked="showPack" v-if="packLinesOptions">
+            Сгененрировать план упаковки
+        </Checkbox>
         <br>
-            <Checkbox v-model:checked="showPack" v-if="packLinesOptions">
-                Сгененрировать план упаковки
-            </Checkbox>
-            <br>
-            <div v-if="showPack">
-                <div>
-                    <span>Упаковать через </span>
-                    <InputNumber v-model:value="active.packTime" placeholder="30"/>
-                    <span> мин.</span>
-                    <CheckboxGroup v-model:value="active.packs" :options="packLinesOptions" style="flex-direction:column">
-                    </CheckboxGroup>
-                </div>
+        <div v-if="showPack">
+            <div>
+                <span>Упаковать через </span>
+                <InputNumber v-model:value="active.packTime" placeholder="30"/>
+                <span> мин.</span>
+                <CheckboxGroup v-model:value="active.packs" :options="packLinesOptions" style="flex-direction:column">
+                </CheckboxGroup>
             </div>
+        </div>
         <br>
         <span>С учётом производительности линии для данного продукта, время изготовления составит
             <b>{{ active.time }}</b>ч.

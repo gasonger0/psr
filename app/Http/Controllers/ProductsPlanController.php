@@ -60,6 +60,7 @@ class ProductsPlanController extends Controller
                     'workers_count' => $slot['people_count'],
                     'type_id' => $post['type_id'],
                 ]);
+                $oldAm = $post['amount'];
             } else {
                 // Ищем уже существующий план
                 $plan = ProductsPlan::find($post['plan_product_id']);
@@ -191,7 +192,7 @@ class ProductsPlanController extends Controller
 
                     // Рассчёт на случай, если начинаем до полуночи, а заканчиваем после (без этого куска программа считала бы, что мы закончили раньше чем начали (?))
                     if ($plan->started_at > $plan->ended_at) {
-                        $dates['end']->add(new \DateInterval('PT1D'));
+                        $dates['end']->add(new \DateInterval('P1D'));
                     }
 
                     // Ищем, что у нас на смене на этой линии (для расчёта позиции)
@@ -211,7 +212,7 @@ class ProductsPlanController extends Controller
                         ];
                         // Тот же финт, что и выше
                         if ($d2['start'] > $d2['end']) {
-                            $d2['end']->add(new \DateInterval('PT1D'));
+                            $d2['end']->add(new \DateInterval('P1D'));
                         }
 
                         // Смотрим, как у нас ложатся даты текущей упаковки на другие позиции
@@ -281,17 +282,21 @@ class ProductsPlanController extends Controller
         $check = ProductsPlan::where('line_id', '=', $plan->line_id)
             ->where('date', $date)
             ->where('isDay', $isDay)
-            ->where('plan_product_id', '!=', $plan->product_id)
+            ->where('plan_product_id', '!=', $plan->plan_product_id)
+            // Мб надо добавить проверку на позицию?
             ->count();
+        var_dump($check);
         if ($check == 0) {
+            var_dump("Plan is first and only");
             return;
         }   
+        var_dump(ProductsPlan::where('line_id', $plan->line_id)->where('isDay', $isDay)->where('date', $date)->get()->toArray());
         // Проверка - залезаем ли мы началом новой ГП на окончание предыдущей
         $upPlan = ProductsPlan::where('position', '<=', $position)
             ->where('ended_at', '>=', $plan->started_at)
             ->where('started_at', '<=', $plan->started_at) 
             ->where('line_id', '=', $plan->line_id)
-            ->where('plan_product_id', '!=', $plan->product_id)
+            ->where('plan_product_id', '!=', $plan->plan_product_id)
             ->where('date', $date)
             ->where('isDay', $isDay)
             ->orderBy('position', 'DESC')
@@ -301,19 +306,40 @@ class ProductsPlanController extends Controller
             ->where('started_at', '<=', $plan->ended_at)
             ->where('ended_at', '>=', $plan->ended_at)
             ->where('line_id', '=', $plan->line_id)
-            ->where('plan_product_id', '!=', $plan->product_id)
+            ->where('plan_product_id', '!=', $plan->plan_product_id)
             ->where('date', $date)
             ->where('isDay', $isDay)
             ->orderBy('position', 'ASC')
             ->first();
 
+        if ($plan->started_at > $plan->ended_at) {
+            // Пограничная позиция, надо сделать доп. проверку
+            // Т.к. позиция пограничная, то сдвиг сверху остаётся, а вот сдвиг снизу надо считать иначе
+            $change = ProductsPlan::where('position', '>=', $position)
+                // ->where('started_at', '>', '20:00:00')
+                ->where('line_id', '=', $plan->line_id)
+                ->where('plan_product_id', '!=', $plan->plan_product_id)
+                ->where('date', $date)
+                ->where('isDay', $isDay)
+                ->orderBy('ended_at', 'ASC')
+                ->first();
+            if ($change->position >= $position) {
+                $downPlan = $change;
+            }
+        }
+
 
         if ($upPlan || $downPlan) {
             $topShift = $upPlan ? Carbon::parse($plan->started_at)->diffInMinutes(Carbon::parse($upPlan->ended_at)) : 0;
             $downShift = $downPlan ? Carbon::parse($downPlan->started_at)->diffInMinutes(Carbon::parse($plan->ended_at)) : 0;
+            if ($plan->started_at > $plan->ended_at) {
+                $downShift = $downPlan ? Carbon::parse($downPlan->started_at)->diffInMinutes(Carbon::parse($plan->ended_at)->add('P1D')) : 0;
+            }
+            var_dump("topShift: $topShift, downShift: $downShift");
             $shift = $topShift + $downShift;
             if ($shift != 0) {
-                $p = ProductsPlan::where('plan_product_id', $plan->product_id)
+                // Тут двигаем только вслучае, если позиция новой ГП ненулевая потому что нет смысла двигать нулевую - она и так никуда не залезает 
+                $p = ProductsPlan::where('plan_product_id', $plan->plan_product_id)
                     ->where('date', $date)
                     ->where('isDay', $isDay)
                     ->where('line_id', $plan->line_id)
@@ -326,9 +352,9 @@ class ProductsPlanController extends Controller
                     ]);
                 }
                 ProductsPlan::where('position', '>=', $position)
-                    ->where('started_at', '>=', $plan->started_at)
+                    // ->where('started_at', '>', $plan->started_at)
                     ->where('line_id', '=', $plan->line_id)
-                    ->where('plan_product_id', '!=', $plan->product_id)
+                    ->where('plan_product_id', '!=', $plan->plan_product_id)
                     ->where('date', $date)
                     ->where('isDay', $isDay)
                     ->each(function($p) use($shift) {
