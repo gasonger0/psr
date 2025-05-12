@@ -8,6 +8,7 @@ use App\Models\ProductsSlots;
 use App\Models\ProductsDictionary;
 use Carbon\Carbon;
 use Date;
+use DateTime;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -369,6 +370,7 @@ class ProductsPlanController extends Controller
                     });
             }
         }
+        self::composePlans($plan, $date, $isDay);
     }
 
     public function delPlan(Request $request)
@@ -470,5 +472,54 @@ class ProductsPlanController extends Controller
         LogsController::clear($date, $isDay);
         SlotsController::clear($date, $isDay);
         return;
+    }
+
+    
+    // После того, как всё скорректировали, надо сдвигать их по времени вплотную к друг другу
+    // А если это ещё и Варка, то надо искать интервал с упаковкой и двигать её тоже
+    public static function composePlans($plan, $date, $isDay) {
+        /**
+         * 1) Получаем все планы на данной линии, сортируем по возрастанию позиции
+         * 2) Для каждого из них смотрим, есть ли упаковка и какой с ней интервал. Если будет несколько ГП на варку и на упаковку одного и того же продукта, надо как-то разруливать наверное?
+         * 3) Считаем интервал с упаковкой, двигаем текущий план и делаем checkplans для упаковки
+         * 4) Если наш план - это и есть упаковка, то упаковку не ищем 
+         */
+ 
+        $prevEnd = false;
+
+        ProductsPlan::where('date', $date)
+            ->where('isDay', $isDay)
+            ->where('line_id', $plan->line_id)
+            ->orderBy('position', 'ASC')
+            ->each(function($item) use ($prevEnd, $date, $isDay) {
+                if ($prevEnd == false) {
+                    $prevEnd = Carbon::parse($item->ended_at);
+                    continue;
+                }
+                if ($item->type_id == 2 && $prevEnd) {
+                    $duration = Carbon::parse($item->started_at)->diffInMinutes(Carbon::parse($item->ended_at));
+                    $item->started_at = $prevEnd;
+                    $prevEnd = $prevEnd->addMinutes($duration);
+                    $item->ended_at = $prevEnd;
+                    $item->save();
+                }
+
+                $start = Carbon::parse($item->started_at);
+                ProductsPlan::where('date', $date)
+                    ->where('isDay', $isDay)
+                    ->where('product_id', $item->product_id)
+                    ->where('type_id', 2)
+                    ->each(function($pack) use($date, $isDay, $start, $prevEnd) {
+                        if ($prevEnd) {
+                            $delay = $start->diffInMinutes(Carbon::parse($pack->started_at));
+                            $duration = Carbon::parse($pack->started_at)->diffInMinutes(Carbon::parse($pack->ended_at));
+                            $pack->started_at = $prevEnd->addMinutes($delay);
+                            $pack->ended_at = $prevEnd->addMinutes($delay)->addMinutes($duration);
+                            $pack->save();
+                            ProductsPlanController::checkPlans($date, $isDay, $pack);
+                        }
+                    });
+                 
+            });
     }
 }
