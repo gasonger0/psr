@@ -107,7 +107,7 @@ class ProductsPlanController extends Controller
 
                         // Вычисляем длительность изготовления по формулам из справочных данных
                         $duration = ceil($post['amount'] * 
-                            eval("return ".$prod->parts2kg($post['amount']).";") * 
+                            eval("return ".$prod['parts2kg']."*".$post['amount'].";") * 
                             eval("return ".$prod['amount2parts'].";") / 
                             ($p->perfomance ? $p->perfomance : 1) * 60
                         );
@@ -173,9 +173,13 @@ class ProductsPlanController extends Controller
                     Этого финта я вообще не помню, нахуя он нужен был. Была речь о том, что типа упаковка не должна заканчиваться раньше, чем варка, но это не то
                     */
                     // $endPrev = (new \DateTime($post['ended_at']))->add(new \DateInterval('PT15M'))->add(new \DateInterval('PT' . $duration . 'M'));
+                    
+                    // Конец упаковки должен быть:
+                    // 1. Не раньше конца варки
+                    // 2. Если раньше конца варки, то не раньше конца варки + delay
                     $endPrev = new \DateTime($post['ended_at']);
                     if ($start < $endPrev) {
-                        $plan->ended_at = $endPrev->format('H:i:s');
+                        $plan->ended_at = $endPrev->add(new \DateInterval('PT' . $post['delay'] . 'M'))->format('H:i:s');
                     }else {
                         $plan->ended_at = $start->format('H:i:s');
                     }
@@ -323,7 +327,7 @@ class ProductsPlanController extends Controller
                 ->where('isDay', $isDay)
                 ->orderBy('ended_at', 'ASC')
                 ->first();
-            if ($change->position >= $position) {
+            if ($change && $change->position >= $position) {
                 $downPlan = $change;
             }
         }
