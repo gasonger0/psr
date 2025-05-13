@@ -457,7 +457,7 @@ export default {
                     if (oldLine != line_id && oldLine > 0) {
                         this.lines.find((el) => el.line_id == oldLine).count_current -= 1;
                     }
-                    this.getSlots();
+                    await this.getSlots();
                     this.processData();
                     this.$emit('data-recieved', this.$data);
 
@@ -634,7 +634,7 @@ export default {
                 </Card>
             </section>
         </div>
-        <div class="line" v-for="line in lines" :data-id="line.line_id" :class="(line.done || !line.has_plans) ? 'done-line' : ''">
+        <div class="line" v-for="line in lines" :data-id="line.line_id" :class="line.done ? 'done-line' : ''">
             <Card :bordered="false" class="head"
                 :headStyle="{ 'background-color': (line.color ? line.color : '#1677ff') }">
                 <template #title>
@@ -700,10 +700,12 @@ export default {
                                 type="time" :showDate="false" style="width:fit-content;" />
                         </span> -->
                         <span>Время работы:</span><br />
+                        <div style="display: flex; justify-content: space-between;">
                         <TimePicker v-model:value="line.started_at" format="HH:mm" :showTime="true" :allowClear="true"
-                            type="time" :showDate="false" style="width:fit-content;" />
+                            type="time" :showDate="false" style="width:47%;" />
                         <TimePicker v-model:value="line.ended_at" format="HH:mm" :showTime="true" :allowClear="true"
-                            type="time" :showDate="false" style="width:fit-content;" />
+                            type="time" :showDate="false" style="width:47%;" />
+                        </div>
                         <Select v-model:value="line.cancel_reason" placeholder="Причина переноса старта"
                             style="margin-top: 10px; width: 100%;">
                             <SelectOption v-for="i in cancel_reasons" v-model:value="i.value">

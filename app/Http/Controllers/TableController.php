@@ -248,6 +248,9 @@ class TableController extends Controller
             $amounts = [];
             $rows = $xlsx->rows(0);
             foreach ($rows as $k => $row) {
+                if ($row['1'] == 'Итог'){
+                    break;
+                }
                 $category_index = array_search(mb_strtoupper($row[1]), array_column($cats, 'title'));
                 if ($category_index !== false) {
                     $curCat = $cats[$category_index];

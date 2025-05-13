@@ -59,20 +59,21 @@ export default {
         processColumns() {
             this.lines.forEach(el => {
                 el.dataIndex = el.line_id;
-                el.width = 200;
+                el.width = 150;
             });
 
             this.lines.unshift({
                 title: 'Сотрудник',
                 dataIndex: 'title',
-                width: 200,
+                width: 120,
                 fixed: 'left'
             }, {
                 title: 'Время обеда',
                 dataIndex: 'break',
-                width: 200,
+                width: 120,
                 fixed: 'left'
             });
+            console.log(this.lines);
         },
         addUpdate(rec) {
             // console.log(rec);
@@ -199,8 +200,8 @@ export default {
         // if (this.$props.data && !this.slots) {
             this.slots = this.$props.data.slots.slice();
             this.lines = this.$props.data.lines.slice();
-            this.workers = this.$props.data.workers.slice();
 
+            this.workers = this.$props.data.workers.slice();
             this.processRows();
             this.processColumns();
         // }
@@ -224,22 +225,24 @@ export default {
         <br />
         <br />
         <div class="table-container">
-            <Table :dataSource="workers" :columns="lines" :pagination="{ pageSize: 6 }" small :scroll="{ x: 2000 }"
+            <Table :dataSource="workers" :columns="lines" :pagination="{ pageSize: 6 }" small :scroll="{x: lines.length * 150}"
                 style="scrollbar-color: unset;">
                 <template #headerCell="{ column }">
-                    <div v-if="column.dataIndex != 'title' && column.dataIndex != 'break'" style="display: flex;flex-direction: column;align-items: center;">
+                    <div v-if="column.dataIndex != 'title' && column.dataIndex != 'break'" style="display: flex;flex-direction: column;align-items: center;width:150px;">
                         <span style="text-align:center">{{ column.title }}</span>
                         <br>
                         <span style="color:gray" v-if="column.started_at && column.ended_at">{{ column.started_at.format('HH:mm') }} - {{ column.ended_at.format('HH:mm') }}</span>
                     </div>
-                    <span v-else>{{ column.title }}</span>
+                    <span v-else style="width:150px;">{{ column.title }}</span>
                 </template>
                 <template #bodyCell="{ column, record, text }">
                     <template v-if="column.dataIndex != 'title' &&
                         record[column.dataIndex]">
                         <template v-if="!edit">
-                            {{ record[column.dataIndex]['time'][0].format('HH:mm') }} - {{
-                                record[column.dataIndex]['time'][1].format('HH:mm') }}
+                            <div style="text-align:center">
+                                {{ record[column.dataIndex]['time'][0].format('HH:mm') }} - {{
+                                    record[column.dataIndex]['time'][1].format('HH:mm') }}
+                            </div>
                         </template>
                         <template v-else >
                             <div style="display:flex;justify-content: space-between;flex-direction: row;">

@@ -1150,7 +1150,7 @@ export default {
             </RadioGroup>
         </div>
         <!-- <br> -->
-        <Checkbox v-model:checked="showPack" v-if="packLinesOptions">
+        <Checkbox v-model:checked="showPack" v-if="packLinesOptions && active.slot.type_id != 2">
             Сгененрировать план упаковки
         </Checkbox>
         <br>
@@ -1159,6 +1159,7 @@ export default {
                 <span>Упаковать через </span>
                 <InputNumber v-model:value="active.packTime" placeholder="30"/>
                 <span> мин.</span>
+                <br/>
                 <CheckboxGroup v-model:value="active.packs" :options="packLinesOptions" style="flex-direction:column">
                 </CheckboxGroup>
             </div>

@@ -11,6 +11,7 @@ use Date;
 use DateTime;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use function PHPUnit\Framework\isType;
 
 class ProductsPlanController extends Controller
 {
@@ -126,7 +127,6 @@ class ProductsPlanController extends Controller
                     });
             }
 
-
             // Если же указана упаковка и задержка, обрабатываем те, что переданы в запросе
             // @TODO: Возможно имеет смысл грохать всё, что есть в базе ???
             if (isset($post['delay']) && isset($post['packs'])) {
@@ -161,7 +161,7 @@ class ProductsPlanController extends Controller
                     $plan->started_at = strval($start->format('H:i:s'));
                     // Рассчитываем, сколько будет упаковываться продукция по формулам
                     $duration = ceil($post['amount'] * 
-                        eval("return " . $product['parts2kg'] . ";") /
+                        eval("return " . $product['parts2kg'] . ($pack == 37 ? '*' . $product['amount2parts'] : '') . ";") /
                         // eval("return " . $product['amount2parts'] . ";") / 
                         ($slot->perfomance ? $slot->perfomance : 1) * 60
                     );
@@ -491,34 +491,40 @@ class ProductsPlanController extends Controller
             ->where('isDay', $isDay)
             ->where('line_id', $plan->line_id)
             ->orderBy('position', 'ASC')
-            ->each(function($item) use ($prevEnd, $date, $isDay) {
+            ->each(function($item) use (&$prevEnd, $date, $isDay) {
                 if ($prevEnd == false) {
                     $prevEnd = Carbon::parse($item->ended_at);
-                    continue;
+                    var_dump('Set prevend to ' . $prevEnd->format('H:i:s'));
+                    return;
                 }
-                if ($item->type_id == 2 && $prevEnd) {
+                if ($prevEnd instanceof Carbon) {
                     $duration = Carbon::parse($item->started_at)->diffInMinutes(Carbon::parse($item->ended_at));
                     $item->started_at = $prevEnd;
+                    $item->save();
                     $prevEnd = $prevEnd->addMinutes($duration);
                     $item->ended_at = $prevEnd;
                     $item->save();
+                    return;
                 }
-
-                $start = Carbon::parse($item->started_at);
-                ProductsPlan::where('date', $date)
-                    ->where('isDay', $isDay)
-                    ->where('product_id', $item->product_id)
-                    ->where('type_id', 2)
-                    ->each(function($pack) use($date, $isDay, $start, $prevEnd) {
-                        if ($prevEnd) {
-                            $delay = $start->diffInMinutes(Carbon::parse($pack->started_at));
-                            $duration = Carbon::parse($pack->started_at)->diffInMinutes(Carbon::parse($pack->ended_at));
-                            $pack->started_at = $prevEnd->addMinutes($delay);
-                            $pack->ended_at = $prevEnd->addMinutes($delay)->addMinutes($duration);
-                            $pack->save();
-                            ProductsPlanController::checkPlans($date, $isDay, $pack);
-                        }
-                    });
+                // if ($item->type_id == 2) {
+                //     return;
+                // }
+                // $start = Carbon::parse($item->started_at);
+                // ProductsPlan::where('date', $date)
+                //     ->where('isDay', $isDay)
+                //     ->where('product_id', $item->product_id)
+                //     ->where('type_id', 2)
+                //     ->each(function($pack) use($date, $isDay, $start, $prevEnd) {
+                //         if ($prevEnd instanceof Carbon) {
+                //             $delay = $start->diffInMinutes(Carbon::parse($pack->started_at));
+                //             $duration = Carbon::parse($pack->started_at)->diffInMinutes(Carbon::parse($pack->ended_at));
+                //             var_dump('delay: ' . $delay . ', duration: ' . $duration , ', prevend: ' . $prevEnd->format('H:i:s'));
+                //             $pack->started_at = $prevEnd->addMinutes($delay);
+                //             $pack->ended_at = $prevEnd->addMinutes($delay)->addMinutes($duration);
+                //             $pack->save();
+                //             ProductsPlanController::checkPlans($date, $isDay, $pack);
+                //         }
+                //     });
                  
             });
     }
