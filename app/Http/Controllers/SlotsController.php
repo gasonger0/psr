@@ -15,7 +15,7 @@ class SlotsController extends Controller
     static public function getList(Request $request)
     {
         $date = $request->cookie('date');
-        $isDay = boolval($request->cookie('isDay'));
+        $isDay = filter_var($request->cookie('isDay'), FILTER_VALIDATE_BOOLEAN);
         return Slots::where('date', '=', $date)
             ->where('isDay', $isDay)
             ->get()
@@ -45,7 +45,7 @@ class SlotsController extends Controller
     static public function change(Request $request)
     {
         $date = $request->cookie('date');
-        $isDay = boolval($request->cookie('isDay'));
+        $isDay = filter_var($request->cookie('isDay'), FILTER_VALIDATE_BOOLEAN);
         $oldSlot = Slots::where(
             'worker_id',
             '=',
@@ -112,7 +112,7 @@ class SlotsController extends Controller
                 $slot->ended_at = Carbon::parse($r['ended_at'])->format('H:i:s');
                 $slot->worker_id = $r['worker_id'];
                 $slot->date = $request->cookie('date');
-                $slot->isDay = boolval($request->cookie('isDay'));
+                $slot->isDay = filter_var($request->cookie('isDay'), FILTER_VALIDATE_BOOLEAN);
                 $diff = (new \DateTime($slot->started_at))->diff(new \DateTime($slot->ended_at));
                 $slot->time_planned = $diff->h * 60 + $diff->i;
                 $slot->save();
@@ -132,7 +132,7 @@ class SlotsController extends Controller
     {
         if (!($id = $request->post('worker_id'))) return;
         $date = $request->cookie('date');
-        $isDay = boolval($request->cookie('isDay'));
+        $isDay = filter_var($request->cookie('isDay'), FILTER_VALIDATE_BOOLEAN);
         if  ($request->post('delete')){
             Slots::where('worker_id', '=', $id)
                 ->where('date', $date)
@@ -203,7 +203,7 @@ class SlotsController extends Controller
 
         return SlotsController::add(
             $request->cookie('date'),
-            boolval($request->cookie('isDay')),
+            filter_var($request->cookie('isDay'), FILTER_VALIDATE_BOOLEAN),
             $oldSlot->line_id,
             $data['new_worker_id'],
             now('Europe/Moscow')->format('H:i:s'),
@@ -228,7 +228,7 @@ class SlotsController extends Controller
         }, $lines));
         $columns = [array_merge(['Работник'], $titles)];
         $date = $request->cookie('date');
-        $isDay = boolval($request->cookie('isDay'));
+        $isDay = filter_var($request->cookie('isDay'), FILTER_VALIDATE_BOOLEAN);
         Workers::all()->each(function($worker) use($lines, &$columns, $date, $isDay){
             $row = [$worker->title];
             foreach ($lines as $line) {

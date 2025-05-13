@@ -132,7 +132,7 @@ export default {
                             el.started_at = dayjs(el.started_at, 'HH:mm:ss');
                             el.ended_at = dayjs(el.ended_at, 'HH:mm:ss');
                             if (el.ended_at < el.started_at && sessionStorage.isDay == "false") {
-                                el.ended_at.add(1, 'day');
+                                el.ended_at = el.ended_at.add(1, 'day');
                             }
                             if (prod) {
                                 if (el.started_at < timeString && el.ended_at > timeString && el.line_id != null) {
@@ -541,7 +541,7 @@ export default {
                         //el.started_at = el.started_at.add(-el.prep_time, 'minute');
                         el.ended_at = dayjs(items.find(i => i.position == maxPos).ended_at, 'HH:mm:ss');
                         if (el.started_at > el.ended_at && sessionStorage.isDay == "false") {
-                            el.ended_at.add(1, 'day');
+                            el.ended_at = el.ended_at.add(1, 'day');
                         }
                         el.started_at = el.started_at.add(-el.prep_time, 'minute');
                         el.ended_at = el.ended_at.add(el.after_time, 'minute');
@@ -773,7 +773,7 @@ export default {
             }
 
             if (record.has_detector) {
-                fd.append('has_detector', record.has_detector);
+                fd.append('has_detector', Number(record.has_detector));
                 fd.append('detector_start', record.detector_time[0]);
                 fd.append('detector_end', record.detector_time[1]);
             }
@@ -1045,8 +1045,12 @@ export default {
                             Установить металодетектор
                         </Checkbox>
                         <div v-if="line.has_detector">
-                            <TimeRangePicker v-model:value="line.detector_time" format="HH:mm" :showTime="true" :allowClear="true"
-                            type="time" :showDate="false" style="width:fit-content;" />
+                            <div style="display: flex; justify-content: space-between;">
+                                <TimePicker v-model:value="line.detector_time[0]" format="HH:mm" :showTime="true" :allowClear="true"
+                                    type="time" :showDate="false" style="width:47%;" />
+                                <TimePicker v-model:value="line.detector_time[1]" format="HH:mm" :showTime="true" :allowClear="true"
+                                    type="time" :showDate="false" style="width:47%;" />
+                            </div>
                         </div>
                     </div>
                 </template>

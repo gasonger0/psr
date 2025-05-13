@@ -22,7 +22,7 @@ class ProductsPlanController extends Controller
     static public function getList(Request $request)
     {
         $date = $request->cookie('date');
-        $isDay = boolval($request->cookie('isDay'));
+        $isDay = filter_var($request->cookie('isDay'), FILTER_VALIDATE_BOOLEAN);
         if (!($id = $request->post('product_id'))) {
             return ProductsPlan::where('date', $date)
                 ->where('isDay', $isDay)
@@ -47,7 +47,7 @@ class ProductsPlanController extends Controller
     {
         // Получаем текущие день и смену
         $date = $request->cookie('date');
-        $isDay = boolval($request->cookie('isDay'));
+        $isDay = filter_var($request->cookie('isDay'), FILTER_VALIDATE_BOOLEAN);
         
         // Проверка на идиота
         if ($post = $request->post()) {
@@ -150,7 +150,7 @@ class ProductsPlanController extends Controller
                         'slot_id' => $slot->product_slot_id,
                         'workers_count' => $slot->people_count,
                         'amount' => $post['amount'],
-                        'hardware' => $post['hardware'],
+                        'hardware' => $post['hardware'] ?? 0,
                         'type_id' => 2,
                     ]);
 
@@ -397,7 +397,7 @@ class ProductsPlanController extends Controller
 
         $plans = ProductsPlan::where('line_id', '=', $plan->line_id)
             ->where('date', $request->cookie('date'))
-            ->where('isDay', $request->cookie('isDay'))
+            ->where('isDay', filter_var($request->cookie('isDay'), FILTER_VALIDATE_BOOLEAN))
             ->orderBy('position', 'ASC')
             ->get()
             ->toArray();
@@ -406,7 +406,7 @@ class ProductsPlanController extends Controller
             $maxEndedAt = end($plans)['ended_at'];
             LinesExtraController::update(
                 $request->cookie('date'), 
-                $request->cookie('isDay'), 
+                filter_var($request->cookie('isDay'), FILTER_VALIDATE_BOOLEAN), 
                 $plan->line_id, 
                 ['started_at' => $minStartedAt, 'ended_at' => $maxEndedAt]
             );
@@ -421,7 +421,7 @@ class ProductsPlanController extends Controller
         // Ид записей, которые надо менять местами и их порядок
         $data = $request->post();
         $date = $request->cookie('date');
-        $isDay = boolval($request->cookie('isDay'));
+        $isDay = filter_var($request->cookie('isDay'), FILTER_VALIDATE_BOOLEAN);
         if (!$data) {
             return -1;
         } else {
@@ -455,7 +455,7 @@ class ProductsPlanController extends Controller
     {
 
         $date = $request->post('date');
-        $isDay = boolval($request->cookie('isDay'));
+        $isDay = filter_var($request->cookie('isDay'), FILTER_VALIDATE_BOOLEAN);
         if (!$date) {
             $date = $request->cookie('date');
         }

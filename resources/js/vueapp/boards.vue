@@ -98,7 +98,10 @@ export default {
             return new Promise((resolve, reject) => {
                 let timeString = dayjs();
                 this.slots.forEach(slot => {
-                    if (slot.started_at < timeString && timeString < slot.ended_at) {
+                    // let start = dayjs(slot.started_at, 'HH:mm:ss');
+                    // let end = dayjs(slot.ended_at, 'HH:mm:ss');
+                    console.log(slot, timeString);
+                    if (slot.started_at <= timeString && timeString <= slot.ended_at) {
                         let worker = this.workers.find(worker => worker.worker_id == slot.worker_id);
                         worker.current_line_id = slot ? slot.line_id : false;
                         worker.current_slot = slot.slot_id;
@@ -182,8 +185,9 @@ export default {
                             sl.started_at = dayjs(sl.started_at, "HH:mm:ss");
                             sl.ended_at = dayjs(sl.ended_at, "HH:mm:ss");
                             if (sl.started_at > sl.ended_at && sessionStorage.getItem('isDay') == "false") {
-                                sl.ended_at.add(1, 'day');
+                                sl.ended_at = sl.ended_at.add(1, 'day');
                             }
+                            console.log(sl);
                             return sl;
                         });
                         resolve(true);
@@ -298,15 +302,15 @@ export default {
                                 el.detector_end ? dayjs(el.detector_end, 'HH:mm') : dayjs()
                             ]);
                             if (el.ended_at < el.started_at && sessionStorage.isDay == "false") {
-                                el.ended_at.add(1, 'day');
+                                el.ended_at = el.ended_at.add(1, 'day');
                             }
 
                             if (el.detector_end < el.detector_start && sessionStorage.isDay == "false") {
-                                el.detector_end.add(1, 'day');
+                                el.detector_end = el.detector_end.add(1, 'day');
                             }
 
                             let timeString = dayjs();
-                            if (timeString > el.ended_at || timeString < el.started_at) {
+                            if (!(timeString < el.ended_at && timeString > el.started_at)) {
                                 el.done = true;
                             } else {
                                 el.done = false;
@@ -373,9 +377,9 @@ export default {
             fd.append('started_at', record.started_at.format('HH:mm'));
             fd.append('ended_at', record.ended_at.format('HH:mm'));
             if (record.has_detector) {
-                fd.append('has_detector', record.has_detector);
-                fd.append('detector_start', record.detector_time[0].format('HH:mm'));
-                fd.append('detector_end', record.detector_time[1].format('HH:mm'));
+                fd.append('has_detector', Number(record.has_detector));
+                fd.append('detector_start', record.detector_time[0].format('HH:mm:ss'));
+                fd.append('detector_end', record.detector_time[1].format('HH:mm:ss'));
             }
             // }
             if (record.workers_count) {
@@ -735,8 +739,14 @@ export default {
                             Установить металодетектор
                         </Checkbox>
                         <div v-if="line.has_detector">
-                            <TimeRangePicker v-model:value="line.detector_time" format="HH:mm" :showTime="true" :allowClear="true"
-                            type="time" :showDate="false" style="width:fit-content;" />
+                            <div style="display: flex; justify-content: space-between;">
+                                <TimePicker v-model:value="line.detector_time[0]" format="HH:mm" :showTime="true" :allowClear="true"
+                                    type="time" :showDate="false" style="width:47%;" />
+                                <TimePicker v-model:value="line.detector_time[1]" format="HH:mm" :showTime="true" :allowClear="true"
+                                    type="time" :showDate="false" style="width:47%;" />
+                            </div>
+                            <!-- <TimeRangePicker v-model:value="line.detector_time" format="HH:mm" :showTime="true" :allowClear="true"
+                            type="time" :showDate="false" style="width:fit-content;" /> -->
                         </div>    
                     </div>
                 </template>

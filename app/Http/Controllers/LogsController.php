@@ -14,6 +14,7 @@ class LogsController extends Controller
     static public function add(Request $request)
     {
         $date = $request->cookie('date');
+        var_dump($request->post());
         if (empty($request->post())) return -1;
         $log = new Logs();
 

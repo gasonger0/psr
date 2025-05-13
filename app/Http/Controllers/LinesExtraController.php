@@ -76,7 +76,7 @@ class LinesExtraController extends Controller
     static public function down(Request $request)
     {
         $date = $request->cookie('date');
-        $isDay = boolval($request->cookie('isDay'));
+        $isDay = filter_var($request->cookie('isDay'), FILTER_VALIDATE_BOOLEAN);
         $line = LinesExtra::where('line_id', $request->post('id'))
             ->where('date', $date)
             ->where('isDay', $isDay)
@@ -87,7 +87,7 @@ class LinesExtraController extends Controller
             $line->down_time = $line->down_time + $diff->h * 60 + $diff->i;
             $line->down_from = null;
             $line->save();
-            SlotsController::down($request->cookie('date'), boolval($request->cookie('isDay')), $line->line_id, $downFrom);
+            SlotsController::down($request->cookie('date'), filter_var($request->cookie('isDay'), FILTER_VALIDATE_BOOLEAN), $line->line_id, $downFrom);
         } else {
             $line->down_from = now('Europe/Moscow');
             $line->save();

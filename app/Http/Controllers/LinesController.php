@@ -17,7 +17,7 @@ class LinesController extends Controller
         $result = [];
         $date = $request->cookie('date');
         // var_dump($request->cookie());
-        $isDay = boolval($request->cookie('isDay'));
+        $isDay = filter_var($request->cookie('isDay'), FILTER_VALIDATE_BOOLEAN);
         Lines::all()->each(function ($line) use(&$result, $date, $isDay)  {
             $line_extra = LinesExtraController::get($date, $isDay, $line->line_id);
             if (!$line_extra) {
@@ -50,7 +50,7 @@ class LinesController extends Controller
     static public function save(Request $request)
     {
         if ($request->post('line_id') == -1) {
-            $id = self::add($request->cookie('date'), boolval($request->cookie('isDay')),$request->post());
+            $id = self::add($request->cookie('date'), filter_var($request->cookie('isDay'), FILTER_VALIDATE_BOOLEAN),$request->post());
             if ($id) {
                 return json_encode([
                     "success" => true,
@@ -64,7 +64,7 @@ class LinesController extends Controller
         }
         $line = Lines::find($request->post('line_id'));
         if ($line) {
-            $d = LinesExtraController::update($request->cookie('date'), boolval($request->cookie('isDay')), $line->line_id, $request->post());
+            $d = LinesExtraController::update($request->cookie('date'), filter_var($request->cookie('isDay'), FILTER_VALIDATE_BOOLEAN), $line->line_id, $request->post());
             $start = $d['start'];
             $end = $d['end'];
             $line->color = $request->post('color');
@@ -75,7 +75,7 @@ class LinesController extends Controller
             if ($request->post('started_at')) {
                 SlotsController::afterLineUpdate(
                     $request->cookie('date'),
-                    boolval($request->cookie('isDay')),
+                    filter_var($request->cookie('isDay'), FILTER_VALIDATE_BOOLEAN),
                     $request->post('line_id'),
                     $request->post('started_at'),
                     $start,
@@ -83,7 +83,7 @@ class LinesController extends Controller
                     $end
                 );
                 // ProductsPlanController::afterLineUpdate($request->post('line_id'), $request->post('started_at'), $start, $request->post('ended_at'), $end);
-                if ($line->cancel_reason != null) {
+                if ($request->post('cancel_reason') != null) {
                     $d = Slots::where('line_id', '=', $line->line_id)->where('started_at', '<=', $start)->get('worker_id')->toArray();
                     $d = array_map(function ($a) {
                         return $a['worker_id'];
@@ -95,7 +95,7 @@ class LinesController extends Controller
                         'people_count' => $request->post('workers_count'),
                         'type' => 3,
                         'workers' => implode(',', $d),
-                    ],[],['date' => $request->cookie('date'), 'isDay' => boolval($request->cookie('isDay'))]);
+                    ],[],['date' => $request->cookie('date'), 'isDay' => filter_var($request->cookie('isDay'), FILTER_VALIDATE_BOOLEAN)]);
                     LogsController::add($request);
                 }
             }

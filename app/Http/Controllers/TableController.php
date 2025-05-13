@@ -237,7 +237,7 @@ class TableController extends Controller
 
             // ProductsOrder::truncate();
             $date = $request->cookie('date');
-            $isDay = boolval($request->cookie('isDay'));
+            $isDay = filter_var($request->cookie('isDay'), FILTER_VALIDATE_BOOLEAN);
             $cats = Products_categories::get(['title', 'category_id'])->toArray();
             $products = ProductsDictionary::get(['title', 'product_id', 'category_id'])->toArray();
             foreach ($cats as &$cat) {
@@ -442,7 +442,7 @@ class TableController extends Controller
     public function dowloadForPrint(Request $request)
     {
         $date = $request->cookie('date');
-        $isDay = boolval($request->cookie('isDay'));
+        $isDay = filter_var($request->cookie('isDay'), FILTER_VALIDATE_BOOLEAN);
         $plans = json_decode(ProductsPlanController::getList($request), true);
 
         $linesFromPlans = array_unique(array_map(function ($el) {

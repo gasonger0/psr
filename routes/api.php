@@ -115,7 +115,7 @@ Route::group(['middleware' => ['web']], function () {
             $timeValue = $request->post('isDay');
         }else{
             $dateValue = $request->cookie('date');
-            $timeValue = boolval($request->cookie('isDay'));
+            $timeValue = filter_var($request->cookie('isDay'), FILTER_VALIDATE_BOOLEAN);
         }
         $response = response('Set Cookie');
         $response->cookie('date', $dateValue, 60);

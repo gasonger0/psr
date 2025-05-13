@@ -35,7 +35,7 @@ export default {
                     worker_id: el.worker_id
                 };
                 if (sessionStorage.getItem("isDay") == "false" && el.break.time[0] > el.break.time[1]){
-                    el.break.time[1].add(1, 'day');
+                    el.break.time[1] = el.break.time[1].add(1, 'day');
                 }
 
                 let slots = this.slots.filter((i) => {
@@ -225,15 +225,17 @@ export default {
         <br />
         <br />
         <div class="table-container">
-            <Table :dataSource="workers" :columns="lines" :pagination="{ pageSize: 6 }" small :scroll="{x: lines.length * 150}"
+            <Table :dataSource="workers" :columns="lines.filter(el => el.done == false || !el.line_id)" :pagination="{ pageSize: 6 }" small :scroll="{x: lines.filter(el => el.done == false || !el.line_id).length * 150}"
                 style="scrollbar-color: unset;">
                 <template #headerCell="{ column }">
-                    <div v-if="column.dataIndex != 'title' && column.dataIndex != 'break'" style="display: flex;flex-direction: column;align-items: center;width:150px;">
+                    <div v-if="column.dataIndex != 'title' && column.dataIndex != 'break'" style="display: flex;flex-direction: column;align-items: center;">
                         <span style="text-align:center">{{ column.title }}</span>
                         <br>
                         <span style="color:gray" v-if="column.started_at && column.ended_at">{{ column.started_at.format('HH:mm') }} - {{ column.ended_at.format('HH:mm') }}</span>
                     </div>
-                    <span v-else style="width:150px;">{{ column.title }}</span>
+                    <div v-else style="display: flex;flex-direction: column;align-items: center;">
+                        <span>{{ column.title }}</span>
+                    </div>
                 </template>
                 <template #bodyCell="{ column, record, text }">
                     <template v-if="column.dataIndex != 'title' &&
