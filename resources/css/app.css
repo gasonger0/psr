@@ -31,7 +31,7 @@ body {
 .lines-container {
     display: flex;
     flex-direction: row;
-    justify-content: space-between;
+    /* justify-content: space-between; */
     margin: 1%;
     width: 98vw;
     height: 81vh;

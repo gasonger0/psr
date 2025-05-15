@@ -42,7 +42,8 @@ export default {
             packLinesOptions: ref([]),
             isScrolling: false,
             showPack: ref(false),
-            responsible: ref([])
+            responsible: ref([]),
+            hideEmpty: ref(false)
         }
     },
     methods: {
@@ -220,12 +221,13 @@ export default {
 
                         let product = this.products.find(el => el.product_id == ev.target.dataset.id);
                         if (product) {
+                            console.log(product);
                             if (!product.active_slots[1] && product.slots[1]) {
                                 for (let i in product.slots[1]) {
                                     this.document.querySelector('.line[data-id="' + product.slots[1][i].line_id + '"]').classList.remove('hidden-hard');
                                 }
                             }
-                            if ((product.active_slots[1] && product.slots[2]) || (!product.active_slots[1] && product.slots[1].length == 0)) {
+                            if ((product.active_slots[1]) || (!product.active_slots[1] && product.slots[1].length == 0)) {
                                 for (let i in product.slots[2]) {
                                     this.document.querySelector('.line[data-id="' + product.slots[2][i].line_id + '"]').classList.remove('hidden-hard');
                                 }
@@ -545,6 +547,7 @@ export default {
                         }
                         el.started_at = el.started_at.add(-el.prep_time, 'minute');
                         el.ended_at = el.ended_at.add(el.after_time, 'minute');
+                        el.has_plans = true;
                     }
                     });
                     this.$emit('getBoils', sum.toFixed(2));
@@ -906,21 +909,12 @@ export default {
 </script>
 <template>
     <div style="height: fit-content; margin-left: 1vw;display: flex; gap: 10px;" :key="key">
-        <Button type="dashed" @click="() => showList = !showList">{{ !showList ? 'Показать список продукции' : 'Скрыть'
-            }}</Button>
-        <!-- <Popconfirm okText="ОК" cancelText="Отмена" @confirm="exportPlan">
-            <template #title>
-                <Input v-model:value="exportFileName" placeholder="Наименование файла" />
-            </template>
-            <Button type="default">
-                <CloudDownloadOutlined />Экспорт плана
-            </Button>
-        </Popconfirm>
-        <Upload v-model:file-list="file" :before-upload="(ev) => importPlan(ev)" :showUploadList="false">
-            <Button type="default">
-                <CloudUploadOutlined />Импорт плана
-            </Button>
-        </Upload> -->
+        <Button type="dashed" @click="() => showList = !showList">
+            {{ !showList ? 'Показать список продукции' : 'Скрыть'}}
+        </Button>
+        <Button type="dashed" @click="() => hideEmpty = !hideEmpty">
+            {{ hideEmpty ? 'Показать пустые линии' : 'Скрыть пустые линии' }}
+        </Button>
         <Button typr="default" @click="printPlan">
             <PrinterOutlined />Распечатать план в xlsx
         </Button>
@@ -976,7 +970,7 @@ export default {
             </section>
         </div>
         <Divider type="vertical" v-show="showList" style="height: unset; width: 5px;" />
-        <div class="line" v-for="line in lines" :data-id="line.line_id" :key="line.line_id">
+        <div class="line" v-for="line in lines" :data-id="line.line_id" :key="line.line_id" v-show="!(hideEmpty && !line.has_plans)">
             <Card :bordered="false" class="head"
                 :headStyle="{ 'background-color': (line.color ? line.color : '#1677ff') }">
                 <template #title>
