@@ -170,10 +170,6 @@ class ProductsPlanController extends Controller
                     // +15 минут на упаковку
                     $start->add(new \DateInterval('PT15M'));       
                     
-                    /*--
-                    Этого финта я вообще не помню, нахуя он нужен был. Была речь о том, что типа упаковка не должна заканчиваться раньше, чем варка, но это не то
-                    */
-                    // $endPrev = (new \DateTime($post['ended_at']))->add(new \DateInterval('PT15M'))->add(new \DateInterval('PT' . $duration . 'M'));
                     
                     // Конец упаковки должен быть:
                     // 1. Не раньше конца варки

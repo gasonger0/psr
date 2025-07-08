@@ -91,8 +91,5 @@ export default {
                 </template>
             </Table>
         </div>
-        <!-- <Select v-model:value="worker" style="width:100%;" type="number" label="Работник">
-            <SelectOption v-for="(v, k) in $props.data.workers" v-model:value="v.worker_id" :label="v.title">{{ v.title }}</SelectOption>
-        </Select> -->
     </Modal>
 </template>
