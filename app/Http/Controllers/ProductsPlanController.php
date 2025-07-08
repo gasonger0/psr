@@ -6,12 +6,13 @@ use App\Models\LinesExtra;
 use App\Models\ProductsPlan;
 use App\Models\ProductsSlots;
 use App\Models\ProductsDictionary;
+use App\Util;
 use Carbon\Carbon;
 use Date;
 use DateTime;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
-use function PHPUnit\Framework\isType;
 
 class ProductsPlanController extends Controller
 {
@@ -19,22 +20,17 @@ class ProductsPlanController extends Controller
      * Функция получения плана. Если в запросе в есть product_Id, по которому нужно получить данные - 
      * возвращаются только планы по этому продукту. Иначе все планы по дню и смене из куки 
      */
-    static public function getList(Request $request)
+    public static function get(Request $request)
     {
-        $date = $request->cookie('date');
-        $isDay = filter_var($request->cookie('isDay'), FILTER_VALIDATE_BOOLEAN);
+
         if (!($id = $request->post('product_id'))) {
-            return ProductsPlan::where('date', $date)
-                ->where('isDay', $isDay)
-                ->join('products_dictionary', 'products_plan.product_id', '=', 'products_dictionary.product_id')
-                ->select('products_plan.*', DB::raw('products_dictionary.title as title'))
+            return ProductsPlan::withSession($request)
+                ->joinProductTitle()
                 ->get()
                 ->toJson();
-            // return ProductsPlan::all()->toJson();
         } else {
             return ProductsPlan::where('product_id', '=', $id)
-                ->where('date', $date)
-                ->where('isDay', $isDay)
+                ->withSession($request)
                 ->get()
                 ->toJson();
         }
@@ -43,12 +39,12 @@ class ProductsPlanController extends Controller
     /**
      * Функция добавления плана в параметрах запроса может быть указан план по варке и планы по упаковке
      */
-    public function addPlan(Request $request)
+    public function add(Request $request)
     {
         // Получаем текущие день и смену
         $date = $request->cookie('date');
         $isDay = filter_var($request->cookie('isDay'), FILTER_VALIDATE_BOOLEAN);
-        
+
         // Проверка на идиота
         if ($post = $request->post()) {
             if (!isset($post['plan_product_id']) || $post['plan_product_id'] == null) {
@@ -88,8 +84,8 @@ class ProductsPlanController extends Controller
 
             // Проверяем план на конфликты с другими позициями
             $this->checkPlans(
-                $date, 
-                $isDay, 
+                $date,
+                $isDay,
                 $plan
             );
 
@@ -101,16 +97,17 @@ class ProductsPlanController extends Controller
                     ->where('date', $date)
                     ->where('isDay', $isDay)
                     ->where('amount', $oldAm)
-                    ->each(function($p) use($post, $date, $isDay) {
+                    ->each(function ($p) use ($post, $date, $isDay) {
                         // Обновлчем объём изготовления
                         $p->amount = $post['amount'];
                         // Получаем справочныее данные о продукции
                         $prod = ProductsDictionary::where('product_id', '=', $p->product_id)->first();
 
                         // Вычисляем длительность изготовления по формулам из справочных данных
-                        $duration = ceil($post['amount'] * 
-                            eval("return ".$prod['parts2kg']."*".$post['amount'].";") * 
-                            eval("return ".$prod['amount2parts'].";") / 
+                        $duration = ceil(
+                            $post['amount'] *
+                            eval ("return " . $prod['parts2kg'] . "*" . $post['amount'] . ";") *
+                            eval ("return " . $prod['amount2parts'] . ";") /
                             ($p->perfomance ? $p->perfomance : 1) * 60
                         );
 
@@ -121,7 +118,7 @@ class ProductsPlanController extends Controller
                             ->add(new \DateInterval('PT' . $duration . 'M'))
                             ->add(new \DateInterval('PT15M'));
                         $p->save();
-                        
+
                         // Проверяем, не конфликтует ли с другими позициями на данной линии
                         ProductsPlanController::checkPlans($date, $isDay, $p);
                     });
@@ -140,7 +137,7 @@ class ProductsPlanController extends Controller
                     // Ищем слот
                     $slot = ProductsSlots::find($pack);
                     // И продукт
-		            $product = ProductsDictionary::where('product_id', '=', $slot->product_id)->first();
+                    $product = ProductsDictionary::where('product_id', '=', $slot->product_id)->first();
                     // Заполняем план упаковки данными из слота, запроса и кук
                     $plan->fill([
                         'date' => $date,
@@ -160,24 +157,25 @@ class ProductsPlanController extends Controller
                     // Не помню, нахера так, но раз написано, значит, надо было
                     $plan->started_at = strval($start->format('H:i:s'));
                     // Рассчитываем, сколько будет упаковываться продукция по формулам
-                    $duration = ceil($post['amount'] * 
-                        eval("return " . $product['parts2kg'] . ($pack == 37 ? '*' . $product['amount2parts'] : '') . ";") /
-                        // eval("return " . $product['amount2parts'] . ";") / 
+                    $duration = ceil(
+                        $post['amount'] *
+                        eval ("return " . $product['parts2kg'] . ($pack == 37 ? '*' . $product['amount2parts'] : '') . ";") /
+                            // eval("return " . $product['amount2parts'] . ";") / 
                         ($slot->perfomance ? $slot->perfomance : 1) * 60
                     );
                     // считаем время от начала + время изготовления
                     $start->add(new \DateInterval('PT' . $duration . 'M'));
                     // +15 минут на упаковку
-                    $start->add(new \DateInterval('PT15M'));       
-                    
-                    
+                    $start->add(new \DateInterval('PT15M'));
+
+
                     // Конец упаковки должен быть:
                     // 1. Не раньше конца варки
                     // 2. Если раньше конца варки, то не раньше конца варки + delay
                     $endPrev = new \DateTime($post['ended_at']);
                     if ($start < $endPrev) {
                         $plan->ended_at = $endPrev->add(new \DateInterval('PT' . $post['delay'] . 'M'))->format('H:i:s');
-                    }else {
+                    } else {
                         $plan->ended_at = $start->format('H:i:s');
                     }
                     /*--*/
@@ -203,10 +201,10 @@ class ProductsPlanController extends Controller
                         ->where('type_id', '=', 2)
                         // ->where('plan_product_id', '!=', $plan->plan_product_id)
                         ->get();
-                    
+
                     $position = false;
 
-                    foreach ($positions as $pos){
+                    foreach ($positions as $pos) {
                         $d2 = [
                             "start" => new \DateTime($pos->started_at),
                             "end" => new \DateTime($pos->ended_at)
@@ -218,12 +216,12 @@ class ProductsPlanController extends Controller
 
                         // Смотрим, как у нас ложатся даты текущей упаковки на другие позиции
                         if (!$position) {
-                            if($d2['start'] < $dates['end'] || ($dates['start'] < $d2['start'] && $d2['start'] < $dates['end'])) {
-                                $position = $pos->position+1;
+                            if ($d2['start'] < $dates['end'] || ($dates['start'] < $d2['start'] && $d2['start'] < $dates['end'])) {
+                                $position = $pos->position + 1;
                             }
                         } else {
                             // Сюда падаем, если позиция уже посчитана, двигаем всё, что ниже неё вниз на 1
-                            $pos->position+=1;
+                            $pos->position += 1;
                             $pos->save();
                         }
                     }
@@ -232,11 +230,11 @@ class ProductsPlanController extends Controller
                     if ($position === FALSE) {
                         $position = 0;
                         $positions->each(function ($pos) use ($position) {
-                            $pos->position+=1;
+                            $pos->position += 1;
                             $pos->save();
                         });
                     }
-                    
+
                     //$plan->position = $position + 1;
                     $plan->save();
 
@@ -267,51 +265,58 @@ class ProductsPlanController extends Controller
                 ->toArray();
             $minStartedAt = $plans[0]['started_at'];
             $maxEndedAt = end($plans)['ended_at'];
-            
+
             LinesExtraController::update($date, $isDay, $plan->line_id, ['started_at' => $minStartedAt, 'ended_at' => $maxEndedAt]);
 
             return true;
         }
     }
 
-    public static function checkPlans($date, $isDay, $plan, $position = null) {
-
+    /**
+     * Проверка планов на коллизию
+     * @param \Illuminate\Http\Request $request запрос с куками смены
+     * @param \App\Models\ProductsPlan $plan план по изготовлению
+     * @param int $position позиция плана, по которой его надо проверить
+     * @return bool
+     */
+    public static function checkPlans(Request $request, ProductsPlan $plan, int $position = null): bool
+    {
         if (!$position) {
             $position = $plan->position;
         }
+
         // Проверка, не ставим ли мы план первым
         $check = ProductsPlan::where('line_id', '=', $plan->line_id)
-            ->where('date', $date)
-            ->where('isDay', $isDay)
+            ->withSession($request)
             ->where('plan_product_id', '!=', $plan->plan_product_id)
-            // Мб надо добавить проверку на позицию?
+            // TODO Мб надо добавить проверку на позицию?
             ->count();
-        var_dump($check);
+
         if ($check == 0) {
-            var_dump("Plan is first and only");
-            return;
-        }   
-        var_dump(ProductsPlan::where('line_id', $plan->line_id)->where('isDay', $isDay)->where('date', $date)->get()->toArray());
+            return true;
+        }
+
         // Проверка - залезаем ли мы началом новой ГП на окончание предыдущей
-        $upPlan = ProductsPlan::where('position', '<=', $position)
-            ->where('ended_at', '>=', $plan->started_at)
-            ->where('started_at', '<=', $plan->started_at) 
-            ->where('line_id', '=', $plan->line_id)
+        $topPlan = ProductsPlan::where('ended_at', '>', $plan->started_at)
+            ->where('started_at', '<', $plan->started_at)
+            ->where('position', '<=', $position)
+            ->where('line_id', $plan->line_id)
             ->where('plan_product_id', '!=', $plan->plan_product_id)
-            ->where('date', $date)
-            ->where('isDay', $isDay)
+            ->withSession($request)
             ->orderBy('position', 'DESC')
             ->first();
+
         // Проверка - залезаем ли мы концом новой ГП на начало следующей
-        $downPlan = ProductsPlan::where('position', '>=', $position)
-            ->where('started_at', '<=', $plan->ended_at)
-            ->where('ended_at', '>=', $plan->ended_at)
+        $bottomPlan = ProductsPlan::where('started_at', '<', $plan->ended_at)
+            ->where('ended_at', '>', $plan->ended_at)
+            ->where('position', '>=', $position)
             ->where('line_id', '=', $plan->line_id)
             ->where('plan_product_id', '!=', $plan->plan_product_id)
-            ->where('date', $date)
-            ->where('isDay', $isDay)
+            ->withSession($request)
             ->orderBy('position', 'ASC')
             ->first();
+
+        // TODO накатываем миграцию на полноценный datetime и дропаем это говнище
 
         if ($plan->started_at > $plan->ended_at) {
             // Пограничная позиция, надо сделать доп. проверку
@@ -320,53 +325,64 @@ class ProductsPlanController extends Controller
                 // ->where('started_at', '>', '20:00:00')
                 ->where('line_id', '=', $plan->line_id)
                 ->where('plan_product_id', '!=', $plan->plan_product_id)
-                ->where('date', $date)
-                ->where('isDay', $isDay)
+                ->withSession($request)
                 ->orderBy('ended_at', 'ASC')
                 ->first();
             if ($change && $change->position >= $position) {
-                $downPlan = $change;
+                $bottomPlan = $change;
             }
         }
 
+        if ($topPlan || $bottomPlan) {
+            // Считаем сдвиги сверху и снизу
+            $topShift = $topPlan ?
+                Carbon::parse($plan->started_at)
+                    ->diffInMinutes(Carbon::parse($topPlan->ended_at)) : 0;
+            $bottomShift = $bottomPlan ?
+                Carbon::parse($bottomPlan->started_at)
+                    ->diffInMinutes(Carbon::parse($plan->ended_at)) : 0;
 
-        if ($upPlan || $downPlan) {
-            $topShift = $upPlan ? Carbon::parse($plan->started_at)->diffInMinutes(Carbon::parse($upPlan->ended_at)) : 0;
-            $downShift = $downPlan ? Carbon::parse($downPlan->started_at)->diffInMinutes(Carbon::parse($plan->ended_at)) : 0;
             if ($plan->started_at > $plan->ended_at) {
-                $downShift = $downPlan ? Carbon::parse($downPlan->started_at)->diffInMinutes(Carbon::parse($plan->ended_at)->add('P1D')) : 0;
+                $bottomShift = $bottomPlan ?
+                    Carbon::parse($bottomPlan->started_at)
+                        ->diffInMinutes(Carbon::parse($plan->ended_at)
+                            ->add('P1D')) : 0;
             }
-            var_dump("topShift: $topShift, downShift: $downShift");
-            $shift = $topShift + $downShift;
-            if ($shift != 0) {
-                // Тут двигаем только вслучае, если позиция новой ГП ненулевая потому что нет смысла двигать нулевую - она и так никуда не залезает 
+
+            if ($topShift + $bottomShift != 0) {
+                // Тут двигаем только вслучае, если позиция новой ГП ненулевая, 
+                // потому что нет смысла двигать нулевую - она и так никуда не залезает 
                 $p = ProductsPlan::where('plan_product_id', $plan->plan_product_id)
-                    ->where('date', $date)
-                    ->where('isDay', $isDay)
+                    ->withSession($request)
                     ->where('line_id', $plan->line_id)
                     ->where('position', '>', '0')
                     ->first();
-                if ($p){
+
+                // Обновляем модель при наличии
+                if ($p) {
                     $p->update([
-                        'started_at' => Carbon::parse($plan->started_at)->addMinutes($topShift)->format('H:i:s'),
-                        'ended_at' => Carbon::parse($plan->ended_at)->addMinutes($topShift)->format('H:i:s')
+                        'started_at' => Carbon::parse($plan->started_at)->addMinutes($topShift),
+                        'ended_at' => Carbon::parse($plan->ended_at)->addMinutes($topShift)
                     ]);
                 }
+
                 ProductsPlan::where('position', '>=', $position)
                     // ->where('started_at', '>', $plan->started_at)
                     ->where('line_id', '=', $plan->line_id)
                     ->where('plan_product_id', '!=', $plan->plan_product_id)
-                    ->where('date', $date)
-                    ->where('isDay', $isDay)
-                    ->each(function($p) use($shift) {
-                        $p->started_at = Carbon::parse($p->started_at)->addMinutes($shift)->format('H:i:s');
-                        $p->ended_at = Carbon::parse($p->ended_at)->addMinutes($shift)->format('H:i:s');
+                    ->withSession($request)
+                    ->each(function ($p) use ($topShift, $bottomShift) {
+                        $p->started_at = Carbon::parse($p->started_at)
+                            ->addMinutes($topShift + $bottomShift);
+                        $p->ended_at = Carbon::parse($p->ended_at)
+                            ->addMinutes($topShift + $bottomShift);
                         $p->position += 1;
                         $p->save();
                     });
             }
         }
-        self::composePlans($plan, $date, $isDay);
+        self::composePlans($plan, $request);
+        return true;
     }
 
     public function delPlan(Request $request)
@@ -378,17 +394,17 @@ class ProductsPlanController extends Controller
                 ->where('date', $plan->date)
                 ->where('isDay', $plan->isDay)
                 ->get()
-                ->each(function ($item){
+                ->each(function ($item) {
                     ProductsPlan::where('line_id', $item['line_id'])
                         ->where('position', '>', $item['position'])
                         ->where('date', $item['date'])
                         ->where('isDay', $item['isDay'])
-                        ->each(function($el) {
+                        ->each(function ($el) {
                             $el->position = $el->position - 1;
                             $el->save();
                         });
                     $item->delete();
-            });
+                });
         }
 
         $plans = ProductsPlan::where('line_id', '=', $plan->line_id)
@@ -401,9 +417,9 @@ class ProductsPlanController extends Controller
             $minStartedAt = $plans[0]['started_at'];
             $maxEndedAt = end($plans)['ended_at'];
             LinesExtraController::update(
-                $request->cookie('date'), 
-                filter_var($request->cookie('isDay'), FILTER_VALIDATE_BOOLEAN), 
-                $plan->line_id, 
+                $request->cookie('date'),
+                filter_var($request->cookie('isDay'), FILTER_VALIDATE_BOOLEAN),
+                $plan->line_id,
                 ['started_at' => $minStartedAt, 'ended_at' => $maxEndedAt]
             );
         }
@@ -412,39 +428,65 @@ class ProductsPlanController extends Controller
         return true;
     }
 
-    public function changePlan(Request $request)
+    /**
+     * Смена порядка планов
+     * @param \Illuminate\Http\Request $request
+     * @return \Illuminate\Http\Response
+     */
+    public function change(Request $request): Response
     {
         // Ид записей, которые надо менять местами и их порядок
-        $data = $request->post();
-        $date = $request->cookie('date');
-        $isDay = filter_var($request->cookie('isDay'), FILTER_VALIDATE_BOOLEAN);
-        if (!$data) {
-            return -1;
-        } else {
-            foreach ($data as $item) {
-                $id = $item['plan_product_id'];
-                unset($item['plan_product_id']);
-                $prod = ProductsPlan::where('plan_product_id', '=', $id)->get()->first();
-                $old_start = $prod->started_at;
-                $prod->update($item);
-                self::checkPlans($date, $isDay, $prod,$item['position']);
-                $packs = ProductsPlan::where('product_id', '=', $prod->product_id)
-                    ->where('type_id', '=', 2)
-                    ->where('date', '=', $date)
-                    ->where('isDay', '=', $isDay)
-                    ->get();
-                if ($packs) {
-                    foreach ($packs as $pack) {
-                        $start_diff = Carbon::parse($pack->started_at)->diffInMinutes(Carbon::parse($old_start));
-                        $duration = abs(Carbon::parse($pack->ended_at)->diffInMinutes(Carbon::parse($pack->started_at)));
-                        $pack->started_at = Carbon::parse($pack->started_at)->addMinutes($start_diff)->format('H:i:s');
-                        $pack->ended_at = Carbon::parse($pack->started_at)->addMinutes($duration)->format('H:i:s');
-                        $pack->save();
-                        self::checkPlans($date, $isDay, $pack);
-                    }
-                }
-            }
+        if (empty($request->post())) {
+            return Response([
+                'error' => 'Нет записей для смены порядка.'
+            ], 400);
         }
+
+        foreach ($request->post() as $item) {
+            // Находим план по ИД
+            $id = $item['plan_product_id'];
+            // unset($item['plan_product_id']); TODO ХЗ надо ли
+
+            $prod = ProductsPlan::find($id);
+            $old_start = $prod->started_at;
+
+            // Обновляем модель
+            $prod->update($item);
+
+            // Проверяем, нужно ли менять порядок планов по продукции
+            self::checkPlans($request, $prod, $item['position']);
+
+            // Список планов по упаковке, привязанных к текущему плану
+            $packs = ProductsPlan::where('product_id', '=', $prod->product_id)
+                ->where('type_id', '=', 2)
+                ->withSession($request)
+                ->each(function ($pack) use ($old_start, $request) {
+                    // Расчитываем время разницы в упаковке 
+                    // TODO имеет смысл пихнуть как поле в базе
+                    $start_diff = Carbon::parse($pack->started_at)
+                        ->diffInMinutes(Carbon::parse($old_start));
+
+                    // Получаем длительность в минутах
+                    $duration = Carbon::parse($pack->ended_at)
+                        ->diffInMinutes(
+                            Carbon::parse($pack->started_at)
+                        );
+                    // Обновляем данные в модели
+                    $pack->started_at = Carbon::parse($pack->started_at)->addMinutes($start_diff);
+                    $pack->ended_at = Carbon::parse($pack->started_at)->addMinutes($duration);
+                    $pack->save();
+
+                    // Снова проверка
+                    self::checkPlans($request, $pack);
+                });
+        }
+
+        return Response([
+            'message' => [
+                'type' => 'success',
+                'title' => 'Порядок продукции обновлён'
+            ]
+        ], 200);
     }
 
     public static function clear(Request $request)
@@ -456,12 +498,12 @@ class ProductsPlanController extends Controller
             $date = $request->cookie('date');
         }
         ProductsPlan::where('date', $date)->where('isDay', $isDay)->delete();
-        $def = LinesController::getDefaults();
+        $def = Util::getDefaults();
         foreach ($def as $d) {
             LinesExtra::where('line_id', '=', $d['line_id'])
                 ->where('date', $date)
                 ->where('isDay', $isDay)
-                ->each(function ($item) { 
+                ->each(function ($item) {
                     $item->delete();
                 });
         }
@@ -470,27 +512,26 @@ class ProductsPlanController extends Controller
         return;
     }
 
-    
+
     // После того, как всё скорректировали, надо сдвигать их по времени вплотную к друг другу
     // А если это ещё и Варка, то надо искать интервал с упаковкой и двигать её тоже
-    public static function composePlans($plan, $date, $isDay) {
+    public static function composePlans(ProductsPlan $plan, Request $request)
+    {
         /**
          * 1) Получаем все планы на данной линии, сортируем по возрастанию позиции
          * 2) Для каждого из них смотрим, есть ли упаковка и какой с ней интервал. Если будет несколько ГП на варку и на упаковку одного и того же продукта, надо как-то разруливать наверное?
          * 3) Считаем интервал с упаковкой, двигаем текущий план и делаем checkplans для упаковки
          * 4) Если наш план - это и есть упаковка, то упаковку не ищем 
          */
- 
+
         $prevEnd = false;
 
-        ProductsPlan::where('date', $date)
-            ->where('isDay', $isDay)
+        ProductsPlan::withSession($request)
             ->where('line_id', $plan->line_id)
             ->orderBy('position', 'ASC')
-            ->each(function($item) use (&$prevEnd, $date, $isDay) {
+            ->each(function ($item) use (&$prevEnd, $request) {
                 if ($prevEnd == false) {
                     $prevEnd = Carbon::parse($item->ended_at);
-                    var_dump('Set prevend to ' . $prevEnd->format('H:i:s'));
                     return;
                 }
                 if ($prevEnd instanceof Carbon) {
@@ -521,7 +562,7 @@ class ProductsPlanController extends Controller
                 //             ProductsPlanController::checkPlans($date, $isDay, $pack);
                 //         }
                 //     });
-                 
+    
             });
     }
 }

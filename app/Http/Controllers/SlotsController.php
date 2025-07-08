@@ -12,14 +12,9 @@ use Shuchkin\SimpleXLSXGen;
 
 class SlotsController extends Controller
 {
-    static public function getList(Request $request)
+    static public function get(Request $request)
     {
-        $date = $request->cookie('date');
-        $isDay = filter_var($request->cookie('isDay'), FILTER_VALIDATE_BOOLEAN);
-        return Slots::where('date', '=', $date)
-            ->where('isDay', $isDay)
-            ->get()
-            ->toJson();
+        return Slots::withSession($request)->get();
     }
 
     static public function add($date, $isDay, $line_id = null, $worker_id = null, $start = null, $end = null)
@@ -171,26 +166,27 @@ class SlotsController extends Controller
         }
     }
 
-    static public function down($date,$isDay, $lineId, $downFrom)
+    // +
+    public static function down(Request $request, string $downFrom)
     {
-        $slots = Slots::where('line_id', '=', $lineId)
+        $slots = Slots::where('line_id', '=', $request->post('line_id'))
             ->where('started_at', '<', $downFrom)
-            ->where('date', $date)
-            ->where('isDay', $isDay)->get();
-        // var_dump($slots, $downFrom, $lineId);
+            ->withSession($request)->get();
+
         foreach ($slots as $slot) {
             if ($slot->ended_at < now('Europe/Moscow')) {
                 // Если простой кончился после окончания слота, т.е. линия стояла до конца рабочей смены
-                $diff = (new \DateTime(now('Europe/Moscow')))->diff(new \DateTime($slot->ended_at));
-                $slot->down_time = $slot->down_time + ($diff->h * 60 + $diff->i);
+                $diff = (new \DateTime(now('Europe/Moscow')))
+                    ->diff(new \DateTime($slot->ended_at));
+                $slot->down_time =+ $diff->h * 60 + $diff->i;
             } else {
                 //Если простой кончился до окончания слота
                 $diff = (new \DateTime(now('Europe/Moscow')))->diff(new \DateTime($downFrom));
-                $slot->down_time = $slot->down_time + ($diff->h * 60 + $diff->i);
+                $slot->down_time += $diff->h * 60 + $diff->i;
             }
-            // var_dump($slot->down_time);
             $slot->save();
         }
+        return;
     }
 
     public function replace(Request $request)

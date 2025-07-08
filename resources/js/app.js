@@ -1,6 +1,7 @@
 import { createApp } from "vue";
 import App from "./App.vue";
 import axios from "axios";
+import { createPinia } from "pinia";
 
 if (sessionStorage.getItem('date') == null) {
     sessionStorage.setItem('date', (new Date()).toISOString().split('T')[0]);
@@ -14,4 +15,7 @@ axios.post('/api/update_session', {
 })
     
 const application = createApp(App);
-application.mount('#app');
+const store = createPinia();  
+
+application.use(store);
+application.mount('#app');  

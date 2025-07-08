@@ -1,4 +1,4 @@
-FROM php:8.2.0-fpm
+FROM php:8.2.0-fpm as builder
 
 ARG FILE_UID=1000
 ARG FILE_GID=1000
@@ -15,9 +15,15 @@ RUN apt-get update && apt-get install -y curl \
     && npm install -g npm@latest \
     && apt-get clean
 
-
-
 WORKDIR /var/www/html
 
+COPY package.json ./
+RUN npm install
 
 USER www-data
+
+FROM builder as dev
+CMD ["npm","run","dev", "--host"]
+
+FROM builder as prod
+CMD ["npm", "run", "build"]

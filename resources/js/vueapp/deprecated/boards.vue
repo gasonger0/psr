@@ -7,6 +7,7 @@ import dayjs from 'dayjs';
 import { ColorPicker } from 'vue-color-kit';
 import 'vue-color-kit/dist/vue-color-kit.css';
 import { ForwardOutlined, LoginOutlined, PlusCircleOutlined, StopOutlined, InfoCircleOutlined, UserDeleteOutlined, UserSwitchOutlined, UserAddOutlined, RightOutlined, LeftOutlined, PrinterOutlined } from '@ant-design/icons-vue';
+import { getNextElement } from '../functions';
 </script>
 <script>
 dayjs.locale('ru-ru');
@@ -210,19 +211,6 @@ export default {
             // console.log(ev);
             this.slots = ev.slots;
             this.workers = ev.workers;
-        },
-        getNextElement(cursorPosition, currentElement) {
-            // Получаем объект с размерами и координатами
-            const currentElementCoord = currentElement.getBoundingClientRect();
-            // Находим вертикальную координату центра текущего элемента
-            const currentElementCenter = currentElementCoord.y + currentElementCoord.height / 2;
-
-            // Если курсор выше центра элемента, возвращаем текущий элемент
-            // В ином случае — следующий DOM-элемент
-            const nextElement = (cursorPosition < currentElementCenter) ?
-                currentElement :
-                currentElement.nextElementSibling;
-            return nextElement;
         },
         sendStop(line, option) {
             axios.post('/api/down_line', 'id=' + line.line_id)
@@ -523,7 +511,7 @@ export default {
                             return;
                         }
 
-                        const nextElement = this.getNextElement(ev.clientY, currentElement);
+                        const nextElement = getNextElement(ev.clientY, currentElement);
                         // Проверяем, нужно ли менять элементы местами
                         if (
                             nextElement &&

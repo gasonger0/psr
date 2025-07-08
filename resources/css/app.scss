@@ -2,7 +2,8 @@ body {
     margin: 0;
     padding: 0;
     background-color: #bcbcbc;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif,
+        "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
     scrollbar-width: 10px;
     scrollbar-color: #9b9b9b #bcbcbc;
 }
@@ -18,14 +19,13 @@ body {
     justify-content: space-between;
     gap: 15px;
     overflow: auto;
-}
-
-.top-container div {
-    display: flex;
-    flex-direction: row;
-    justify-content: flex-start;
-    gap: 15px;
-    align-items: center
+    div {
+        display: flex;
+        flex-direction: row;
+        justify-content: flex-start;
+        gap: 15px;
+        align-items: center;
+    }
 }
 
 .lines-container {
@@ -47,31 +47,22 @@ body {
 
 .line_items {
     min-height: 10vh;
-}
-
-.line_items .ant-card-body {
-    padding: 10px 24px;
+    .ant-card-body {
+        padding: 10px 24px;
+    }
 }
 
 .title-switch {
     margin: 10px 0;
-
 }
 
 .line_title {
     color: #fff;
     margin-top: 10px;
-}
-
-.line_title b {
-    white-space: break-spaces;
-    font-weight: 600;
-}
-.lines-toolbar {
-    height: fit-content; 
-    margin-left: 1vw;
-    gap:15px;
-    display: flex;
+    b {
+        white-space: break-spaces;
+        font-weight: 600;
+    }
 }
 
 .draggable-card {
@@ -107,12 +98,14 @@ section.worker .tools {
     font-size: 25px;
     border-radius: 20px;
 }
+
 .worker-icon.red {
-    color:#ff4d4f;
+    color: #ff4d4f;
     border: 2px solid #ff4d4f;
 }
+
 .worker-icon.yellow {
-    color:#f48c05;
+    color: #f48c05;
     border: 2px solid #f48c05;
 }
 
@@ -126,7 +119,6 @@ section.worker .tools {
     top: 0;
     align-items: center;
     justify-content: center;
-
 }
 
 .load-modal {
@@ -149,7 +141,7 @@ section.worker .tools {
     color: grey;
 }
 
-.line>.ant-card>.ant-card-body {
+.line > .ant-card > .ant-card-body {
     padding: 10px 24px;
 }
 
@@ -213,6 +205,12 @@ section.worker .tools {
     text-decoration: none;
 }
 
+.lines-toolbar {
+    height: fit-content;
+    margin-left: 1vw;
+    gap: 15px;
+    display: flex;
+}
 /* TEST */
 /* div.line:nth-child(1) > div:nth-child(1) > div:nth-child(1) {
     background-color: red;

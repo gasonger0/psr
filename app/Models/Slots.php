@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\withSession;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 
@@ -12,6 +13,7 @@ class Slots extends Model
     public $incrementing = true;
     // protected $dateFormat = 'U';
     protected $fillable = ['started_at', 'ended_at', 'workers_count'];
+    use withSession;
 
     public function setCreatedAtAttribute($value)
     {
@@ -40,6 +42,10 @@ class Slots extends Model
         return $this->update([
             'down_time' => $c
         ]);
+    }
+
+    public function worker(){
+        // return $this->
     }
 
     // public function addMinutes(int $minutes) {

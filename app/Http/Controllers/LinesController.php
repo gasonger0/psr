@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Errors;
 use App\Models\Lines;
 use App\Models\LinesExtra;
 use App\Models\ProductsPlan;
@@ -9,45 +10,68 @@ use App\Models\Slots;
 use DB;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
+use Response;
 
 class LinesController extends Controller
 {
-    static public function getList(Request $request)
+
+    const LINE_NOT_FOUND = "Такой линии не существует.";
+    // TODO протестить создание 
+
+
+    /* CRUD */
+    public static function get(Request $request)
     {   
         $result = [];
-        $date = $request->cookie('date');
-        // var_dump($request->cookie());
-        $isDay = filter_var($request->cookie('isDay'), FILTER_VALIDATE_BOOLEAN);
-        Lines::all()->each(function ($line) use(&$result, $date, $isDay)  {
-            $line_extra = LinesExtraController::get($date, $isDay, $line->line_id);
-            if (!$line_extra) {
-                $line_extra = LinesExtraController::add($date,$isDay, $line->line_id, self::getDefaults($line->line_id));
-            }
-            $has_plans = ProductsPlan::where('date', $date)->where('isDay', $isDay)->where('line_id', $line->line_id)->count() > 0;
-            $result[] = array_merge($line->toArray(), $line_extra->toArray(), ['has_plans' => $has_plans]);
+
+        Lines::all()->each(function ($line) use (&$result, $request) {
+            $extra = LinesExtra::withSession($request)->getOrInsert($line);
+            $has_plans = ProductsPlan::withSession($request)->where('line_id', $line->line_id)->count() > 0;
+
+            $result[] = array_merge(
+                $line->toArray(), 
+                $extra->toArray(), 
+                ['has_plans' => $has_plans]
+            );
         });
-            
-        return json_encode($result);
+
+        return Response($result, 200);
     }
 
-    static public function add($date, $isDay, $array)
+    public static function add(Request $request)
     {
-        if (empty($array['title']))
-            return;
+        // Создаём базу
+        $id = Lines::insertGetId($request->only((new Lines)->getFillable()));
 
-        $line = new Lines;
-        $line->title = $array['title'];
-        $line->color = $array['color'];
+        // Заполняем динию на смену
+        $request->merge(['line_id' => $id]);
+        $extra_id = LinesExtra::insertGetId($request->only((new LinesExtra)->getFillable()));
+        return Response([
+            'line_id' => $id, 
+            'line_extra_id' => $extra_id
+        ], 201);
+    }
+    
+    public static function update(Request $request){
+        if (!$request->post('line_id')) {
+            return Response(['error' => self::LINE_NOT_FOUND], 404);
+        }
 
-        $line->type_id = $array['type_id'];
-        $line->save();
-        $data = array_merge($array, self::getDefaults($line->line_id));
-        print_r($data);
-        LinesExtraController::add($date, $isDay, $line->line_id, $data);
-        return $line->line_id;
+        $line = LinesExtra::where('line_id', $request->post('line_id'))->withSession($request)->first();
+
+        $line->update($request->only((new LinesExtra)->getFillable()));
+        $line->lines->update($request->only((new Lines)->getFillable()));
+
+        //TODO Обновление слотов сотрудников, графиков и добавлене записи в журнал?
+        return Response([
+            'message' => [
+                'type' => 'success',
+                'title' => "Линия обновлена"
+            ]
+        ], 200);
     }
 
-    static public function save(Request $request)
+    public static function save(Request $request)
     {
         if ($request->post('line_id') == -1) {
             $id = self::add($request->cookie('date'), filter_var($request->cookie('isDay'), FILTER_VALIDATE_BOOLEAN),$request->post());
@@ -105,344 +129,40 @@ class LinesController extends Controller
         }
     }
 
-    static public function clear()
-    {
-        Lines::truncate();
-    }
-
-    public static function getDefaults($line_id = false)
-    {
-        $defs =  [
-            [
-                'line_id' => 33,
-                'title' => 'СТАРАЯ вертикальная установка',
-                'time' => '8:00-12:00',
-                'people' => 3,
-                'prep' => 0,
-                'end' => 10
-            ],
-            [
-                'line_id' => 34,
-                'title' => 'Резка суфле-уп.',
-                'time' => '8:00-12:00',
-                'people' => 2,
-                'prep' => 10,
-                'end' => 10
-            ],
-            [
-                'line_id' => 40,
-                'title' => 'Сборка подарочного набора',
-                'time' => '8:00-12:00',
-                'people' => 1,
-                'prep' => 0,
-                'end' => 0 
-            ],
-            [
-                'line_id' => 47,
-                'title' => 'Варочный участок',
-                'time' => '8:00-12:00',
-                'people' => 1,
-                'prep' => 0,
-                'end' => 0
-            ],
-            // 34, 40, 47
-            [
-                'line_id' => 44,
-                'title' => 'ВАРКА СУФЛЕ',
-                'time' => '7:00-9:00',
-                'people' => 5,
-                'prep' => 60,
-                'end' => 30
-            ],
-            [
-                'line_id' => 45,
-                'title' => 'Резка суфле',
-                'time' => '7:00-10:00',
-                'people' => 2,
-                'prep' => 10,
-                'end' => 10
-            ],
-            [
-                'line_id' => 6,
-                'title' => 'Машина для производства стаканчиков',
-                'time' => '9:00-12:00',
-                'people' => 5,
-                'prep' => 30,
-                'end' => 30
-            ],
-            [
-                'line_id' => 7,
-                'title' => 'Машина для формовки Dream Kissм (ОКА)',
-                'time' => '9:00-12:00',
-                'people' => 4,
-                'prep' => 30,
-                'end' => 30
-            ],
-            [
-                'line_id' => 8,
-                'title' => 'Первая фис машина',
-                'time' => '8:00-18:00',
-                'people' => 4,
-                'prep' => 120,
-                'end' => 60
-            ],
-            [
-                'line_id' => 9,
-                'title' => 'Вторая фис машина',
-                'time' => '8:00-18:00',
-                'people' => 4,
-                'prep' => 120,
-                'end' => 60
-            ],
-            [
-                'line_id' => 10,
-                'title' => 'Третья фис машина',
-                'time' => '8:00-18:00',
-                'people' => 4,
-                'prep' => 120,
-                'end' => 60
-            ],
-            [
-                'line_id' => 11,
-                'title' => 'Непрерывная линия №1',
-                'time' => '8:00-18:30',
-                'people' => 3,
-                'prep' => 120,
-                'end' => 60
-            ],
-            [
-                'line_id' => 12,
-                'title' => 'НЕПРЕРЫВНАЯ ЛИНИЯ №2',
-                'time' => '8:00-18:30',
-                'people' => 3,
-                'prep' => 120,
-                'end' => 60
-            ],
-            [
-                'line_id' => 43,
-                'title' => 'ОБСЫПКА КОКОСОВОЙ СТРУЖКОЙ',
-                'time' => '8:00-9:00',
-                'people' => 3,
-                'prep' => null,
-                'end' => 60
-            ],
-            [
-                'line_id' => 41,
-                'title' => 'Непрерывная линия №2 – сахарная пудра',
-                'time' => '8:00-20:00',
-                'people' => 12,
-                'prep' => 20,
-                'end' => 30
-            ],
-            [
-                'line_id' => 13,
-                'title' => 'FLOY PAK 7 с апликатором',
-                'time' => '8:00-20:00',
-                'people' => 3,
-                'prep' => null,
-                'end' => 10
-            ],
-            [
-                'line_id' => 14,
-                'title' => 'НЕПРЕРЫВНАЯ ЛИНИЯ №2 - Шоколадная линия',
-                'time' => '8:00-20:00',
-                'people' => 6,
-                'prep' => 20,
-                'end' => 30
-            ],
-            [
-                'line_id' => 15,
-                'title' => 'FLOY PAK 9',
-                'time' => '8:00-20:00',
-                'people' => 3,
-                'prep' => null,
-                'end' => 10
-            ],
-            [
-                'line_id' => 16,
-                'title' => 'FLOY PAK Большой китайский №4',
-                'time' => '8:00-20:00',
-                'people' => 4,
-                'prep' => null,
-                'end' => 10
-            ],
-            [
-                'line_id' => 17,
-                'title' => 'Непрерывная линия сахарной пудры №1 - Шоколадная линия',
-                'time' => '8:00-20:00',
-                'people' => 6,
-                'prep' => 20,
-                'end' => 30
-            ],
-            [
-                'line_id' => 18,
-                'title' => 'Непрерывная линия сахарной пудры №1',
-                'time' => '8:00-20:00',
-                'people' => 12,
-                'prep' => 20,
-                'end' => 30
-            ],
-            [
-                'line_id' => 19,
-                'title' => 'FLOY PAK 6 с апликатором',
-                'time' => '8:00-20:00',
-                'people' => 3,
-                'prep' => null,
-                'end' => 10
-            ],
-            [
-                'line_id' => 20,
-                'title' => 'Шоколадная линия 1',
-                'time' => '9:30-20:00',
-                'people' => 7,
-                'prep' => 5,
-                'end' => 30
-            ],
-            [
-                'line_id' => 21,
-                'title' => 'FLOY PAK 8',
-                'time' => '9:30-20:00',
-                'people' => 4,
-                'prep' => null,
-                'end' => 10
-            ],
-            [
-                'line_id' => 22,
-                'title' => 'FLOY PAK 3',
-                'time' => '9:30-20:00',
-                'people' => 4,
-                'prep' => null,
-                'end' => 10
-            ],
-            [
-                'line_id' => 23,
-                'title' => 'FLOY PAK 1',
-                'time' => '9:30-20:00',
-                'people' => 4,
-                'prep' => null,
-                'end' => 10
-            ],
-            [
-                'line_id' => 24,
-                'title' => 'Линия эквивалент',
-                'time' => '9:30-20:00',
-                'people' => 5,
-                'prep' => 5,
-                'end' => 30
-            ],
-            [
-                'line_id' => 25,
-                'title' => 'Полуавтоматическая линия сахарной пудры',
-                'time' => '9:30-20:00',
-                'people' => 12,
-                'prep' => 5,
-                'end' => 15
-            ],
-            [
-                'line_id' => 26,
-                'title' => 'FLOY PAK 2',
-                'time' => '9:30-20:00',
-                'people' => 4,
-                'prep' => null,
-                'end' => 10
-            ],
-            [
-                'line_id' => 27,
-                'title' => 'FLOY PAK №10',
-                'time' => '9:30-20:00',
-                'people' => 4,
-                'prep' => null,
-                'end' => 10
-            ],
-            [
-                'line_id' => 28,
-                'title' => 'FLOY PAK №5',
-                'time' => '9:30-20:00',
-                'people' => 4,
-                'prep' => null,
-                'end' => 10
-            ],
-            [
-                'line_id' => 29,
-                'title' => 'Термоупаковка 1',
-                'time' => '9:30-20:00',
-                'people' => 2,
-                'prep' => null,
-                'end' => 10
-            ],
-            [
-                'line_id' => 30,
-                'title' => 'Термоупаковка 2',
-                'time' => '9:30-20:00',
-                'people' => 2,
-                'prep' => null,
-                'end' => 10
-            ],
-            [
-                'line_id' => 31,
-                'title' => 'Линия ONE SHOT',
-                'time' => '8:00-20:00',
-                'people' => 3,
-                'prep' => 30,
-                'end' => 30
-            ],
-            [
-                'line_id' => 32,
-                'title' => 'НОVAЯ вертикальная установка',
-                'time' => '8:00-20:00',
-                'people' => 3,
-                'prep' => null,
-                'end' => 10
-            ],
-            [
-                'line_id' => 42,
-                'title' => 'ДАТИРОВАНИЕ',
-                'time' => '8:00-20:00',
-                'people' => 1,
-                'prep' => null,
-                'end' => 10
-            ],
-            [
-                'line_id' => 46,
-                'title' => 'Участок ОГН',
-                'time' => '8:00-20:00',
-                'people' => 1,
-                'prep' => null,
-                'end' => 10
-            ],
-            [
-                'line_id' => 36,
-                'title' => 'Картонажный участок',
-                'time' => '8:00-9:00',
-                'people' => 1,
-                'prep' => null,
-                'end' => 10
-            ],
-            [
-                'line_id' => 37,
-                'title' => 'Сборка ящиков под продукцию',
-                'time' => '8:00-10:00',
-                'people' => 1,
-                'prep' => null,
-                'end' => 10
-            ]
-        ];
-        if ($line_id !== false) {
-            $index = array_search($line_id, array_column($defs, 'line_id'));
-            if ($index !== false) {
-                return $defs[$index];
-            } else {
-                return false;
-            }
-        } else {
-            return $defs;
-        }
-    }
-
     public function delete(Request $request) {
         $line_id = $request->post('line_id');
         Lines::where('line_id', $line_id)->delete();
         LinesExtra::where('line_id', $line_id)->delete();
-        return true;
+        return Response(['message' => [
+            'type'      => 'success',
+            'title'   => 'Линия удалена'
+        ]], 200);
+    }
+
+
+    /* ACTIONS */
+    public static function down(Request $request) {
+        $line = LinesExtra::where('line_id', $request->post('line_id'))
+            ->withSession($request)
+            ->first();
+        $downFrom = $line->down_from;
+        if ($downFrom != null) {
+            $diff = Carbon::parse($downFrom)->diffInMinutes(new \DateTime());
+            $line->down_time += $diff;
+            $line->down_from = null;
+            $line->save();
+            SlotsController::down($request, $downFrom);
+        } else {
+            $line->down_from = now('Europe/Moscow');
+            $line->save();
+        }
+
+        return Response([
+            'message' => [
+                'type'  => 'success',
+                'title' => $downFrom ? 'Простой завершён' :'Простой зафиксирован'
+            ]
+        ], 200);
+        // TODO Добавить запись в журнал 
     }
 }

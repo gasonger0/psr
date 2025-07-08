@@ -2,11 +2,15 @@
 
 namespace App\Models;
 
+use App\withSession;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Carbon\Carbon;
+use DB;
 
 class ProductsPlan extends Model
 {
+    use withSession;
     protected $table = 'products_plan';
     protected $primaryKey = 'plan_product_id';
     public $incrementing = true;
@@ -35,5 +39,10 @@ class ProductsPlan extends Model
     public function setUpdatedAtAttribute($value)
     {
         $this->attributes['updated_at'] = Carbon::parse($value)->format('Y-m-d H:i:s');
+    }
+
+    public static function joinProductTitle(Builder $query){
+        return $query->join('products_dictionary', 'products_plan.product_id', '=', 'products_dictionary.product_id')
+            ->select('products_plan.*', DB::raw('products_dictionary.title as title'));
     }
 }

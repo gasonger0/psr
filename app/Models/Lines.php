@@ -10,8 +10,13 @@ class Lines extends Model
     protected $table = 'lines';
     protected $primaryKey = 'line_id';
     public $incrementing = true;
-    // protected $dateFormat = 'U';
-    public $fillable = ['started_at', 'ended_at'];
+    public $fillable = [
+        'title',
+        'color',
+        'type_id',
+        'started_at', 
+        'ended_at'
+    ];
 
     public function setCreatedAtAttribute($value)
     {
@@ -21,5 +26,9 @@ class Lines extends Model
     public function setUpdatedAtAttribute($value)
     {
         $this->attributes['updated_at'] = Carbon::parse($value)->format('Y-m-d H:i:s');
+    }
+
+    public function linesExtra() {
+        return $this->hasMany(LinesExtra::class, 'line_id');
     }
 }

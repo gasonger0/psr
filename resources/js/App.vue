@@ -1,15 +1,15 @@
 <script setup>
-import Boards from './vueapp/boards.vue';
-import TopBar from './vueapp/topbar.vue';
-import Stats from './vueapp/stats.vue';
-import Logs from './vueapp/logs.vue';
-import ProductsDict from './vueapp/productsDict.vue';
-import ProductsPlan from './vueapp/productsPlan.vue';
+import Boards from './vueapp/components/worker_board/board.vue'
+import TopBar from './vueapp/deprecated/topbar.vue';
+import Stats from './vueapp/deprecated/stats.vue';
+import Logs from './vueapp/deprecated/logs.vue';
+import ProductsDict from './vueapp/deprecated/productsDict.vue';
+import ProductsPlan from './vueapp/deprecated/productsPlan.vue';
 import { ref } from 'vue';
-import Result from './vueapp/result.vue';
+import Result from './vueapp/deprecated/result.vue';
 import { notification } from 'ant-design-vue';
-import WorkersDict from './vueapp/workersDict.vue';
-import PlansDict from './vueapp/plansDict.vue';
+import WorkersDict from './vueapp/deprecated/workersDict.vue';
+import PlansDict from './vueapp/deprecated/plansDict.vue';
 </script>
 <script>
 export default {
