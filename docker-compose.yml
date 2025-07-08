@@ -1,0 +1,130 @@
+# version: '3.1'
+services:
+    node-dev:
+        platform: linux/amd64
+        build:
+            context: .
+            target: dev
+            dockerfile: node.Dockerfile
+            args:
+                FILE_UID: '${FILE_UID}'
+                FILE_GID: '${FILE_GID}'
+        ports:
+            - '${WWW_PORT_VITE}:5173'
+        volumes:
+            - './docker/apache2/conf_local:/etc/apache2/sites-available'
+            - './docker/php/php.ini:/usr/local/etc/php/php.ini'
+            - './:/var/www/html/'
+        working_dir: /var/www/html
+        # entrypoint:
+        #     - npm
+        #     - run
+        #     - dev
+        #     - '--host'
+        links:
+            - mysql
+        networks:
+            - default
+    node-prod:
+        platform: linux/amd64
+        build:
+            context: .
+            target: prod
+            dockerfile: node.Dockerfile
+        volumes:
+            - './:/var/www/html'
+    www:
+        build:
+            context: .
+            dockerfile: Dockerfile
+            args:
+                FILE_UID: '${FILE_UID}'
+                FILE_GID: '${FILE_GID}'
+        ports:
+            - '${WWW_PORT}:8000'
+        volumes:
+            - './docker/apache2/conf_local:/etc/apache2/sites-available'
+            - './docker/php/php.ini:/usr/local/etc/php/php.ini'
+            - './:/var/www/html/'
+        working_dir: /var/www/html
+        entrypoint:
+            - php
+            - artisan
+            - serve
+            - '--host=0.0.0.0'
+            - '--port=8000'
+        links:
+            - mysql
+        networks:
+            - default
+    # db:
+    #     image: 'mysql:8.0.0'
+    #     ports:
+    #         - '${MYSQL_PORT}:3306'
+    #     command: '--default-authentication-plugin=mysql_native_password'
+    #     environment:
+    #         MYSQL_DATABASE: '${DB_DATABASE}'
+    #         MYSQL_USER: '${DB_USERNAME}'
+    #         MYSQL_PASSWORD: '${DB_PASSWORD}'
+    #         MYSQL_ROOT_PASSWORD: '${DB_PASSWORD}'
+    #     volumes:
+    #         - './docker/dump:/docker-entrypoint-initdb.d'
+    #         - './docker/mysql_conf/my.cnf:/etc/mysql/my.cnf'
+    #     networks:
+    #         - default
+    phpmyadmin:
+        image: phpmyadmin/phpmyadmin
+        links:
+            - 'mysql:mysql'
+        ports:
+            - '${PHPMYADMIN_PORT}:80'
+        environment:
+            MYSQL_USER: '${DB_USERNAME}'
+            MYSQL_PASSWORD: '${DB_PASSWORD}'
+            MYSQL_ROOT_PASSWORD: '${DB_PASSWORD}'
+            MYSQL_PORT: '${DB_PORT}'
+            MYSQL_HOST: '${DB_HOST}'
+    mysql:
+        image: 'mysql/mysql-server:8.0'
+        ports:
+            - '${FORWARD_DB_PORT:-3306}:3306'
+        environment:
+            MYSQL_ROOT_PASSWORD: '${DB_PASSWORD}'
+            MYSQL_ROOT_HOST: '%'
+            MYSQL_DATABASE: '${DB_DATABASE}'
+            MYSQL_USER: '${DB_USERNAME}'
+            MYSQL_PASSWORD: '${DB_PASSWORD}'
+            MYSQL_ALLOW_EMPTY_PASSWORD: 1
+        volumes:
+            - 'sail-mysql:/var/lib/mysql'
+            - './vendor/laravel/sail/database/mysql/create-testing-database.sh:/docker-entrypoint-initdb.d/10-create-testing-database.sh'
+        # networks:
+        #     - sail
+        healthcheck:
+            test:
+                - CMD
+                - mysqladmin
+                - ping
+                - '-p${DB_PASSWORD}'
+            retries: 3
+            timeout: 5s
+    # redis:
+    #     image: 'redis:alpine'
+    #     ports:
+    #         - '${FORWARD_REDIS_PORT:-6379}:6379'
+    #     volumes:
+    #         - 'sail-redis:/data'
+    #     networks:
+    #         - sail
+    #     healthcheck:
+    #         test:
+    #             - CMD
+    #             - redis-cli
+    #             - ping
+    #         retries: 3
+    #         timeout: 5s
+volumes:
+    sail-mysql:
+        driver: local
+    sail-redis:
+        driver: local

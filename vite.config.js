@@ -10,4 +10,15 @@ export default defineConfig({
         }),
         vuePlugin()
     ],
+    server: {
+        hmr: {
+            host: 'localhost',
+            port: 5173,
+        },
+        watch: {
+            usePolling: true,
+        },
+        host: true,
+        port: 5173,
+    }
 });

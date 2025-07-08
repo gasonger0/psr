@@ -131,15 +131,6 @@ export default {
                 </Button>
                 <template #overlay>
                     <Menu>
-                        <!-- <MenuItem>
-                        <Upload v-model:file-list="uploadedFile" name="file" :before-upload="(ev) => processXlsx(ev)"
-                            :showUploadList=false>
-                            <Button type="primary" style="background-color: green;">
-                                <UploadOutlined />
-                                Новый график
-                            </Button>
-                        </Upload>
-                        </MenuItem> -->
                         <MenuItem>
                             <Upload v-model:file-list="uploadedFile" name="file" :before-upload="(ev) => processOrder(ev)"
                                 :showUploadList="false">
@@ -149,24 +140,6 @@ export default {
                                 </Button>
                             </Upload>
                         </MenuItem>
-                        <!-- <MenuItem>
-                            <Upload v-model:file-list="uploadedFile" name="file" :before-upload="(ev) => processDefaults(ev)"
-                                :showUploadList="false"> 
-                                <Button type="primary" style="background-color: green;">
-                                    <UploadOutlined />
-                                    Нормы планирования
-                                </Button>
-                            </Upload>
-                        </MenuItem> -->
-                        <!-- <MenuItem>
-                            <Upload v-model:file-list="uploadedFile" name="file" :before-upload="(ev) => processFormulas(ev)"
-                                :showUploadList="false">
-                                <Button type="primary" style="background-color: green;">
-                                    <UploadOutlined/>
-                                    Бланк на варку
-                                </Button>
-                            </Upload>
-                        </MenuItem> -->
                     </Menu>
                 </template>
             </Dropdown>

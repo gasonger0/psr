@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\LinesExtra;
 use Illuminate\Http\Request;
 use App\Http\Controllers\SlotsController;
-use Illuminate\Support\Facades\Session;
 
 class LinesExtraController extends Controller
 {

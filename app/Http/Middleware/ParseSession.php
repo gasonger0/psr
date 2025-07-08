@@ -6,7 +6,7 @@ use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
-class controlsession
+class ParseSession
 {
     /**
      * Handle an incoming request.
@@ -16,10 +16,14 @@ class controlsession
     public function handle(Request $request, Closure $next): Response
     {
         if ($request->cookie('date')) {
-            config(['app.date' => $request->cookie('date')]);
+            $request->attributes->set('date', $request->cookie('date'));
         }
         if ($request->cookie('isDay')) {
-            config(['app.isday' => filter_var($request->cookie('isDay'), FILTER_VALIDATE_BOOLEAN)]);
+            $request->attributes->set('isDay', 
+            filter_var(
+                $request->cookie('isDay'), 
+                FILTER_VALIDATE_BOOLEAN
+            ));
         }
         return $next($request);
     }

@@ -12,18 +12,31 @@ use App\Http\Controllers\SlotsController;
 use App\Http\Controllers\TableController;
 use App\Http\Controllers\WorkersController;
 use App\Http\Controllers\LinesExtraController;
+use App\Http\Middleware\ForceJsonResponse;
+use App\Http\Middleware\ParseSession;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 
-Route::group(['middleware' => ['web']], function () {
+Route::group(['middleware' => ['web', ParseSession::class]], function () {
+
+    Route::controller(LinesController::class)
+        ->prefix('/lines')
+        ->middleware(ForceJsonResponse::class)
+        ->group(function () {
+            Route::get('/get', 'get');
+            Route::put('/update', 'update');
+            Route::post('/add', 'add');
+            Route::delete('/delete', 'delete');
+            Route::put('/down', 'down');
+        });
 
     /*******
      * LINES
      ******/
-    Route::get('/get_lines', [LinesController::class, 'getList']);
-    Route::post('/save_line', [LinesController::class, 'save']);
-    Route::post('/down_line', [LinesExtraController::class, 'down']);
-    Route::post('/delete_line', [LinesController::class, 'delete']);
+    // Route::get('/get_lines', [LinesController::class, 'getList']);
+    // Route::post('/save_line', [LinesController::class, 'save']);
+    // Route::post('/down_line', [LinesExtraController::class, 'down']);
+    // Route::post('/delete_line', [LinesController::class, 'delete']);
 
     /*********
      * WORKERS
@@ -37,6 +50,12 @@ Route::group(['middleware' => ['web']], function () {
     /*******
      * SLOTS
      ******/
+    Route::controller(SlotsController::class)
+        ->prefix('/workers_slots')
+        ->middleware(ForceJsonResponse::class)
+        ->group(function () {
+            Route::get('get', 'get');
+        });
     Route::get('/get_slots', [SlotsController::class, 'getList']);
     Route::post('/change_slot', [SlotsController::class, 'change']);
     Route::post('/edit_slot', [SlotsController::class, 'edit']);
@@ -60,8 +79,19 @@ Route::group(['middleware' => ['web']], function () {
     /****************
      * PRODUCTS_PLANS
      ***************/
+    Route::controller(ProductsPlanController::class)
+        ->prefix('/plans')
+        ->middleware(ForceJsonResponse::class)
+        ->group(function () {
+            Route::get('/get', 'get');
+            Route::put('/update', 'update');
+            Route::put('/change', 'change');
+            Route::post('/add', 'add');
+            Route::delete('/delete', 'delete');
+            Route::delete('/clear', 'clear');
+        });
     Route::get('/get_product_plans', [ProductsPlanController::class, 'getList']);
-    Route::post('/add_product_plan', [ProductsPlanController::class, 'addPlan']);
+    Route::post('/add_product_plan', [ProductsPlanController::class, 'add']);
     Route::post('/change_plan', [ProductsPlanController::class, 'changePlan']);
     Route::post('/delete_product_plan', [ProductsPlanController::class, 'delPlan']);
     Route::delete('/clear_plan', [ProductsPlanController::class, 'clear']);
@@ -113,7 +143,7 @@ Route::group(['middleware' => ['web']], function () {
         if ($request) {
             $dateValue = $request->post('date');
             $timeValue = $request->post('isDay');
-        }else{
+        } else {
             $dateValue = $request->cookie('date');
             $timeValue = filter_var($request->cookie('isDay'), FILTER_VALIDATE_BOOLEAN);
         }
@@ -121,6 +151,6 @@ Route::group(['middleware' => ['web']], function () {
         $response->cookie('date', $dateValue, 60);
         $response->cookie('isDay', $timeValue, 60);
         return $response;
-        
+
     });
 });
