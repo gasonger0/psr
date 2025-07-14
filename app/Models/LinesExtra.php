@@ -56,9 +56,12 @@ class LinesExtra extends Model
         }
         $attributes = [];
         foreach ($query->getQuery()->wheres as $el) {
-            $attributes[$el['column']] = $el['value'];
+            if (isset($el['value'])) {
+                $attributes[$el['column']] = $el['value'];
+            }
         }
-        return LinesExtra::create(['line_id' => $line->line_id] +
+        return LinesExtra::create(
+            ['line_id' => $line->line_id] +
             $attributes +
             Util::getDefaults($line->line_id)
         );

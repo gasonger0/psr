@@ -38,12 +38,6 @@ export const positions = {
     5: 'Наладчик'
 };
 
-// Табы справочника сотрудников
-export const workerDictTabs = {
-    1: "Работники",
-    2: "Ответственные"
-};
-
 // Столбцы справочника сотрудников
 export const workerDictColumns = [{
     title: '',

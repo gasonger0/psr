@@ -2,11 +2,13 @@
 
 namespace App\Models;
 
+use App\withSession;
 use Illuminate\Database\Eloquent\Model;
 use Carbon\Carbon;
 
 class ProductsOrder extends Model
 {
+    use withSession;
     protected $table = 'products_order';
     protected $primaryKey = 'order_id';
     public $incrementing = true;

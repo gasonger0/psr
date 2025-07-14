@@ -1,6 +1,5 @@
 <script setup>
 import Boards from './vueapp/components/worker_board/board.vue'
-import TopBar from './vueapp/deprecated/topbar.vue';
 import Stats from './vueapp/deprecated/stats.vue';
 import Logs from './vueapp/deprecated/logs.vue';
 import ProductsDict from './vueapp/deprecated/productsDict.vue';
@@ -8,8 +7,9 @@ import ProductsPlan from './vueapp/deprecated/productsPlan.vue';
 import { ref } from 'vue';
 import Result from './vueapp/deprecated/result.vue';
 import { notification } from 'ant-design-vue';
-import WorkersDict from './vueapp/deprecated/workersDict.vue';
+import WorkersWindow from './vueapp/components/workers_dict/window.vue';
 import PlansDict from './vueapp/deprecated/plansDict.vue';
+import Toolbar from './vueapp/components/toolbar/toolbar.vue';
 </script>
 <script>
 export default {
@@ -99,6 +99,16 @@ export default {
 }
 </script>
 <template>
+    <Toolbar 
+        :boils="boils"
+        :boardMode="boardType"
+        @graph-window="showGraph" 
+        @result-window="showResult"
+        @logs-window="showLogs" 
+        @products-window="showProductsDict"
+        @workers-window="showWorkersDict"
+        @change-board="changeBoard"
+        @plans-window="showPlansDict"/>
     <Result 
         :data="data" 
         :open="openResult" 
@@ -119,28 +129,13 @@ export default {
         :data="data"
         @close-modal="closeModal"
         @notify="notify"/>
-    <WorkersDict
+    <WorkersWindow
         :open="openWorkersDict"
         @close-modal="closeModal"
-        @notify="notify"
     />
-    <TopBar 
-        :key="topBarKey"
-        :boils="boils"
-        :boardMode="boardType"
-        @showGraph="showGraph" 
-        @showResult="showResult"
-        @showLogs="showLogs" 
-        @showProductsDict="showProductsDict"
-        @showWorkersDict="showWorkersDict"
-        @change-board="changeBoard"
-        @showPlansDict="showPlansDict"
-        @notify="notify"/>
     <Boards 
         v-if="!boardType"
-        :key="boardKey"
-        @data-recieved="getData"  
-        @notify="notify"/>
+        :key="boardKey"/>
     <ProductsPlan
         v-if="boardType"
         :key="prodKey"

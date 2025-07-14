@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { Card, Tooltip, Popconfirm, Popover } from 'ant-design-vue';
+import { Card, Tooltip, Popconfirm, Popover, Select } from 'ant-design-vue';
 import { useWorkersStore, WorkerInfo } from '../../store/workers.ts';
 import { computed, ref } from 'vue';
-import { CoffeeOutlined } from '@ant-design/icons-vue';
+import { CoffeeOutlined, UserSwitchOutlined, UserDeleteOutlined } from '@ant-design/icons-vue';
 import { notify, SelectOption } from '../../functions';
+import { DefaultOptionType, LabelInValueType, RawValueType } from 'ant-design-vue/es/vc-select/Select';
+import { useWorkerSlotsStore } from '../../store/workerSlots.ts';
 
 const props = defineProps({
     cardData: {
@@ -13,16 +15,17 @@ const props = defineProps({
 });
 const store = useWorkersStore();
 const workerSelect = store.toSelectOptions();
-let replacer = ref(null);
+const slotsStore = useWorkerSlotsStore();
+let replacer = ref();
 
 const calcBreak = computed(() : string => {
     return store.calcBreak(props.cardData).value;
 });
 
 const deleteWorker = (del: boolean) =>  {
-    store._remove(props.cardData, del);
+    slotsStore._delete(props.cardData, del);
 };
-const changeWorker = async (v: string, ev: SelectOption) => {
+const replaceWorker = async (v: RawValueType | LabelInValueType, ev: DefaultOptionType) => {
     if (ev.key == props.cardData.worker_id) {
         notify('warning', 'Этот один и тот же сотрудник');
         props.cardData.popover = false;
@@ -39,12 +42,18 @@ const changeWorker = async (v: string, ev: SelectOption) => {
         replacer.value = null;
         return;
     }
-    let res = await store._changeWorker(props.cardData, newWorker);
+    let res = await slotsStore._replace(props.cardData.worker_id!, ev.key);
     if (res) {
         replacer.value = null;
         // TODO: emit $forceUpdate в родительский компонент???
     }
 }
+
+const getBreak = computed(() => {
+    return props.cardData.break?.started_at.format('HH:mm') 
+        + ' - ' +
+        props.cardData.break?.ended_at.format('HH:mm');
+})
 
 </script>
 <template>
@@ -66,9 +75,9 @@ const changeWorker = async (v: string, ev: SelectOption) => {
         <section class="worker">
             <CoffeeOutlined v-show="props.cardData.on_break" />
             <span v-if="props.cardData.break">
-                Обед: {{ props.cardData.break.started_at }} - {{ props.cardData.break.ended_at }}
+                Обед: {{ getBreak }}
             </span>
-            <div class="tools">
+            <div class="tools" v-show="props.cardData.current_line_id">
                 <Tooltip title="Убрать со смены">
                     <Popconfirm 
                         title="Укажите причину" 
@@ -84,7 +93,7 @@ const changeWorker = async (v: string, ev: SelectOption) => {
                         <Select style="width:20vw;" v-model:value="replacer"
                             :options="workerSelect"
                             :showSearch="true" 
-                            @select="changeWorker" />
+                            @select="replaceWorker" />
                     </template>
                     <Tooltip title="Заменить">
                         <UserSwitchOutlined class="worker-icon yellow" />

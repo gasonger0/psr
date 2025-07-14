@@ -5,6 +5,8 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration {
+    // TODO указать на связи сущностей в моделях
+    // TODO добавить табличку с обедами
     /**
      * Run the migrations.
      */
@@ -60,6 +62,22 @@ return new class extends Migration {
         //     $table->id('stop_id')->primary()->autoIncrement();
         // TODO подумать надо логами
         // });
+
+        // Компании
+        Schema::create('companies', function (Blueprint $table) {
+            $table->id('company_id')->primary()->autoIncrement();
+            $table->text('title');
+        });
+
+        Schema::create('workers_breaks', function(Blueprint $table) {
+            $table->id('break_id')->primary()->autoIncrement();
+            $table->date('date');
+            $table->boolean('isDay');
+            $table->unsignedBigInteger('worker_id');
+            $table->foreign('worker_id')->references('worker_id')->on('workers')->onDelete('cascade');
+            $table->dateTime('started_at');
+            $table->dateTime('ended_at');
+        });
     }
 
     /**

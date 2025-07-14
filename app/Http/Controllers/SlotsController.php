@@ -9,90 +9,57 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Http\Request;
 use Shuchkin\SimpleXLSXGen;
+use App\Util;
 
 class SlotsController extends Controller
 {
-    static public function get(Request $request)
+    public function get(Request $request)
     {
-        return Slots::withSession($request)->get();
+        return Util::successMsg(Slots::withSession($request)->get()->toArray());
     }
 
-    static public function add($date, $isDay, $line_id = null, $worker_id = null, $start = null, $end = null)
+    public function create(Request $request)
     {
-        if (!$line_id)
-            return;
-        $slot = new Slots();
-
-
-        $slot->line_id = $line_id;
-        $slot->started_at = $start;
-        $slot->ended_at = $end;
-        $slot->worker_id = $worker_id;
-        $diff = (new \DateTime($start))->diff(new \DateTime($end));
-        $slot->time_planned = $diff->h * 60 + $diff->i;
-        $slot->date = $date;
-        $slot->isDay = $isDay;
-        $slot->save();
-
-        return $slot->slot_id;
+        $values = $request->post();
+        Util::appendSessionToData($values, $request);
+        $exists = Util::checkDublicate(new Slots(), [], $values, true);
+        if ($exists) {
+            return Util::errorMsg('Такой слот уже существует');
+        }
+        $result = Slots::create($request->only((new Slots())->getFillable()));
+        if ($result) {
+            return Util::successMsg('Смена создана', 201);
+        } else {
+            return Util::errorMsg('Произошла ошибка');
+        }
     }
 
-    static public function change(Request $request)
+    public function change(Request $request)
     {
-        $date = $request->cookie('date');
-        $isDay = filter_var($request->cookie('isDay'), FILTER_VALIDATE_BOOLEAN);
-        $oldSlot = Slots::where(
-            'worker_id',
-            '=',
-            $request->post('worker_id')
-        )->where(
-            'line_id',
-            '=',
-            $request->post('old_line_id')
-        )->where(
-            'date',
-            '=',
-            $date
-        )->where(
-            'isDay',
-            '=',
-            $isDay
-        )->first();
+        $values = $request->post();
+        Util::appendSessionToData($values, $request);
+
+        $oldSlot = Slots::withSession($request)
+            ->where('worker_id', $values['worker_id'])
+            ->where('slot_id', $values['old_slot_id'])
+            ->first();
 
         if (!$oldSlot) {
-            $line = Lines::find($request->post('new_line_id'));
-            if (!$line) {
-                return -1;
-            }
-            $extra = LinesExtraController::get($date, $isDay, $line->line_id);
-            SlotsController::add(
-                $date,
-                $isDay,
-                $line->line_id,
-                $request->worker_id,
-                now('Europe/Moscow')->format('H:i:s'),
-                $extra->ended_at
-            );
-            return 0;
+            return Util::errorMsg('Такого слота не существует', 404);
         }
-        $endTime = null;
 
-        $endTime = $oldSlot->ended_at;
-        $oldSlot->ended_at = now('Europe/Moscow')->format('H:i:s');
-        $oldSlot->save();
-
-        $newSlot = new Slots;
-        $newSlot->line_id = $request->post('new_line_id');
-        $newSlot->started_at = now('Europe/Moscow')->format('H:i:s');
-        $newSlot->worker_id = $request->post('worker_id');
-        $newSlot->ended_at = $endTime;
-
-        $diff = (new \DateTime($newSlot->started_at))->diff(new \DateTime($endTime));
-        $newSlot->time_planned = $diff->h * 60 + $diff->i;
-
+        $newSlot = Slots::create([
+            'line_id' => $request->post('new_line_id'),
+            'started_at' => Carbon::now(),
+            'worker_id' => $oldSlot->worker_id,
+            'ended_at' => $oldSlot->ended_at
+        ]);
         $newSlot->save();
 
-        return 0;
+        $oldSlot->ended_at = now();
+        $oldSlot->save();
+
+        return Util::successMsg($newSlot->toArray(), 201);
     }
 
     static public function edit(Request $request)

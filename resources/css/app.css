@@ -20,7 +20,7 @@ body {
     overflow: auto;
 }
 
-.top-container div {
+.top-container section {
     display: flex;
     flex-direction: row;
     justify-content: flex-start;
@@ -65,12 +65,65 @@ body {
 
 .line_title b {
     white-space: break-spaces;
-    font-weight: 600;
+    font-weight: 700;
 }
+
+.line-title span {
+    font-weight: 400;
+    display: block;
+    width: 100%;
+    white-space: collapse;
+}
+
+.line-input {
+    display: block;
+    color: black;
+}
+
+.line-card_section {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.line-card_section section {
+    width: 30px;
+    height: 30px;
+    border-radius: 5px;
+    border: 2px solid white
+}
+
+#info-icon {
+    color: #f48c05;
+    font-size: 24px;
+    margin-right: 12px;
+}
+
+#forward-icon {
+    height: min-content;
+    color: #82ff82;
+    font-size: 22px;
+}
+
+#stop-icon {
+    height: min-content;
+    color: #ff4d4f;
+    font-size: 22px;
+}
+
+.logo {
+    height: 32px;
+}
+
+.cancel-select {
+    margin-top: 10px;
+    width: 100%;
+}
+
 .lines-toolbar {
-    height: fit-content; 
+    height: fit-content;
     margin-left: 1vw;
-    gap:15px;
+    gap: 15px;
     display: flex;
 }
 
@@ -107,12 +160,14 @@ section.worker .tools {
     font-size: 25px;
     border-radius: 20px;
 }
+
 .worker-icon.red {
-    color:#ff4d4f;
+    color: #ff4d4f;
     border: 2px solid #ff4d4f;
 }
+
 .worker-icon.yellow {
-    color:#f48c05;
+    color: #f48c05;
     border: 2px solid #f48c05;
 }
 
@@ -211,6 +266,28 @@ section.worker .tools {
 
 .product_list-item.active a:hover {
     text-decoration: none;
+}
+
+.excel-button {
+    background-color: green;
+    color: white;
+}
+
+.accept-button {
+    color: green;
+    height: 32px;
+    width: 32px;
+    font-size: 32px;
+}
+
+.modal {
+    width: 40%;
+    height: 80%;
+}
+
+.modal.workers div.workers {
+    max-height: 74vh;
+    overflow: auto;
 }
 
 /* TEST */

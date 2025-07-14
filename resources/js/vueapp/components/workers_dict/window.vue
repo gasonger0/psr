@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import { DeleteOutlined } from '@ant-design/icons-vue';
 import { Modal, Table, TabPane, Tabs, Button, Input, Select, TableSummary, TableSummaryRow, TableSummaryCell, Pagination } from 'ant-design-vue';
-import axios from 'axios';
 import { onBeforeMount, Reactive, reactive, Ref, ref, watch } from 'vue';
 import { useWorkersStore, WorkerInfo } from '../../store/workers';
-import { workerDictTabs, responsibleDictColumns, positions, workerDictColumns } from '../../store/dicts';
-import { ResponsibleInfo, ResponsibleStore, useResponsiblesStore } from '../../store/responsibles';
+import { responsibleDictColumns, positions, workerDictColumns } from '../../store/dicts';
+import { ResponsibleInfo, useResponsiblesStore } from '../../store/responsibles';
 
 defineProps({
     open: {
@@ -19,6 +18,14 @@ const workers = useWorkersStore();
 const responsibles = useResponsiblesStore();
 
 /**
+ * Оригинальные значения
+ */
+const original: Ref<Object> = ref({
+    1: {},
+    2: {}
+});
+
+/**
  * Должности ответственных для SelectOptions
  */
 const poss: Object[] = [];
@@ -30,15 +37,20 @@ for (let i in positions) {
     });
 }
 
-let activeTab: Ref = ref(1);
 /**
- * Активные страницы в таблицах
+ * Активная вкладка
  */
-let pageRef: Object = {
-    1: ref(1),
-    2: ref(2)
+const activeTab: Ref = ref('1');
+
+// Табы справочника сотрудников
+const workerDictTabs = {
+    1: "Работники",
+    2: "Ответственные"
 };
-// TODO дополнить
+
+/**
+ * Добавление на фронте 
+ */
 const addNewFront = (k: number): void => {
     switch (k) {
         case 1:
@@ -50,13 +62,36 @@ const addNewFront = (k: number): void => {
     }
     return;
 }
+/**
+ * Сохрнанение данных - создание/редактирование
+ */
 const save = () : void => {
 
 }
+/**
+ * Удалить сотрудника
+ */
 const del = (rec: WorkerInfo | ResponsibleInfo) : void => {
     if ("responsible_id" in rec) {
         responsibles._delete(rec);
+    } else {
+        workers._delete(rec);
     }
+}
+/**
+ * Отмена редактирования/создания
+ */
+const cancel = () => {}
+/**
+ * Начало редактирования
+ */
+const edit = (rec: WorkerInfo | ResponsibleInfo): void => {
+    if ("responsible_id" in rec) {
+        original[2][rec.responsible_id] = rec;
+    } else if ("worker_id" in rec){
+        original[1][rec.worker_id] = rec;
+    }
+    rec.isEdited!.value = true;
 }
 
 onBeforeMount(async () => {
@@ -69,15 +104,11 @@ onBeforeMount(async () => {
 const exit = (): void => {
     return;
 }
-//     axios.post('/api/edit_workers', this.workers);
-//     axios.post('/api/edit_responsible', this.responsibles);
-//     this.$emit('close-modal');
-// } 
 
 </script>
 <template>
-    <Modal v-model:open="$props.open" @close="$emit('close-modal')" :closable="false" style="width:40%;height:80%;">
-        <div style="max-height:74vh;overflow:auto;">
+    <Modal v-model:open="$props.open" @close="$emit('close-modal')" :closable="false" class="modal workers">
+        <div class="workers">
             <Tabs v-model:activeKey="activeTab">
                 <TabPane v-for="(v, k) in workerDictTabs" :key="k" :tab="v">
                     <Table 
@@ -87,16 +118,16 @@ const exit = (): void => {
                         <template #bodyCell="{ column, record, text }">
                             <template v-if="column.dataIndex == 'position'">
                                 <Select 
-                                    v-model:value="text" 
+                                    v-model:value="record['position']" 
                                     style="width: 100%;"
                                     :options="poss">
                                 </Select>
                             </template>
                             <template v-else-if="column.dataIndex == 'delete'">
-                                <DeleteOutlined @click="del(k == 1 ? record as WorkerInfo : record as ResponsibleInfo)" />
+                                <DeleteOutlined @click="del(k == 1 ? record as WorkerInfo : record as ResponsibleInfo)"/>
                             </template>
                             <template v-else>
-                                <Input v-model:value="text" />
+                                <Input v-model:value="record[column.dataIndex]" />
                             </template>
                         </template>
                         <template #summary>

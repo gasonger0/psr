@@ -11,6 +11,13 @@ class Responsible extends Model
     protected $primaryKey = 'responsible_id';
     public $incrementing = true;    
 
+    public $fillable = [
+        'title',
+        'position',
+        'created_at',
+        'updated_at'
+    ];
+
     public function setCreatedAtAttribute($value)
     {
         $this->attributes['created_at'] = Carbon::parse($value)->format('Y-m-d H:i:s');

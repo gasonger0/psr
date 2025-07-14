@@ -11,7 +11,12 @@ class Workers extends Model
     protected $primaryKey = 'worker_id';
     public $incrementing = true;
     // protected $dateFormat = 'U';
-    // protected $fillable = ['time_planned'];
+    protected $fillable = [
+        'title',
+        'created_at',
+        'updated_at',
+        'company'
+    ];
     public function setCreatedAtAttribute($value)
     {
         $this->attributes['created_at'] = Carbon::parse($value)->format('Y-m-d H:i:s');

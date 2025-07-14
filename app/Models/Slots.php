@@ -8,11 +8,20 @@ use Illuminate\Database\Eloquent\Model;
 
 class Slots extends Model
 {
+    use withSession;
     protected $table = 'slots';
     protected $primaryKey = 'slot_id';
     public $incrementing = true;
     // protected $dateFormat = 'U';
-    protected $fillable = ['started_at', 'ended_at', 'workers_count'];
+    protected $fillable = [
+        'created_at',
+        'updated_at',
+        'started_at', 
+        'ended_at',
+        'line_id',
+        'date',
+        'isDay' 
+    ];
     use withSession;
 
     public function setCreatedAtAttribute($value)
@@ -47,13 +56,5 @@ class Slots extends Model
     public function worker(){
         // return $this->
     }
-
-    // public function addMinutes(int $minutes) {
-    //     $c1 = Carbon::instance(new \DateTime($this->time_planned));
-    //     $c1->addMinutes($minutes);
-    //     return $this->update([
-    //         'time_planned' => $c1
-    //     ]);
-    // }
 
 }

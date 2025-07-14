@@ -2,20 +2,18 @@
 
 namespace App\Http\Controllers;
 
-use App\Errors;
 use App\Models\Lines;
 use App\Models\LinesExtra;
 use App\Models\ProductsPlan;
-use App\Models\Slots;
-use DB;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
-use Response;
+use App\Util;
 
 class LinesController extends Controller
 {
 
-    const LINE_NOT_FOUND = "Такой линии не существует.";
+    public const LINE_NOT_FOUND = "Такой линии не существует.";
+    public const LINE_ALREADY_EXISTS = 'Такая линия уже существует';
     // TODO протестить создание 
 
 
@@ -35,18 +33,22 @@ class LinesController extends Controller
             );
         });
 
-        return Response($result, 200);
+        return Util::successMsg($result);
     }
 
-    public static function add(Request $request)
+    public static function create(Request $request)
     {
+        $exists = Util::checkDublicate(new Lines(), ['title'], $request->post());
+        if ($exists) {
+            return Util::errorMsg(self::LINE_ALREADY_EXISTS);
+        }
         // Создаём базу
         $id = Lines::insertGetId($request->only((new Lines)->getFillable()));
 
         // Заполняем динию на смену
         $request->merge(['line_id' => $id]);
         $extra_id = LinesExtra::insertGetId($request->only((new LinesExtra)->getFillable()));
-        return Response([
+        return Util::successMsg([
             'line_id' => $id, 
             'line_extra_id' => $extra_id
         ], 201);
@@ -63,70 +65,7 @@ class LinesController extends Controller
         $line->lines->update($request->only((new Lines)->getFillable()));
 
         //TODO Обновление слотов сотрудников, графиков и добавлене записи в журнал?
-        return Response([
-            'message' => [
-                'type' => 'success',
-                'title' => "Линия обновлена"
-            ]
-        ], 200);
-    }
-
-    public static function save(Request $request)
-    {
-        if ($request->post('line_id') == -1) {
-            $id = self::add($request->cookie('date'), filter_var($request->cookie('isDay'), FILTER_VALIDATE_BOOLEAN),$request->post());
-            if ($id) {
-                return json_encode([
-                    "success" => true,
-                    'msg' => 'Линия № ' . $id . ' успешно добавлена'
-                ]);
-            } else {
-                return json_encode([
-                    "success" => 'false'
-                ]);
-            }
-        }
-        $line = Lines::find($request->post('line_id'));
-        if ($line) {
-            $d = LinesExtraController::update($request->cookie('date'), filter_var($request->cookie('isDay'), FILTER_VALIDATE_BOOLEAN), $line->line_id, $request->post());
-            $start = $d['start'];
-            $end = $d['end'];
-            $line->color = $request->post('color');
-            $line->type_id = $request->post('type_id');
-            $line->title = $request->post('title');
-            $line->save();
-
-            if ($request->post('started_at')) {
-                SlotsController::afterLineUpdate(
-                    $request->cookie('date'),
-                    filter_var($request->cookie('isDay'), FILTER_VALIDATE_BOOLEAN),
-                    $request->post('line_id'),
-                    $request->post('started_at'),
-                    $start,
-                    $request->post('ended_at'),
-                    $end
-                );
-                // ProductsPlanController::afterLineUpdate($request->post('line_id'), $request->post('started_at'), $start, $request->post('ended_at'), $end);
-                if ($request->post('cancel_reason') != null) {
-                    $d = Slots::where('line_id', '=', $line->line_id)->where('started_at', '<=', $start)->get('worker_id')->toArray();
-                    $d = array_map(function ($a) {
-                        return $a['worker_id'];
-                    }, $d);
-                    $request = new Request([],[
-                        'line_id' => $line->line_id,
-                        'action' => 'Перенос времени работы линии',
-                        'extra' => 'Причина: ' . $request->post('cancel_reason_extra') . PHP_EOL . 'Старое время: ' . $start,
-                        'people_count' => $request->post('workers_count'),
-                        'type' => 3,
-                        'workers' => implode(',', $d),
-                    ],[],['date' => $request->cookie('date'), 'isDay' => filter_var($request->cookie('isDay'), FILTER_VALIDATE_BOOLEAN)]);
-                    LogsController::add($request);
-                }
-            }
-            return json_encode([
-                "success" => true
-            ]);
-        }
+        return Util::successMsg("Линия обновлена");
     }
 
     public function delete(Request $request) {
