@@ -1,9 +1,9 @@
 import { defineStore } from "pinia";
 import dayjs from 'dayjs';
-import { getRequest, getTimeString, notify, postRequest, SelectOption } from "../functions";
+import { deleteRequest, getRequest, getTimeString, notify, postRequest, putRequest, SelectOption } from "../functions";
 import { AxiosError, AxiosResponse } from "axios";
 import { Slot } from "./dicts";
-import { computed, reactive } from "vue";
+import { computed, reactive, Ref, ref } from "vue";
 // TODO проверить АПИ-роуты и перенеси подгрузку слотов в отдельную хранилку мейби?
 
 // Интерфейсы
@@ -17,7 +17,8 @@ export type WorkerInfo = {
     current_slot_id?: number,
     company?: string,
     on_break?: boolean,
-    popover?: boolean
+    popover?: boolean,
+    isEdited?: Ref<boolean>
 };
 
 // Форма для нового сотрудника в справочнике/веб-интерфейсе
@@ -41,7 +42,7 @@ export const WorkerForm = {
 };
 
 export const useWorkersStore = defineStore('workers', () => {
-    let workers: WorkerInfo[] = reactive([]);
+    const workers: Ref<WorkerInfo[]> = ref([]);
 
     const calcBreak = (worker: WorkerInfo) => computed(() => worker.on_break ? 'break' : '');
 
@@ -50,68 +51,21 @@ export const useWorkersStore = defineStore('workers', () => {
      *  Загрузить данные в хранилку с бэка
      */
     async function _load(): Promise<void> {
-        const items = await getRequest('/api/get_workers');
-        workers.values = items.map((worker: any): WorkerInfo => {
-            // TODO добавить текуший слот и текущую линию?
+        const items = await getRequest('/api/workers/get');
+        workers.value = items.map((worker: any): WorkerInfo => {
+            worker.isEdited = ref(false);
             return serialize(worker);
-        });
-    };
-    /**
-     * Удалить работника со смены
-     * @param rec Запись о слоте сотрудника
-     * @param del 
-     * // TODO имеет смысл перенести в другую хранилку (слотов)
-     */
-    async function _remove(rec: WorkerInfo, del: Boolean) {
-        await postRequest('/api/delete_slot', {
-            worker_id: rec.worker_id,
-            slot_id: rec.current_slot_id,
-            delete: del
-        }, (response: AxiosResponse) => {
-            splice(rec.worker_id!);
-            notify('success', `Сотрудник ${rec.title} убран со смены`);
-            return;
-        },
-            (err: AxiosError) => {
-                notify('error', err.message);
-                return;
-            });
-    };
-    /**
-     * Замена работника на смене
-     * @param old_worker 
-     * @param new_worker 
-     * @returns 
-     * // TODO перенести в хранилку слотов?
-     */
-    async function _changeWorker(old_worker_id: number, new_worker_id: number) {
-        let old_worker = getById(old_worker_id);
-        let new_worker = getById(new_worker_id);
-        return await postRequest('/api/replace_worker', {
-            old_worker_id: old_worker!.worker_id,
-            slot_id: old_worker!.current_slot_id,
-            new_worker_id: new_worker!.worker_id
-        }, async (r: any) => {
-            old_worker!.popover = false;
-            splice(old_worker!.worker_id!);
-            new_worker!.current_slot_id = r.slot_id;
-            new_worker!.current_line_id = r.line_id;
-            return true;
-        }, (err: AxiosError) => {
-            notify('error', err.message);
-            return false;
         });
     };
     /**
      * Загружает нового сотрудника в БД
      * @param {WorkerInfo} fields набор полей нового сотрудника 
      */
-    async function _addWorker(fields: WorkerInfo): Promise<boolean> {
-        return await postRequest('/api/add_worker',
+    async function _create(fields: WorkerInfo): Promise<boolean> {
+        return await postRequest('/api/worker/create',
             fields,
             (r: AxiosResponse) => {
-                // TODO: Поправить Апи, чтобы возвращал нового работника
-                // this.workers.push(r as Worker); Работник уже в хранилке, его добавлять не надо, только ID присвоить
+                fields.worker_id = r.data.worker_id;
                 return true;
             },
             (err: AxiosError) => {
@@ -120,7 +74,24 @@ export const useWorkersStore = defineStore('workers', () => {
             }
         )
     };
-
+    /**
+     * Обновляет данные о сотрдунике в БД
+     * @param fields 
+     */
+    async function _update(fields: WorkerInfo): Promise<boolean> {
+        return await putRequest('/api/worker/update', fields);
+    }
+    /**
+     * Удаляет сотрудника из БД
+     * @param worker 
+     */
+    async function _delete(worker: WorkerInfo): Promise<boolean> {
+        return await deleteRequest('/api/worker/delete', worker,
+            (r: AxiosResponse) => {
+                splice(worker.worker_id!);
+            }
+        );
+    }
     /*--------- LOCAL ---------*/
     /**
      * Удалить сотрудника из локального хранилища
@@ -128,8 +99,7 @@ export const useWorkersStore = defineStore('workers', () => {
      * @returns {void}
      */
     function splice(id: number): void {
-        workers = workers.filter((n: WorkerInfo) => n.worker_id != id);
-        return;
+        workers.value = workers.value.filter((n: WorkerInfo) => n.worker_id != id);
     };
     /**
      * Обрабатывает загруженные в хранилище данные 
@@ -138,8 +108,8 @@ export const useWorkersStore = defineStore('workers', () => {
      */
     function serialize(fields: any): WorkerInfo {
         fields.break = {
-            started_at: dayjs(fields.break_started_at),
-            ended_at: dayjs(fields.break_ended_at)
+            started_at: dayjs(fields.break_started_at, 'HH:mm:ss'),
+            ended_at: dayjs(fields.break_ended_at, 'HH:mm:ss')
         };
         delete fields.break_started_at;
         delete fields.break_ended_at;
@@ -156,7 +126,7 @@ export const useWorkersStore = defineStore('workers', () => {
      * Добавляет новго пустого сотружника в хранилку
      */
     function add(): void {
-        workers.push({
+        workers.value.push({
             title: '',
             company: ''
         });
@@ -168,7 +138,7 @@ export const useWorkersStore = defineStore('workers', () => {
      * @returns 
      */
     function getById(worker_id: number): WorkerInfo | undefined {
-        return workers.find((el: WorkerInfo) => el.worker_id == worker_id);
+        return workers.value.find((el: WorkerInfo) => el.worker_id == worker_id);
     };
     /**
      * Получить список сотрудников на линии текущей смены
@@ -176,7 +146,7 @@ export const useWorkersStore = defineStore('workers', () => {
      * @returns {WorkerInfo[] | undefined} найденные сотрудник для данной линии 
      */
     function getByLine(line_id: number | null): WorkerInfo[] | undefined {
-        return workers.filter((el: WorkerInfo) => el.current_line_id == line_id);
+        return workers.value.filter((el: WorkerInfo) => el.current_line_id == line_id);
     };
     /**
      * Мапа для возврата массива для селектов
@@ -196,9 +166,9 @@ export const useWorkersStore = defineStore('workers', () => {
         workers,
         calcBreak,
         _load,
-        _remove,
-        _changeWorker,
-        _addWorker,
+        _create,
+        _update,
+        _delete,
         splice,
         serialize,
         add,

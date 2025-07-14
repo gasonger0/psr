@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Products_categories;
+use App\Models\ProductsCategories;
 
 
 class ProductsCategoriesController extends Controller
 {
     public function getTree() {
-        $data = Products_categories::all()->toArray();
+        $data = ProductsCategories::all()->toArray();
         $tree = [];
         foreach (array_filter($data, 
             function($el) {
@@ -28,7 +28,7 @@ class ProductsCategoriesController extends Controller
     }
 
     static public function getList() {
-        return Products_categories::all()->toArray();
+        return ProductsCategories::all()->toArray();
     }
 
     private function fillTree($data = [], $branches = []) {
@@ -45,5 +45,9 @@ class ProductsCategoriesController extends Controller
             ];
         }
         return $tree;
+    }
+
+    public static function getByName(string $name){
+        return ProductsCategories::whereRaw('UPPER(title) = ?', [$name])->first();
     }
 }

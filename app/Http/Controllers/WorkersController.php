@@ -5,105 +5,65 @@ namespace App\Http\Controllers;
 use App\Models\Workers;
 use Illuminate\Http\Request;
 use App\Models\Slots;
-use DateTime;
-use DateTimeZone;
+use App\Util;
 
 class WorkersController extends Controller
 {
-    public function getList()
+    public const WORKER_NOT_FOUND = "Такого сотрудника не существует";
+    public const WORKER_ALREADY_EXISTS = "Такой сотрудник уже существует";
+    public function get()
     {
-        return Workers::all()->toJson();
+        return Response(Workers::all()->toArray(), 200);
     }
-
-    static public function add($company = null, $title = null, $b_start = null, $b_end = null)
+    public function create(Request $request)
     {
-        if (empty($title)) return;
-
-        $worker = new Workers();
-
-        $worker->company = $company;
-        $worker->title = $title;
-        $worker->break_started_at = $b_start;
-        $worker->break_ended_at = $b_end;
-
-        $worker->save();
-        return $worker->worker_id;
-    }
-
-    static public function save(Request $request)
-    {
-        $data = $request->post();
-        if (empty($data)) return 0;
-        foreach ($data as $r) {
-            $slot = Workers::find($r['worker_id']);
-            $slot->break_started_at = $r['started_at'];
-            $slot->break_ended_at = $r['ended_at'];
-            $slot->save();
-            if (!$slot)
-                echo 'Ошибка.';
+        $exists = Util::checkDublicate(new Workers(), ['title'], $request->post());
+        if ($exists) {
+            return Util::errorMsg(self::WORKER_ALREADY_EXISTS, 400);
         }
-        return 0;
-    }
-
-    static public function change(Request $request)
-    {
-        foreach ($request->post() as $worker) {
-            if ($worker['slot_id']) {
-                $slot = Slots::find($worker['slot_id']);
-                $slot->line_id = $worker['line_id'];
-                $slot->save();
-                // } else {
-                //     SlotsController::add(
-
-                //     )
-            }
-        };
-    }
-
-    static public function addFromWeb(Request $request)
-    {
-        $tz = new DateTimeZone('Europe/Moscow');
-        $b_start = new DateTime($request->post('break')[0]);
-        $b_start->setTimezone($tz);
-        $b_end = new DateTime($request->post('break')[1]);
-        $b_end->setTimezone($tz);
-        return self::add(
-            $request->post('company'),
-            $request->post('title'),
-            $b_start,
-            $b_end
+        $result = Workers::create(
+            $request->only(
+                (new Workers())->getFillable()
+            )
         );
+        if ($result) {
+            return Util::successMsg($result, 201);
+        } else {
+            return Util::errorMsg(self::WORKER_NOT_FOUND);
+        }
+    }
+    public function update(Request $request)
+    {
+        Workers::update($request->only((new Workers())->getFillable()));
+        return Util::successMsg('Данные сотрудника обновлены');
+
+    }
+    public function delete(Request $request)
+    {
+        $result = Workers::find($request->post('worker_id'))->delete();
+        if ($result) {
+            return Util::successMsg([
+                'text' => 'Сотрудник удалён'
+            ]);
+        } else {
+            return Util::errorMsg('Что-то пошло не так');
+        }
     }
 
-    function edit(Request $request)
+    // TODO депрекейтед возможно
+    public function change(Request $request)
     {
-        $workers = [];
-        foreach (Workers::all(['worker_id', 'title', 'company']) as $worker) {
-            $workers[$worker->worker_id] = $worker;
-        }
-        $data = $request->post();
-        foreach ($data as $worker) {
-            if (isset($worker['worker_id'])) {
-                // Edit
-                $workers[$worker['worker_id']]['company'] = $worker['company'];
-                $workers[$worker['worker_id']]['title'] = $worker['title'];
-                $workers[$worker['worker_id']]->save();
-                unset($workers[$worker['worker_id']]);
-            } else {
-                // New
-                self::add($worker['company'], $worker['title']);
+        try {
+            foreach ($request->post() as $worker) {
+                if ($worker['slot_id']) {
+                    $slot = Slots::find($worker['slot_id']);
+                    $slot->line_id = $worker['line_id'];
+                    $slot->save();
+                }
             }
-        };
-
-        if (!empty($workers)) {
-            Workers::destroy(array_map(function ($i) {
-                return $i->worker_id;
-            }, $workers));
+            return Util::successMsg('Сотрудники изменены', 200);
+        } catch (\Exception $e) {
+            return Util::errorMsg($e->getMessage(), 500);
         }
-    }
-
-    static public function clear()
-    {
-        return Workers::truncate();
     }
 }

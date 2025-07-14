@@ -33,7 +33,7 @@ export type LineInfo = {
     detector: Detector,
     date: Dayjs,
     isDay: boolean,
-    edit?: Ref
+    edit: boolean
 };
 
 type Detector = {
@@ -53,8 +53,8 @@ export const useLinesStore = defineStore('lines', () => {
         });
     }
 
-    async function _add(line: LineInfo) {
-        await postRequest('/api/lines/add', unserialize(line), (response: AxiosResponse) => {
+    async function _create(line: LineInfo) {
+        await postRequest('/api/lines/create', unserialize(line), (response: AxiosResponse) => {
             let data = response.data;
             if (data.line_id) {
                 line.line_id = data.line_id;
@@ -73,7 +73,7 @@ export const useLinesStore = defineStore('lines', () => {
 
     async function _sendStop(line: LineInfo, reason?: number | undefined): Promise<void> {
         // TODO проверить, нужно отправлять текст причины
-        await postRequest('/api/lines/down', {
+        await putRequest('/api/lines/down', {
             line_id: line.line_id!,
             reason: reason ? reason : ''
         }, (response: AxiosResponse) => {
@@ -90,6 +90,10 @@ export const useLinesStore = defineStore('lines', () => {
         return;
     };
 
+    function getById(line_id: number): LineInfo|undefined {
+        return lines.value.find((el: LineInfo) => el.line_id == line_id);
+    }
+
     function getIfDone(line: LineInfo): boolean {
         let timeString = getTimeString();
         if (line.work_time.started_at < timeString
@@ -103,7 +107,7 @@ export const useLinesStore = defineStore('lines', () => {
 
     function add() {
         lines.value.push({
-            edit: ref(true),
+            edit: true,
             work_time: {
                 started_at: dayjs(),
                 ended_at: dayjs(),
@@ -117,7 +121,7 @@ export const useLinesStore = defineStore('lines', () => {
                 has_detector: false
             } as Detector,
             date: dayjs(sessionStorage.getItem('date'), 'y-m-d'),
-            isDay: sessionStorage.getItem('isDay') == "true"
+            isDay: Boolean(Number(sessionStorage.getItem('isDay')))
         } as LineInfo);
 
     }
@@ -150,5 +154,5 @@ export const useLinesStore = defineStore('lines', () => {
         delete item.detector, item.work_time;
         return item;
     }
-    return { lines, _load, _add, _update, _delete, _sendStop, getIfDone, add, splice }
+    return { lines, _load, _create, _update, _delete, _sendStop, getIfDone, add, splice, getById }
 })

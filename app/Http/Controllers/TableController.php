@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Lines;
 use App\Models\LinesExtra;
-use App\Models\Products_categories;
+use App\Models\ProductsCategories;
 use App\Models\ProductsDictionary;
 use App\Models\ProductsOrder;
 use App\Models\ProductsPlan;
@@ -12,6 +12,7 @@ use App\Models\ProductsSlots;
 use App\Models\Responsible;
 use App\Models\Slots;
 use App\Models\Workers;
+use App\Util;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
@@ -235,79 +236,54 @@ class TableController extends Controller
 
         if ($xlsx = SimpleXLSX::parse($request->files->get('file')->getRealPath())) {
 
-            // ProductsOrder::truncate();
-            $date = $request->cookie('date');
-            $isDay = filter_var($request->cookie('isDay'), FILTER_VALIDATE_BOOLEAN);
-            $cats = Products_categories::get(['title', 'category_id'])->toArray();
-            $products = ProductsDictionary::get(['title', 'product_id', 'category_id'])->toArray();
-            foreach ($cats as &$cat) {
-                $cat['title'] = mb_strtoupper($cat['title']);
-            }
             $curCat = null;
             $unrecognized = [];
             $amounts = [];
-            $rows = $xlsx->rows(0);
-            foreach ($rows as $k => $row) {
-                if ($row['1'] == 'Итог'){
+            foreach($xlsx->rows(0) as $k => $row) {
+                if ($row['1'] == 'Итог') {
                     break;
                 }
-                $category_index = array_search(mb_strtoupper($row[1]), array_column($cats, 'title'));
-                if ($category_index !== false) {
-                    $curCat = $cats[$category_index];
+                // Ловим категории
+                if ($category = ProductsCategoriesController::getByName($row[1])) {
+                    $curCat = $category;
                     continue;
                 }
-                if ($curCat) {
-                    $product_index = array_search(
-                        $row[1],
-                        array_column($products, 'title')
-                    );
-                    // var_dump($row, $product_index);
-                    if ($product_index !== false) {
-                        $amounts[] = [
-                            'product_id' => $products[$product_index]['product_id'],
-                            'amount' => $row[3]
-                        ];
-                        continue;
-                    } else if (!strtotime($row[1]) && ($row[2]||$row[3]||$row[4]) ) {
-                        $prod = new ProductsDictionary();
-                        $prod->title = $row[1];
-                        $prod->category_id = $curCat['category_id'];
-                        $prod->save();
-                        $amounts[] = [
-                            'product_id' => $prod->product_id,
-                            'amount' => $row[3]
-                        ];
-                        continue;
-                    }
+                // Ловим продукты
+                if ($curCat && ($product = ProductsDictionary::where('title', $row[1])->first())){
+                    $amounts[] = [
+                        'product_id'    => $product->id,
+                        'amount'        => $row[3]
+                    ];
+                    continue;
+                } else if ($curCat && !strtotime($row[1]) && ($row[2]||$row[3]||$row[4])) {
+                    $product = ProductsDictionary::create([
+                        'title'         => $row[1],
+                        'category_id'   => $curCat->category_id
+                    ]);
+                    $amounts[] = [
+                        'product_id'    => $product->product_id,
+                        'amount'        => $row[3]
+                    ];
+                    continue;
                 }
                 if ($curCat && !strtotime($row[1])) {
                     $unrecognized[$k] = $row[1];
                 }
             }
-            // var_dump($amounts, $unrecognized);
+
             foreach ($amounts as $amount) {
-                // var_dump($amount);
                 if (($val = $amount['amount']) && $amount['amount'] > 0) {
-                    $am = ProductsOrder::where('product_id', '=', $amount['product_id'])
-                        ->where('date', $date)
-                        ->where('isDay', $isDay)
-                        ->get();
-                    if ($am->count() > 0) {
-                        foreach ($am as $i) {
-                            $i->amount = $val;
-                            $i->save();
-                        }
-                    } else {
-                        $order = new ProductsOrder();
-                        $order->product_id = $amount['product_id'];
-                        $order->amount = $val;
-                        $order->date = $date;
-                        $order->isDay = $isDay;
-                        $order->save();
-                    }
+                    ProductsOrder::withSession($request)
+                        ->updateOrCreate(
+                            ['product_id' => $amount['product_id']],
+                            ['amount' => $val]
+                        );
                 }
             }
-            return json_encode([$unrecognized, $amounts]);
+            return Util::successMsg([
+                'uncategorized' => $unrecognized, 
+                'amounts'       => $amounts
+            ], 201);
         }
     }
     public function dowloadForPrint(Request $request)

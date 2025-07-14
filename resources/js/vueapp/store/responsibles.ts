@@ -1,18 +1,19 @@
 import { defineStore } from "pinia";
-import { getRequest, postRequest } from "../functions";
+import { deleteRequest, getRequest, postRequest } from "../functions";
 import { AxiosResponse } from "axios";
 import { objectType } from "ant-design-vue/es/_util/type";
 import { positions } from "./dicts";
-import { reactive } from "vue";
+import { reactive, ref, Ref } from "vue";
 
 export type ResponsibleInfo = {
     responsible_id?: number,
     title: string,
-    position: number
+    position: number,
+    isEdited?: Ref<boolean>
 };
 
 export const useResponsiblesStore = defineStore('responsible', () => {
-    let responsibles: ResponsibleInfo[] = reactive([]);
+    const responsibles: Ref<ResponsibleInfo[]> = ref([]);
     /*----------API----------*/
 
     /**
@@ -20,12 +21,12 @@ export const useResponsiblesStore = defineStore('responsible', () => {
      * @returns {void}
      */
     async function _load(): Promise<void> {
-        responsibles = await getRequest('api/get_responsible');
-        responsibles.map((el: any) => {
+        responsibles.value = (await getRequest('api/responsibles/get')).map((el: any) => {
             el.position = {
                 position_id: el.position,
                 title: positions[el.position]
             };
+            el.isEdited = ref(false);
             return el as ResponsibleInfo;
         });
     };
@@ -35,7 +36,7 @@ export const useResponsiblesStore = defineStore('responsible', () => {
      * @returns 
      */
     async function _delete(rec: ResponsibleInfo): Promise<void> {
-        let res = await postRequest('/api/responsible/delete', rec)
+        let res = await deleteRequest('/api/responsibles/delete', rec)
         if (res) {
             this.responsibles.splice(rec.responsible_id);
         }
@@ -64,7 +65,7 @@ export const useResponsiblesStore = defineStore('responsible', () => {
     };
 
     function getById(id: number): ResponsibleInfo|undefined{
-        return responsibles.find((el: ResponsibleInfo) => el.responsible_id == id);
+        return responsibles.value.find((el: ResponsibleInfo) => el.responsible_id == id);
     }
 
     return { responsibles, _load, _delete, add, splice, getById }

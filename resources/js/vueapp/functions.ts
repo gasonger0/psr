@@ -1,6 +1,18 @@
-import axios from "axios";
+import axios, { AxiosResponse } from "axios";
 import dayjs, { Dayjs } from "dayjs";
 import { notification } from "ant-design-vue";
+
+function handleResponse(r: AxiosResponse) {
+    let data = JSON.parse(r.data);
+    if (data.error) {
+        notify('error', data.error);
+        return;
+    }
+    if (data.message) {
+        notify(data.message.type, data.message.title);
+        return;
+    }
+}
 
 export async function getRequest(url: string): Promise<any> {
     return new Promise((resolve, reject) => {
@@ -24,13 +36,12 @@ export async function postRequest(
         axios.post(url, data, { withCredentials: true })
             .then(response => {
                 if (thenHandler) thenHandler(response);
-                if (response.data.message) {
-                    notify(response.data.message.type, response.data.message.title);
-                }
+                handleResponse(response);
                 resolve(response.data);
             })
             .catch((err) => {
                 if (errHandler) errHandler(err);
+                handleResponse(err);
                 reject(err);
             })
     })
@@ -38,17 +49,20 @@ export async function postRequest(
 
 export async function putRequest(
     url: string,
-    data: any
+    data: any,
+    thenHandler: Function | undefined = undefined,
+    errHandler: Function | undefined = undefined
 ): Promise<any> {
     return new Promise((resolve, reject) => {
         axios.put(url, data, { withCredentials: true })
             .then(response => {
-                if (response.data.message) {
-                    notify(response.data.message.type, response.data.message.title);
-                }
+                if (thenHandler) thenHandler(response);
+                handleResponse(response);
                 resolve(response.data);
             })
             .catch((err) => {
+                if (errHandler) errHandler(err);
+                handleResponse(err);
                 reject(err);
             })
     })
@@ -56,17 +70,20 @@ export async function putRequest(
 
 export async function deleteRequest(
     url: string,
-    data: any
+    data: any,
+    thenHandler: Function | undefined = undefined,
+    errHandler: Function | undefined = undefined
 ): Promise<any> {
     return new Promise((resolve, reject) => {
         axios.delete(url, { withCredentials: true, data: data })
             .then(response => {
-                if (response.data.message) {
-                    notify(response.data.message.type, response.data.message.title);
-                }
+                if (thenHandler) thenHandler(response);
+                handleResponse(response);
                 resolve(response.data);
             })
             .catch((err) => {
+                if (errHandler) errHandler(err);
+                handleResponse(err);
                 reject(err);
             })
     })

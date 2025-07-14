@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { FloatButton } from 'ant-design-vue';
 import { RightOutlined, LeftOutlined } from '@ant-design/icons-vue';
-import { ref, ShallowRef, useTemplateRef } from 'vue';
 
 const props = defineProps({
     containerRef: {
@@ -14,19 +13,18 @@ const props = defineProps({
     }
 });
 
-let isScrolling: number | null = null;
-const cont = props.containerRef;
+let isScrolling: NodeJS.Timeout | null = null;
 const speed = props.speed;
 const scroll = (direction: string, isStart: boolean) => {
     if (isStart) {
         if (!isScrolling) {
-            cont.scrollTo({
-                left: cont.scrollLeft + (direction ? speed : -speed),
+            props.containerRef.scrollTo({
+                left: props.containerRef.scrollLeft + (direction == 'L' ? speed : -speed),
                 behavior: "smooth"
             });
             isScrolling = setInterval(() => {
-                cont.scrollTo({
-                    left: cont.scrollLeft + (direction ? speed : -speed),
+                props.containerRef.scrollTo({
+                    left: props.containerRef.scrollLeft + (direction == 'L' ? speed : -speed),
                     behavior: "smooth"
                 });
             }, 300);
@@ -39,7 +37,6 @@ const scroll = (direction: string, isStart: boolean) => {
 
 // Выводим наружу
 defineExpose(props);
-
 </script>
 <template>
     <FloatButton @dragover="scroll('L', true)" @dragleave="scroll('L', false)" @mouseover="scroll('L', true)"

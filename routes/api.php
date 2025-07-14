@@ -11,41 +11,41 @@ use App\Http\Controllers\ResponsibleController;
 use App\Http\Controllers\SlotsController;
 use App\Http\Controllers\TableController;
 use App\Http\Controllers\WorkersController;
-use App\Http\Controllers\LinesExtraController;
 use App\Http\Middleware\ForceJsonResponse;
 use App\Http\Middleware\ParseSession;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 
 Route::group(['middleware' => ['web', ParseSession::class]], function () {
-
+    /*******
+     * LINES
+     ******/
     Route::controller(LinesController::class)
         ->prefix('/lines')
         ->middleware(ForceJsonResponse::class)
         ->group(function () {
+            // crud
             Route::get('/get', 'get');
             Route::put('/update', 'update');
-            Route::post('/add', 'add');
+            Route::post('/create', 'create');
             Route::delete('/delete', 'delete');
+            // actions
             Route::put('/down', 'down');
         });
-
-    /*******
-     * LINES
-     ******/
-    // Route::get('/get_lines', [LinesController::class, 'getList']);
-    // Route::post('/save_line', [LinesController::class, 'save']);
-    // Route::post('/down_line', [LinesExtraController::class, 'down']);
-    // Route::post('/delete_line', [LinesController::class, 'delete']);
 
     /*********
      * WORKERS
      ********/
-    Route::get('/get_workers', [WorkersController::class, 'getList']);
-    Route::post('/save_worker', [WorkersController::class, 'save']);
-    Route::post('/change_lines', [WorkersController::class, 'change']);
-    Route::post('/add_worker', [WorkersController::class, 'addFromWeb']);
-    Route::post('/edit_workers', [WorkersController::class, 'edit']);
+    Route::controller(WorkersController::class)
+        ->prefix('/workers')
+        ->middleware(ForceJsonResponse::class)
+        ->group(function() {
+            // crud
+            Route::get('/get', 'get');
+            Route::put('/update', 'update');
+            Route::post('/create', 'create');
+            Route::delete('/delete', 'delete');
+        });
 
     /*******
      * SLOTS
@@ -54,14 +54,16 @@ Route::group(['middleware' => ['web', ParseSession::class]], function () {
         ->prefix('/workers_slots')
         ->middleware(ForceJsonResponse::class)
         ->group(function () {
-            Route::get('get', 'get');
+            // crud
+            Route::get('/get', 'get');
+            Route::put('/update','update');
+            Route::post('/create', 'create');
+            Route::delete('/delete', 'delete');
+            // actions
+            Route::put('/change', 'change');
+            Route::put('/replace', 'replace');
+            Route::get('/print', 'print');
         });
-    Route::get('/get_slots', [SlotsController::class, 'getList']);
-    Route::post('/change_slot', [SlotsController::class, 'change']);
-    Route::post('/edit_slot', [SlotsController::class, 'edit']);
-    Route::post('/delete_slot', [SlotsController::class, 'delete']);
-    Route::post('/replace_worker', [SlotsController::class, 'replace']);
-    Route::get('/print_slots', [SlotsController::class, 'print']);
 
     /*********************
      * PRODUCTS_DICTIONARY
@@ -71,7 +73,7 @@ Route::group(['middleware' => ['web', ParseSession::class]], function () {
     Route::post('/delete_product', [ProductsDictionaryController::class, 'deleteProduct']);
 
     /*********************
-     * PRODUCTS_CATEGORIES
+     * ProductsCategories
      ********************/
     Route::get('/get_categories', [ProductsCategoriesController::class, 'getTree']);
 
@@ -83,19 +85,16 @@ Route::group(['middleware' => ['web', ParseSession::class]], function () {
         ->prefix('/plans')
         ->middleware(ForceJsonResponse::class)
         ->group(function () {
+            // crud
             Route::get('/get', 'get');
             Route::put('/update', 'update');
-            Route::put('/change', 'change');
-            Route::post('/add', 'add');
+            Route::post('/create', 'create');
             Route::delete('/delete', 'delete');
+            // actions
             Route::delete('/clear', 'clear');
+            Route::put('/change', 'change');
         });
-    Route::get('/get_product_plans', [ProductsPlanController::class, 'getList']);
-    Route::post('/add_product_plan', [ProductsPlanController::class, 'add']);
-    Route::post('/change_plan', [ProductsPlanController::class, 'changePlan']);
-    Route::post('/delete_product_plan', [ProductsPlanController::class, 'delPlan']);
-    Route::delete('/clear_plan', [ProductsPlanController::class, 'clear']);
-
+   
     /****************
      * PRODUCTS_SLOTS
      ***************/
@@ -111,15 +110,30 @@ Route::group(['middleware' => ['web', ParseSession::class]], function () {
     /*************
      * RESPONSIBLE
      ************/
-    Route::get('/get_responsible', [ResponsibleController::class, 'getList']);
-    Route::post('/edit_responsible', [ResponsibleController::class, 'edit']);
+    Route::controller(ResponsibleController::class)
+        ->prefix('/responsibles')
+        ->middleware(ForceJsonResponse::class)
+        ->group(function () {
+            Route::get('/get', 'get');
+            Route::post('/create', 'create');
+            Route::put('/update', 'update');
+            Route::delete('/delete', 'delete');
+        });
+    // Route::get('/get_responsible', [ResponsibleController::class, 'getList']);
+    // Route::post('/edit_responsible', [ResponsibleController::class, 'edit']);
 
     /******
      * XLSX
      *****/
+    Route::controller(TableController::class)
+        ->prefix('/tables')
+        ->group(function() {
+            Route::middleware(ForceJsonResponse::class)->post('/load_order', 'loadOrder');
+        });
+        
 
     Route::post('/load_xlsx', [TableController::class, 'loadFile']);
-    Route::post('/load_order', [TableController::class, 'loadOrder']);
+    // Route::post('/load_order', [TableController::class, 'loadOrder']);
     Route::post('/load_defaults', [TableController::class, 'loadDefaults']);
     Route::post('/get_xlsx', [TableController::class, 'getFile']);
     Route::post('/load_plan_json', [TableController::class, 'loadPlan']);
