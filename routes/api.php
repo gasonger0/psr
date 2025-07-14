@@ -68,9 +68,16 @@ Route::group(['middleware' => ['web', ParseSession::class]], function () {
     /*********************
      * PRODUCTS_DICTIONARY
      ********************/
+    Route::controller(ProductsDictionaryController::class)
+        ->prefix('/products')
+        ->middleware(ForceJsonResponse::class)
+        ->group(function () {
+            Route::get('/get', 'get');
+            Route::post('/create', 'create');
+            Route::put('/update', 'update');
+            Route::delete('/delete', 'delete');
+        });
     Route::post('/get_products', [ProductsDictionaryController::class, 'getList']);
-    Route::post('/save_product', [ProductsDictionaryController::class, 'saveProduct']);
-    Route::post('/delete_product', [ProductsDictionaryController::class, 'deleteProduct']);
 
     /*********************
      * ProductsCategories

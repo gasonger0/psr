@@ -72,18 +72,18 @@ services:
     #         - './docker/mysql_conf/my.cnf:/etc/mysql/my.cnf'
     #     networks:
     #         - default
-    phpmyadmin:
-        image: phpmyadmin/phpmyadmin
-        links:
-            - 'mysql:mysql'
-        ports:
-            - '${PHPMYADMIN_PORT}:80'
-        environment:
-            MYSQL_USER: '${DB_USERNAME}'
-            MYSQL_PASSWORD: '${DB_PASSWORD}'
-            MYSQL_ROOT_PASSWORD: '${DB_PASSWORD}'
-            MYSQL_PORT: '${DB_PORT}'
-            MYSQL_HOST: '${DB_HOST}'
+    # phpmyadmin:
+    #     image: phpmyadmin/phpmyadmin
+    #     links:
+    #         - 'mysql:mysql'
+    #     ports:
+    #         - '${PHPMYADMIN_PORT}:80'
+    #     environment:
+    #         MYSQL_USER: '${DB_USERNAME}'
+    #         MYSQL_PASSWORD: '${DB_PASSWORD}'
+    #         MYSQL_ROOT_PASSWORD: '${DB_PASSWORD}'
+    #         MYSQL_PORT: '${DB_PORT}'
+    #         MYSQL_HOST: '${DB_HOST}'
     mysql:
         image: 'mysql/mysql-server:8.0'
         ports:

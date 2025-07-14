@@ -45,21 +45,27 @@ class LinesController extends Controller
         // Создаём базу
         $id = Lines::insertGetId($request->only((new Lines)->getFillable()));
 
+        if (!$id) {
+            return Util::errorMsg($id, 400);
+        }
         // Заполняем динию на смену
         $request->merge(['line_id' => $id]);
         $extra_id = LinesExtra::insertGetId($request->only((new LinesExtra)->getFillable()));
-        return Util::successMsg([
-            'line_id' => $id, 
-            'line_extra_id' => $extra_id
-        ], 201);
+        if ($extra_id) {
+            return Util::successMsg([
+                'line_id' => $id, 
+                'line_extra_id' => $extra_id
+            ], 201);
+        } else {
+            return Util::errorMsg($extra_id, 400);
+        }
     }
     
     public static function update(Request $request){
-        if (!$request->post('line_id')) {
-            return Response(['error' => self::LINE_NOT_FOUND], 404);
-        }
-
         $line = LinesExtra::where('line_id', $request->post('line_id'))->withSession($request)->first();
+        if (!$line) {
+            return Util::errorMsg(self::LINE_NOT_FOUND, 404);
+        }
 
         $line->update($request->only((new LinesExtra)->getFillable()));
         $line->lines->update($request->only((new Lines)->getFillable()));
@@ -69,13 +75,12 @@ class LinesController extends Controller
     }
 
     public function delete(Request $request) {
-        $line_id = $request->post('line_id');
-        Lines::where('line_id', $line_id)->delete();
-        LinesExtra::where('line_id', $line_id)->delete();
-        return Response(['message' => [
-            'type'      => 'success',
-            'title'   => 'Линия удалена'
-        ]], 200);
+        $delete = Lines::find($request->post('line_id'))->delete();
+        if ($delete) {
+            return Util::successMsg('Линия удалена', 200);
+        } else {
+            return Util::errorMsg($delete, 400);
+        }
     }
 
 
@@ -96,12 +101,7 @@ class LinesController extends Controller
             $line->save();
         }
 
-        return Response([
-            'message' => [
-                'type'  => 'success',
-                'title' => $downFrom ? 'Простой завершён' :'Простой зафиксирован'
-            ]
-        ], 200);
+        return Util::successMsg($downFrom ? 'Простой завершён' :'Простой зафиксирован', 200);
         // TODO Добавить запись в журнал 
     }
 }

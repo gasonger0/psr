@@ -1,149 +1,79 @@
-<script setup>
-import Boards from './vueapp/components/worker_board/board.vue'
+<script setup lang="ts">
+import Boards from './vueapp/components/boards/workers/board.vue'
 import Stats from './vueapp/deprecated/stats.vue';
 import Logs from './vueapp/deprecated/logs.vue';
 import ProductsDict from './vueapp/deprecated/productsDict.vue';
 import ProductsPlan from './vueapp/deprecated/productsPlan.vue';
-import { ref } from 'vue';
+import { ref, Ref } from 'vue';
 import Result from './vueapp/deprecated/result.vue';
-import { notification } from 'ant-design-vue';
-import WorkersWindow from './vueapp/components/workers_dict/window.vue';
+import WorkersWindow from './vueapp/components/modals/workers.vue';
 import PlansDict from './vueapp/deprecated/plansDict.vue';
 import Toolbar from './vueapp/components/toolbar/toolbar.vue';
-</script>
-<script>
-export default {
-    components: {
-        'Stats': Stats,
-        'Boards': Boards
-    },
-    data() {
-        return {
-            data: null,
-            openStats: ref(false),
-            openResult: ref(false),
-            openLogs: ref(false),
-            openProductsDict: ref(false),
-            openWorkersDict: ref(false),
-            openProductsPlan: ref(false),
-            openPlansDict: ref(false),
-            prod: ref(1),
-            boardKey: ref(1),
-            statsRef: null,
-            boardType: ref(false),
-            topBarKey: ref(1)
-        }
-    },
-    methods: {
-        notify(type, message) {
-            const n = () => {
-                notification[type]({
-                    message: message
-                });
-            }
-            n();
-            return;
-        },
-        showGraph() {
-            this.openStats = true;
-            return;
-        },
-        showResult() {
-            this.openResult = true;
-            return;
-        },
-        showLogs() {
-            this.openLogs = true;
-            return;
-        },
-        showProductsDict() {
-            this.openProductsDict = true;
-            return;
-        },
-        showWorkersDict(){
-            this.openWorkersDict = true;
-            return;
-        },
-        showPlansDict(){
-            this.openPlansDict = true;
-            return;
-        },
-        changeBoard(){
-            this.boardType = !this.boardType;
-        },
-        onGetBoils(ev) {
-            this.boils = ev;
-            this.topBarKey += 1;
-        },
-        closeModal(ev) {
-            this.openStats = false;
-            this.openResult = false;
-            this.openLogs = false;
-            this.openProductsDict = false;
-            this.openWorkersDict = false;
-            this.openPlansDict = false; 
-            // if (ev) {
-            //     this.boardKey += 1;
-            // }
-            if (ev) {
-                // this.prodKey += 1;
-                this.boardKey += 1;
-            }
-        },
-        getData(ev) {
-            // console.log(ev);
-            this.data = ev;
-            // this.boardKey +=1;
-        }
+
+
+const openStats: Ref<boolean> = ref(false);
+const openResult: Ref<boolean> = ref(false);
+const openLogs: Ref<boolean> = ref(false);
+const openProductsDict: Ref<boolean> = ref(false);
+const openWorkersDict: Ref<boolean> = ref(false);
+const openPlansDict: Ref<boolean> = ref(false);
+const boardKey: Ref<Number> = ref(1);
+const boardType: Ref<boolean> = ref(false);
+const boils: Ref<number> = ref(0); 
+
+function showGraph() {
+    openStats.value = true;
+    return;
+};
+function showResult() {
+    openResult.value = true;
+    return;
+};
+function showLogs() {
+    openLogs.value = true;
+    return;
+};
+function showProductsDict() {
+    openProductsDict.value = true;
+    return;
+};
+function showWorkersDict() {
+    openWorkersDict.value = true;
+    return;
+};
+function showPlansDict() {
+    openPlansDict.value = true;
+    return;
+};
+function changeBoard() {
+    boardType.value = !boardType;
+};
+function onGetBoils(ev) {
+    boils.value = ev;
+};
+function closeModal(ev) {
+    openStats.value = false;
+    openResult.value = false;
+    openLogs.value = false;
+    openProductsDict.value = false;
+    openWorkersDict.value = false;
+    openPlansDict.value = false;
+    if (ev) {
+        boardKey.value += 1;
     }
-}
+};
 </script>
 <template>
-    <Toolbar 
-        :boils="boils"
-        :boardMode="boardType"
-        @graph-window="showGraph" 
-        @result-window="showResult"
-        @logs-window="showLogs" 
-        @products-window="showProductsDict"
-        @workers-window="showWorkersDict"
-        @change-board="changeBoard"
-        @plans-window="showPlansDict"/>
-    <Result 
-        :data="data" 
-        :open="openResult" 
-        @close-modal="closeModal" 
-        @notify="notify"/>
-    <Stats 
-        :data="data" 
-        :open="openStats" 
-        @close-modal="closeModal" 
-        @notify="notify"/>
-    <Logs
-        :open="openLogs"
-        :lines="data ? data.lines : null"
-        @close-modal="closeModal"
-        @notify="notify"/>
-    <ProductsDict
-        :open="openProductsDict"
-        :data="data"
-        @close-modal="closeModal"
-        @notify="notify"/>
-    <WorkersWindow
-        :open="openWorkersDict"
-        @close-modal="closeModal"
-    />
-    <Boards 
-        v-if="!boardType"
-        :key="boardKey"/>
-    <ProductsPlan
-        v-if="boardType"
-        :key="prodKey"
-        :data="data"
-        @getBoils="onGetBoils"
-        @close-modal="closeModal"
-        @notify="notify"/>
-    <PlansDict
-        :open="openPlansDict"
-        @close-modal="closeModal"/>
+    <Toolbar :boils="boils" :boardMode="boardType" @graph-window="showGraph" @result-window="showResult"
+        @logs-window="showLogs" @products-window="showProductsDict" @workers-window="showWorkersDict"
+        @change-board="changeBoard" @plans-window="showPlansDict" />
+    <Result :data="data" :open="openResult" @close-modal="closeModal" @notify="notify" />
+    <Stats :data="data" :open="openStats" @close-modal="closeModal" @notify="notify" />
+    <Logs :open="openLogs" :lines="data ? data.lines : null" @close-modal="closeModal" @notify="notify" />
+    <ProductsDict :open="openProductsDict" :data="data" @close-modal="closeModal" @notify="notify" />
+    <WorkersWindow :open="openWorkersDict" @close-modal="closeModal" />
+    <Boards v-if="!boardType" :key="boardKey" />
+    <ProductsPlan v-if="boardType" :key="prodKey" :data="data" @getBoils="onGetBoils" @close-modal="closeModal"
+        @notify="notify" />
+    <PlansDict :open="openPlansDict" @close-modal="closeModal" />
 </template>

@@ -6,6 +6,10 @@ use Illuminate\Http\Request;
 
 class Util
 {
+    /**
+     * Получает стандартыне значения для линии
+     * @param mixed $line_id ИД линии
+     */
     public static function getDefaults($line_id = false)
     {
         $defs = config('lines_defaults');
@@ -44,6 +48,12 @@ class Util
         return true;
     }
 
+    /**
+     * Генерирует успешный ответ
+     * @param array|string $data Данные
+     * @param int $status HTTP-код
+     * @return \Illuminate\Http\Response
+     */
     public static function successMsg(array|string $data, int $status = 200)
     {
         if (is_string($data)) {
@@ -57,6 +67,12 @@ class Util
         return Response($data, $status);
     }
 
+    /**
+     * Генерирует ответ с ошибкой
+     * @param array|string $data Данные
+     * @param int $status HTTP-код
+     * @return \Illuminate\Http\Response
+     */
     public static function errorMsg(array|string $data, int $status = 400)
     {
         if (is_string($data)) {
@@ -67,6 +83,12 @@ class Util
         return Response($data, $status);
     }
 
+    /**
+     * Добавляет данные сессии (isDay, date) в переданный массим
+     * @param array $data Массив данных
+     * @param \Illuminate\Http\Request $request Запрос
+     * @return void
+     */
     public static function appendSessionToData(array &$data, Request $request)
     {
         $data['date'] = $request->attributes->get('date') ?? null;

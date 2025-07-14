@@ -3,11 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Models\ProductsDictionary;
+use App\Util;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 
 class ProductsDictionaryController extends Controller
 {
+    private const PRODUCT_ALREADY_EXISTS = 'Такая продукция уже существует';
+    private const PRODUCT_NOT_EXISTS = 'Такой продукции не существует.';
     public function getList(Request $request)
     {
         if ($id = $request->post('category_id')) {
@@ -26,50 +29,75 @@ class ProductsDictionaryController extends Controller
             $show = ProductsDictionary::whereIn('category_id', $children)->get()->toArray();
             $hide = ProductsDictionary::whereNotIn('category_id', $children)->get()->toArray();
             $ret = array_merge(
-                array_map(function ($el) { 
-                    $el['hide'] = false; 
-                    return $el; 
-                }, $show), 
-                array_map(function ($el) { 
-                    $el['hide'] = true; 
-                    return $el; 
-                }, $hide));
+                array_map(function ($el) {
+                    $el['hide'] = false;
+                    return $el;
+                }, $show),
+                array_map(function ($el) {
+                    $el['hide'] = true;
+                    return $el;
+                }, $hide)
+            );
             return json_encode($ret);
         } else {
             return ProductsDictionary::all()->toJson();
         }
     }
 
-    public function saveProduct(Request $request)
+    public function create(Request $request)
     {
-        $prod = $request->post();
-        if ($prod['title'] == null) {
-            return -1;
+        $exists = Util::checkDublicate(new ProductsDictionary, ['title'], $request->post());
+        if ($exists) {
+            return Util::errorMsg(self::PRODUCT_ALREADY_EXISTS, 400);
         }
-        if ($prod['product_id'] == -1) {
-            $p = new ProductsDictionary();
-            $p->title = $prod['title'];
-            $p->category_id = $prod['category_id'];
-            $p->save();
+
+        $result = ProductsDictionary::create(
+            $request->only(
+                (new ProductsDictionary())->getFillable()
+            )
+        );
+
+        if ($result) {
+            return Util::successMsg($result, 201);
         } else {
-            $oldProd = ProductsDictionary::find($prod['product_id']);
-            $updateKeys = array_filter($prod, function ($v, $k) use ($oldProd) {
-                return $v != $oldProd->toArray()[$k];
-            }, ARRAY_FILTER_USE_BOTH);
-            // var_dump($oldProd->toArray());
-            // var_dump($prod);
-            if ($updateKeys) {
-                foreach ($updateKeys as $k => $v) {
-                    $oldProd->$k = $v;
-                }
-                $oldProd->save();
-            }
+            return Util::errorMsg($result, 400);
+        }
+    }
+
+    public function update(Request $request)
+    {
+        $product = ProductsDictionary::find($request->post('product_id'));
+        if (!$product) {
+            return Util::errorMsg(self::PRODUCT_NOT_EXISTS, 404);
+        }
+
+        $result = $product->update(
+            $request->only(
+                (new ProductsDictionary())->getFillable()
+            )
+        );
+
+        if ($result) {
+            return Util::successMsg('Продукция изменена', 200);
+        } else {
+            return Util::errorMsg($result, 400);
+        }
+    }
+
+    public function delete(Request $request) {
+        $delete = ProductsDictionary::find($request->post('product_id'))->delete();
+
+        if ($delete) {
+            return Util::successMsg('Продукция удалена', 200);
+        } else {
+            return Util::errorMsg($delete, 400);
         }
     }
 
     public function deleteProduct(Request $request)
     {
-        if (!$request->post('product_id')) die(new Response('Нет ID продукта', 400));
+        if (!$request->post('product_id'))
+            die(new Response('Нет ID продукта', 400));
         $prod = ProductsDictionary::find($request->post('product_id'));
         if ($prod) {
             $prod->delete();

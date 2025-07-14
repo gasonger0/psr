@@ -29,7 +29,7 @@ class WorkersController extends Controller
         if ($result) {
             return Util::successMsg($result, 201);
         } else {
-            return Util::errorMsg(self::WORKER_NOT_FOUND);
+            return Util::errorMsg($result);
         }
     }
     public function update(Request $request)

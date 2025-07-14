@@ -10,6 +10,18 @@ class ProductsDictionary extends Model
     protected $table = 'products_dictionary';
     protected $primaryKey = 'product_id';
     public $incrementing = true;
+    public $fillable = [
+        'title',
+        'category_id',
+        'amount2parts',
+        'parts2kg',
+        'kg2boil',
+        'cars',
+        'cars2plates',
+        'always_show',
+        'created_at',
+        'updated_at'
+    ];
 
     public function setCreatedAtAttribute($value)
     {

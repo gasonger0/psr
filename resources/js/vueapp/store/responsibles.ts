@@ -47,11 +47,13 @@ export const useResponsiblesStore = defineStore('responsible', () => {
     /*---------LOCAL---------*/
 
     /**
-     * Добавить сотрудника на фронтх (локально)
+     * Добавить сотрудника на фронт (локально)
      */
     function add(): void {
         this.responsibles.push({
-            // TODO
+            title: '',
+            position: ref(1),
+            isEdited: ref(true)
         });
     };
     /**

@@ -41,7 +41,7 @@ export const positions = {
 // Столбцы справочника сотрудников
 export const workerDictColumns = [{
     title: '',
-    dataIndex: 'delete',
+    dataIndex: 'actions',
     width: '5%'
 }, {
     title: 'ФИО',
@@ -54,7 +54,7 @@ export const workerDictColumns = [{
 
 export const responsibleDictColumns = [{
     title: '',
-    dataIndex: 'delete',
+    dataIndex: 'actions',
     width: '5%'
 }, {
     title: 'ФИО',

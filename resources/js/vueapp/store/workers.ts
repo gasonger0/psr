@@ -128,7 +128,8 @@ export const useWorkersStore = defineStore('workers', () => {
     function add(): void {
         workers.value.push({
             title: '',
-            company: ''
+            company: '',
+            isEdited: ref(true)
         });
         return;
     };
