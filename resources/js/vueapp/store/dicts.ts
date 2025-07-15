@@ -1,4 +1,4 @@
-import { Dayjs } from 'dayjs';
+import dayjs, { Dayjs } from 'dayjs';
 
 // Причины простоя
 export const cancelReasons = [{
@@ -29,7 +29,9 @@ export const cancelReasons = [{
 
 // export type CancelReasonValue = typeof cancelReasons[number];
 
-// Должности ответственных
+/**
+ *  Должности ответственных
+*/
 export const positions = {
     1: 'Начальник смены',
     2: 'Мастер смены',
@@ -71,3 +73,23 @@ export type Slot = {
     ended_at: Dayjs,
     slot_id?: number
 }
+
+/**
+ * Формат даты для MySQL
+ * */
+export const format = 'YYYY-MM-DD HH:mm:ss';
+
+/**
+ * Форматирование дат для передачи в БД
+ * @param data 
+ * @returns 
+ */
+export const prepareDate = (data: any) => {
+    ['started_at', 'ended_at'].forEach((k: string) => {
+        if (data[k] && data[k] instanceof dayjs.Dayjs) {
+            data[k] = data[k].format(format);
+        }
+    });
+
+    return data;
+}; 

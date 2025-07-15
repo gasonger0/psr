@@ -32,4 +32,8 @@ class ProductsDictionary extends Model
     {
         $this->attributes['updated_at'] = Carbon::parse($value)->format('Y-m-d H:i:s');
     }
+
+    public function slots(){
+        return $this->hasMany(ProductsSlots::class, 'product_id');
+    }
 }

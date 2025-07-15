@@ -5,8 +5,6 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration {
-    // TODO указать на связи сущностей в моделях
-    // TODO добавить табличку с обедами
     /**
      * Run the migrations.
      */
@@ -15,7 +13,7 @@ return new class extends Migration {
         Schema::rename('line_extra', 'lines_extra');
         // Задаём отношения для:
         // 1) Линий и смен
-        Schema::table('line_extra', function (Blueprint $table) {
+        Schema::table('lines_extra', function (Blueprint $table) {
             $table->unsignedBigInteger('line_id')->change();
             $table->foreign('line_id')->references('line_id')->on('lines')->onDelete('cascade');
         });
@@ -28,6 +26,7 @@ return new class extends Migration {
             $table->foreign('line_id')->references('line_id')->on('lines')->onDelete('cascade');
             $table->dateTime('started_at')->change();
             $table->dateTime('ended_at')->change();
+            $table->dropColumn('time_planned');
         });
 
         // Надо удалить неактуальные слоты
@@ -43,11 +42,13 @@ return new class extends Migration {
         });
         // 6) Слотов изготовления ГП и слотов ГП
         Schema::table('products_plan', function (Blueprint $table) {
-            $table->unsignedBigInteger('product_id')->change();
-            $table->unsignedBigInteger('line_id')->change();
+            // $table->unsignedBigInteger('product_id')->change();
+            $table->dropColumn('product_id');
+            $table->dropColumn('line_id');
+            // $table->unsignedBigInteger('line_id')->change();
             $table->unsignedBigInteger('slot_id')->change();
-            $table->foreign('product_id')->references('product_id')->on('products_dictionary')->onDelete('cascade');
-            $table->foreign('line_id')->references('line_id')->on('lines')->onDelete('cascade');
+            // $table->foreign('product_id')->references('product_id')->on('products_dictionary')->onDelete('cascade');
+            // $table->foreign('line_id')->references('line_id')->on('lines')->onDelete('cascade');
             $table->foreign('slot_id')->references('product_slot_id')->on('products_slots')->onDelete('cascade');
             $table->dateTime('started_at')->change();
             $table->dateTime('ended_at')->change();

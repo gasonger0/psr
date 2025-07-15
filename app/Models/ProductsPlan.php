@@ -41,8 +41,22 @@ class ProductsPlan extends Model
         $this->attributes['updated_at'] = Carbon::parse($value)->format('Y-m-d H:i:s');
     }
 
-    public static function joinProductTitle(Builder $query){
+    public static function joinProductTitle(Builder $query)
+    {
         return $query->join('products_dictionary', 'products_plan.product_id', '=', 'products_dictionary.product_id')
             ->select('products_plan.*', DB::raw('products_dictionary.title as title'));
+    }
+
+    // public function product()
+    // {
+    //     return $this->hasOne(ProductsDictionary::class, 'product_id');
+    // }
+    // public function line()
+    // {
+    //     return $this->hasOne(Lines::class, 'line_id');
+    // }
+    public function slot()
+    {
+        return $this->hasOne(ProductsSlots::class, 'slot_id');
     }
 }

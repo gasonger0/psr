@@ -35,4 +35,8 @@ class Products extends Model
             'ended_at' => $c2
         ]);
     }
+
+    public function slots() {
+        return $this->hasMany(ProductsSlots::class, 'product_id', 'product_id');
+    }
 }

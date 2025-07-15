@@ -1,32 +1,24 @@
 <script setup lang="ts">
-import { BackTop, Card, FloatButton, Input, Switch, TimeRangePicker, FloatButtonGroup, Tooltip, Button, Popover, Select, notification, SelectOption, Popconfirm, Modal, TimePicker, RadioGroup, RadioButton, Checkbox, Form, FormItem } from 'ant-design-vue';
-import { ref, reactive, Ref, watch, computed, onBeforeMount, TemplateRef } from 'vue';
-import Loading from './../../../deprecated/loading.vue';
+import { BackTop, Card, FloatButton, Input, FloatButtonGroup, Button, Form, FormItem } from 'ant-design-vue';
+import { ref, Ref, watch, computed, onBeforeMount, TemplateRef } from 'vue';
 import * as dayjs from "dayjs";
-import { ColorPicker } from 'vue-color-kit';
 import 'vue-color-kit/dist/vue-color-kit.css';
-import { ForwardOutlined, LoginOutlined, PlusCircleOutlined, StopOutlined, InfoCircleOutlined, UserDeleteOutlined, UserSwitchOutlined, UserAddOutlined, RightOutlined, LeftOutlined, PrinterOutlined } from '@ant-design/icons-vue';
-import { useWorkersStore, WorkerForm, WorkerInfo } from '../../../store/workers';
-import { getNextElement, getTimeString, notify } from '../../../functions';
-import ItemCard from './card.vue';
-import { cancelReasons, positions } from '../../../store/dicts';
-import ScrollButtons from '../../common/scrollButtons.vue';
-import { LineInfo, useLinesStore } from '../../../store/lines';
-import { useResponsiblesStore } from '../../../store/responsibles';
-import { DefaultOptionType } from 'ant-design-vue/es/vc-cascader';
-import { useWorkerSlotsStore, WorkerSlot } from '../../../store/workerSlots';
-import LineForm from '../../common/lineForm.vue';
+import { LoginOutlined, PlusCircleOutlined, UserAddOutlined, PrinterOutlined } from '@ant-design/icons-vue';
+import { useWorkersStore, WorkerForm, WorkerInfo } from '@stores/workers';
+import { getNextElement, getTimeString, notify } from '@/functions';
+import ItemCard from '@boards/workers/card.vue';
+import ScrollButtons from '@/components/common/scrollButtons.vue';
+import { LineInfo, useLinesStore } from '@stores/lines';
+import { useResponsiblesStore } from '@stores/responsibles';
+import { useWorkerSlotsStore } from '@stores/workerSlots';
+import LineForm from '@/components/common/lineForm.vue';
 
 const linesStore = useLinesStore();
 const workersStore = useWorkersStore();
 const responsiblesStore = useResponsiblesStore();
 const workerSlotsStore = useWorkerSlotsStore();
 
-// TODO добавить сущности и хранилки к ним
-// const products = useProductsStore();
-
-//TODO добавитьт загрузку данных в хранилки
-let newWorker: WorkerInfo = ref({
+let newWorker: Ref<WorkerInfo> = ref({
     title: '',
     company: '',
     isEdited: true
@@ -34,8 +26,8 @@ let newWorker: WorkerInfo = ref({
 let showNewWorker = ref(false);
 let linesContainer = ref();
 let active: Ref<HTMLElement | null> = ref(null);
-const isLoading = ref(false); //TODO придумать, чё делать
 const showList = ref(false);
+const workerRefs = ref<Record<number, InstanceType<typeof ItemCard>>>({})
 
 const processData = async () => {
     return new Promise((resolve, reject) => {
@@ -49,10 +41,17 @@ const processData = async () => {
             }
         });
 
-        isLoading.value = false;
         resolve(true);
     });
 };
+const setWorkerRef = (el: any, workerId: number) => {
+    if (el) workerRefs.value[workerId] = el;
+};
+const handleCardChange = (id: number) => {
+    if (workerRefs.value[id]) {
+        workerRefs.value[id].$forceUpdate();
+    }
+}
 
 const newListText = computed(() => {
     return showList.value ? 'Скрыть' : 'Показать список рабочих';
@@ -66,15 +65,15 @@ const addLineFront = () => {
 }
 
 const addWorker = async () => {
-    if (await workersStore._create(newWorker)) {
-        newWorker = {
+    if (await workersStore._create(newWorker.value)) {
+        newWorker.value = {
             title: '',
             company: '',
             isEdited: true
         };
     }
 }
-// TODO требует проверки 
+// TODO Поправить
 const scrollToTop = () => {
     let x: TemplateRef | null = linesContainer.value;
     if (x == null) {
@@ -100,8 +99,9 @@ const recalcCounters = () => {
 }
 
 watch(
-    () => workersStore.workers,
+    () => workerSlotsStore.slots,
     (newWorkers) => {
+        console.log('watcher');
         recalcCounters()
     },
     { deep: true }
@@ -148,11 +148,13 @@ onBeforeMount(async () => {
                     notify('warning', 'Такого сотрудника не существует');
                     return;
                 }
-                let line_id = line.parentElement!.getAttribute('data-id'); // TODO проверить!
+                let line_id = line.parentElement!.getAttribute('data-id');
                 if (typeof worker?.current_line_id == 'number') {
                     workerSlotsStore._change(worker, Number(line_id));
+                    handleCardChange(worker.worker_id);
                 } else {
                     workerSlotsStore._create(worker, Number(line_id));
+                    handleCardChange(worker.worker_id);
                 }
             }
         });
@@ -166,7 +168,6 @@ onBeforeMount(async () => {
             if (!isMoveable) {
                 return;
             }
-            // TODO огромные сомнения? было ev.clientY
             const nextElement = getNextElement(
                 Number(
                     (ev.target as Element).getAttribute('clientY')
@@ -208,7 +209,6 @@ onBeforeMount(async () => {
             Распечатать график
         </Button>
     </div>
-    <!-- TODO: Придумать, как ре-рендерить карточки при оюновлении данных? -->
     <div class="lines-container" ref="linesContainer">
         <div class="line" :data-id="-1" v-show="showList">
             <Card :bordered="false" class="head" title="Не задействованы" :headStyle="{ 'background-color': 'white' }">
@@ -222,7 +222,6 @@ onBeforeMount(async () => {
                             <Input v-model:value="newWorker[field.name]" />
                         </FormItem>
                         <!-- TODO Проверить отображение и подумать насчёт указания времени обеда -->
-                        <!-- TODO Подумать о вынесении конструктора форма в отдельный компонент?  -->
                         <Button type="primary" style="width:100%" html-type="submit">
                             Сохранить
                         </Button>
@@ -234,11 +233,11 @@ onBeforeMount(async () => {
         <div class="line" v-for="line in linesStore.lines" :data-id="line.line_id!" :class="getLineClass(line)">
             <LineForm :data="line" />
             <section class="line_items">
-                <ItemCard v-for="(v, k) in workersStore.getByLine(line.line_id!)" :cardData="v" />
+                <ItemCard v-for="(v, k) in workersStore.getByLine(line.line_id!)" :cardData="v"
+                    :ref="(el) => setWorkerRef(el, v.worker_id)" />
             </section>
         </div>
     </div>
-    <Loading :open="isLoading" />
     <FloatButtonGroup trigger="hover" type="primary">
         <template #tooltip>
             <div>Добавить..</div>
@@ -254,7 +253,7 @@ onBeforeMount(async () => {
                 <LoginOutlined />
             </template>
         </FloatButton>
-        <FloatButton type="default" @click="showNewWorker = true">
+        <FloatButton type="default" @click="showNewWorker = true; showList = true;">
             <template #tooltip>
                 <div>Добавить сотрудника</div>
             </template>

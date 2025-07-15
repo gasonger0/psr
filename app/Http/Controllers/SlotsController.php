@@ -21,8 +21,8 @@ class SlotsController extends Controller
     public function create(Request $request)
     {
         $values = $request->post();
-        Util::appendSessionToData($values, $request);
-        $exists = Util::checkDublicate(new Slots(), [], $values, true);
+        Util::appendSessionToData($request);
+        $exists = Util::checkDublicate(new Slots(), [], $request->post(), true);
         if ($exists) {
             return Util::errorMsg('Такой слот уже существует');
         }
@@ -37,7 +37,7 @@ class SlotsController extends Controller
     public function change(Request $request)
     {
         $values = $request->post();
-        Util::appendSessionToData($values, $request);
+        Util::appendSessionToData($request);
 
         $oldSlot = Slots::withSession($request)
             ->where('worker_id', $values['worker_id'])
@@ -54,6 +54,7 @@ class SlotsController extends Controller
             'worker_id' => $oldSlot->worker_id,
             'ended_at' => $oldSlot->ended_at
         ]);
+        //TODO поправить на зполнение из запроса!!
         $newSlot->save();
 
         $oldSlot->ended_at = now();

@@ -84,14 +84,15 @@ class Util
     }
 
     /**
-     * Добавляет данные сессии (isDay, date) в переданный массим
-     * @param array $data Массив данных
+     * Добавляет данные сессии (isDay, date) в переданный запрос
      * @param \Illuminate\Http\Request $request Запрос
      * @return void
      */
-    public static function appendSessionToData(array &$data, Request $request)
+    public static function appendSessionToData(Request $request)
     {
-        $data['date'] = $request->attributes->get('date') ?? null;
-        $data['isDay'] = $request->attributes->get('isDay') ?? null;
+        $request->merge([
+            'date'  => $request->attributes->get('date') ?? null,
+            'isDay' => $request->attributes->get('isDay') ?? null
+        ]);
     }
 }

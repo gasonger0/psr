@@ -29,6 +29,16 @@ class Lines extends Model
     }
 
     public function linesExtra() {
-        return $this->hasMany(LinesExtra::class, 'line_id');
+        return $this->hasMany(LinesExtra::class,'line_id','line_id');
+    }
+    public function slots() {
+        return $this->hasMany(Slots::class,'slot_id','slot_id');
+    }
+    public function productsSlots() {
+        return $this->hasMany(ProductsSlots::class,'line_id','line_id');
+    }
+    public function plans()
+    {
+        return $this->hasManyThrough(ProductsPlan::class, ProductsSlots::class, 'product_slot_id', 'slot_id');
     }
 }

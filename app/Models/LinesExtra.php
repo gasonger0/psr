@@ -46,7 +46,7 @@ class LinesExtra extends Model
 
     public function lines()
     {
-        return $this->belongsTo(LinesExtra::class, 'line_id');
+        return $this->belongsTo(LinesExtra::class, 'line_id', 'line_id');
     }
 
     public function scopeGetOrInsert(Builder $query, Lines $line, Request $request): LinesExtra

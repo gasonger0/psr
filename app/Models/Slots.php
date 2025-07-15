@@ -19,6 +19,7 @@ class Slots extends Model
         'started_at', 
         'ended_at',
         'line_id',
+        'worker_id',
         'date',
         'isDay' 
     ];
@@ -54,7 +55,11 @@ class Slots extends Model
     }
 
     public function worker(){
-        // return $this->
+        return $this->hasOne(Workers::class,'worker_id');
+    }
+
+    public function line() {
+        return $this->hasOne(Lines::class,'line_id');
     }
 
 }

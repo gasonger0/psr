@@ -27,6 +27,10 @@ class Workers extends Model
         $this->attributes['updated_at'] = Carbon::parse($value)->format('Y-m-d H:i:s');
     }
 
+    public function slots() {
+        return $this->hasMany(Slots::class, 'slot_id');
+    }
+
     // public function addMinutes(int $minutes) {
     //     $c1 = Carbon::instance(new \DateTime($this->time_planned));
     //     $c1->addMinutes($minutes);

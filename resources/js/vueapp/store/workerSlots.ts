@@ -5,6 +5,7 @@ import { getRequest, deleteRequest, notify, putRequest, postRequest } from '../f
 import { useWorkersStore, WorkerInfo } from './workers';
 import { AxiosError, AxiosResponse } from 'axios';
 import { useLinesStore } from './lines';
+import { format } from './dicts';
 
 export type WorkerSlot = {
     slot_id?: number,
@@ -24,7 +25,11 @@ export const useWorkerSlotsStore = defineStore('workersSlots', () => {
      * Загружает данные в хранилище из БД
      */
     async function _load(): Promise<void> {
-        slots.value = await getRequest('/api/workers_slots/get');
+        slots.value = (await getRequest('/api/workers_slots/get')).map((el: WorkerSlot) => {
+            el.started_at = dayjs.default(el.started_at, format);
+            el.ended_at = dayjs.default(el.ended_at, format);
+            return el;
+        });
     }
     /**
      * Создаёт новый рабочий слот сотрудника
@@ -36,11 +41,13 @@ export const useWorkerSlotsStore = defineStore('workersSlots', () => {
         await postRequest('/api/workers_slots/create', {
             worker_id: worker.worker_id,
             line_id: line_id,
-            started_at: dayjs.default(),
-            ended_at: line?.work_time.ended_at
+            started_at: dayjs.default().format(format),
+            ended_at: line?.work_time.ended_at.format(format)
         },
             (r: AxiosResponse) => {
                 slots.value.push(r.data);
+                worker.current_line_id = line_id;
+                worker.current_slot_id = r.data.slot_id;
             }
         )
     }
@@ -115,6 +122,8 @@ export const useWorkerSlotsStore = defineStore('workersSlots', () => {
 
     return {
         slots,
+        // add 
+        // TODO add для графика
         _load,
         _create,
         // _update,

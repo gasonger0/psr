@@ -20,4 +20,14 @@ class ProductsSlots extends Model
     {
         $this->attributes['updated_at'] = Carbon::parse($value)->format('Y-m-d H:i:s');
     }
+
+    public function product(){
+        return $this->hasOne(ProductsDictionary::class,'product_id');
+    }
+    public function line(){
+        return $this->hasOne(Lines::class,'line_id');
+    }
+    public function plans() {
+        return $this->hasMany(ProductsPlan::class,'plan_product_id');
+    }
 }
