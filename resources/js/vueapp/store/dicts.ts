@@ -42,7 +42,7 @@ export const positions = {
 export const workerDictColumns = [{
     title: '',
     dataIndex: 'actions',
-    width: '5%'
+    width: '10%'
 }, {
     title: 'ФИО',
     dataIndex: 'title',
@@ -55,7 +55,7 @@ export const workerDictColumns = [{
 export const responsibleDictColumns = [{
     title: '',
     dataIndex: 'actions',
-    width: '5%'
+    width: '10%'
 }, {
     title: 'ФИО',
     dataIndex: 'title',

@@ -1,5 +1,8 @@
 import { defineStore } from "pinia";
 import { Ref, ref } from "vue";
+import { CategoryInfo, useCategoriesStore } from "./categories";
+import { getRequest } from "../functions";
+
 
 export type ProductInfo = {
     product_id?: number,
@@ -10,15 +13,20 @@ export type ProductInfo = {
     kg2boil: string,
     cars: string,
     cars2plates: string,
-    always_show?: Ref<boolean>
+    always_show?: Ref<boolean>,
+    category: CategoryInfo
 };
 
 export const useProductsStore = defineStore('products', () => {
-    const products = ref<ProductInfo[]>([]);
+    const products: Ref<ProductInfo[]> = ref([]);
 
     /****** API ******/
     async function _load(): Promise<void> {
-
+        const catStore = useCategoriesStore();
+        products.value = (await getRequest('/api/products/get')).map((el: ProductInfo) => {
+            el.category = catStore.getByID(el.category_id);
+            return el;
+        })
     }
 
     async function _create(): Promise<void> {
@@ -33,6 +41,11 @@ export const useProductsStore = defineStore('products', () => {
 
     }
 
-
-
+    return {
+        products,
+        _load,
+        _create,
+        _delete,
+        _update
+    }
 });

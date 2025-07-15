@@ -35,7 +35,7 @@ const getLineWorkerLimit = (line: LineInfo) => {
 const formatLineResponsible = (line: LineInfo) => {
     let arr: string[] = [];
     if (line.master) {
-        let f = responsiblesStore.getById(line.master!);
+        let f = responsiblesStore.getByID(line.master!);
         if (f) {
             let n = f.title.split(' ');
             arr.push(n[0] + ' ' + n[1][0] + '.' + ', ' + f.position);
@@ -43,7 +43,7 @@ const formatLineResponsible = (line: LineInfo) => {
     }
 
     if (line.engineer) {
-        let f = responsiblesStore.getById(line.master!);
+        let f = responsiblesStore.getByID(line.master!);
         if (f) {
             let n = f.title.split(' ');
             arr.push(n[0] + ' ' + n[1][0] + '.' + ', ' + f.position);

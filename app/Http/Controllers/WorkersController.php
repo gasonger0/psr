@@ -34,7 +34,7 @@ class WorkersController extends Controller
     }
     public function update(Request $request)
     {
-        Workers::update($request->only((new Workers())->getFillable()));
+        Workers::find($request->post('worker_id'))->update($request->only((new Workers())->getFillable()));
         return Util::successMsg('Данные сотрудника обновлены');
 
     }

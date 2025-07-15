@@ -2,7 +2,7 @@
 import { Button, Modal, Table } from 'ant-design-vue';
 import axios from 'axios';
 import { ref } from 'vue';
-import dayjs from 'dayjs';
+import * as dayjs from 'dayjs';
 </script>
 <script>
 export default {
@@ -45,7 +45,7 @@ export default {
             .then((response) => {
                 if (response.data) {
                     this.logs = response.data.map(el => {
-                        el.created_at = dayjs(el.created_at).subtract(3, 'hour').format('HH:mm:ss');
+                        el.created_at = dayjs.default(el.created_at).subtract(3, 'hour').format('HH:mm:ss');
                         return el;
                     });
                 }

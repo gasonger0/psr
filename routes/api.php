@@ -39,7 +39,7 @@ Route::group(['middleware' => ['web', ParseSession::class]], function () {
     Route::controller(WorkersController::class)
         ->prefix('/workers')
         ->middleware(ForceJsonResponse::class)
-        ->group(function() {
+        ->group(function () {
             // crud
             Route::get('/get', 'get');
             Route::put('/update', 'update');
@@ -56,7 +56,7 @@ Route::group(['middleware' => ['web', ParseSession::class]], function () {
         ->group(function () {
             // crud
             Route::get('/get', 'get');
-            Route::put('/update','update');
+            Route::put('/update', 'update');
             Route::post('/create', 'create');
             Route::delete('/delete', 'delete');
             // actions
@@ -82,6 +82,8 @@ Route::group(['middleware' => ['web', ParseSession::class]], function () {
     /*********************
      * ProductsCategories
      ********************/
+
+    // TODO CRUD
     Route::get('/get_categories', [ProductsCategoriesController::class, 'getTree']);
 
 
@@ -101,7 +103,7 @@ Route::group(['middleware' => ['web', ParseSession::class]], function () {
             Route::delete('/clear', 'clear');
             Route::put('/change', 'change');
         });
-   
+
     /****************
      * PRODUCTS_SLOTS
      ***************/
@@ -134,10 +136,10 @@ Route::group(['middleware' => ['web', ParseSession::class]], function () {
      *****/
     Route::controller(TableController::class)
         ->prefix('/tables')
-        ->group(function() {
+        ->group(function () {
             Route::middleware(ForceJsonResponse::class)->post('/load_order', 'loadOrder');
         });
-        
+
 
     Route::post('/load_xlsx', [TableController::class, 'loadFile']);
     // Route::post('/load_order', [TableController::class, 'loadOrder']);

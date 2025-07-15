@@ -23,7 +23,7 @@ class LinesController extends Controller
         $result = [];
 
         Lines::all()->each(function ($line) use (&$result, $request) {
-            $extra = LinesExtra::withSession($request)->getOrInsert($line);
+            $extra = LinesExtra::withSession($request)->getOrInsert($line, $request);
             $has_plans = ProductsPlan::withSession($request)->where('line_id', $line->line_id)->count() > 0;
 
             $result[] = array_merge(

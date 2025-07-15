@@ -1,26 +1,19 @@
 <script setup lang="ts">
 import { DeleteOutlined, SaveOutlined, UndoOutlined } from '@ant-design/icons-vue';
-import { Modal, Table, TabPane, Tabs, Button, Input, Select, TableSummary, TableSummaryRow, TableSummaryCell, Pagination } from 'ant-design-vue';
-import { onBeforeMount, Reactive, reactive, Ref, ref, watch } from 'vue';
-import { useWorkersStore, WorkerInfo } from '../../store/workers';
-import { responsibleDictColumns, positions, workerDictColumns } from '../../store/dicts';
-import { ResponsibleInfo, useResponsiblesStore } from '../../store/responsibles';
-
-defineProps({
-    open: {
-        type: Boolean,
-        required: true
-    }
-});
-defineEmits(['close-modal']);
+import { Modal, Table, TabPane, Tabs, Button, Input, Select, TableSummary, TableSummaryRow, TableSummaryCell, Pagination, Tooltip } from 'ant-design-vue';
+import { onBeforeMount, Ref, ref } from 'vue';
+import { useWorkersStore, WorkerInfo } from '@stores/workers';
+import { responsibleDictColumns, positions, workerDictColumns } from '@stores/dicts';
+import { ResponsibleInfo, useResponsiblesStore } from '@stores/responsibles';
+import { useModalsStore } from '@stores/modal';
 
 const workers = useWorkersStore();
 const responsibles = useResponsiblesStore();
-
+const modal = useModalsStore();
 /**
  * Оригинальные значения
  */
-const original: Ref<Object> = ref({
+const original = ref({
     1: {},
     2: {}
 });
@@ -79,6 +72,7 @@ const save = (rec: Record<string, any>): void => {
             responsibles._update(rec as ResponsibleInfo);
         }
     }
+    rec.isEdited = false;
 }
 /**
  * Удалить сотрудника
@@ -95,13 +89,14 @@ const del = (rec: Record<string, any>): void => {
  */
 const cancel = (rec: Record<string, any>) => {
     if ("worker_id" in rec) {
-        rec = original[1][rec.worker_id];
-        original[1][rec.worker_id] = undefined;
+        Object.assign(rec, original.value[1][rec.worker_id]);
+        delete original.value[1][rec.worker_id];
     } else {
-        rec = original[2][rec.responsible_id];
-        original[2][rec.responsible_id] = undefined;
+        Object.assign(rec, original.value[2][rec.responsible_id]);
+        delete original.value[2][rec.responsible_id];
     }
-    rec.isEdited!.value = false;
+    rec.isEdited = false;
+    return;
 }
 /**
  * Начало редактирования
@@ -110,11 +105,19 @@ const edit = (rec: Record<string, any>): void => {
     console.log('Editing registered');
 
     if ("worker_id" in rec) {
-        original[1][rec.worker_id] = rec;
+        if (original.value[1][rec.worker_id]) {
+            console.log('already found');
+            return;
+        }
+        original.value[1][rec.worker_id] = Object.assign({}, rec);
     } else {
-        original[2][rec.responsible_id] = rec;
+        if (original.value[2][rec.responsible_id]) {
+            return;
+        }
+        original.value[2][rec.responsible_id] = Object.assign({}, rec);
     }
-    rec.isEdited!.value = true;
+    console.log(original);
+    rec.isEdited = true;
     return;
 }
 
@@ -126,12 +129,15 @@ onBeforeMount(async () => {
 
 
 const exit = (): void => {
+    const modal = useModalsStore();
+    modal.close('workers');
     return;
 }
 
 </script>
 <template>
-    <Modal v-model:open="$props.open" @close="$emit('close-modal')" :closable="false" class="modal workers">
+    <Modal v-model:open="modal.visibility['workers']" @close="$emit('close-modal')" :closable="false"
+        class="modal workers" style="width:60%;">
         <div class="workers">
             <Tabs v-model:activeKey="activeTab">
                 <TabPane v-for="(v, k) in workerDictTabs" :key="k" :tab="v">
@@ -144,12 +150,22 @@ const exit = (): void => {
                                 </Select>
                             </template>
                             <template v-else-if="column.dataIndex == 'actions'">
-                                <DeleteOutlined @click="del(record)" />
-                                <SaveOutlined @click="save(record)" v-if="record.isEditing"/>
-                                <UndoOutlined @click="cancel(record)" v-if="record.isEditing"/>
+                                <section class="actions">
+                                    <Tooltip title="Удалить">
+                                        <DeleteOutlined @click="del(record)" class="action-icon delete" />
+                                    </Tooltip>
+                                    <Tooltip title="Сохранить">
+                                        <SaveOutlined @click="save(record)" class="action-icon save"
+                                            v-if="record.isEdited" />
+                                    </Tooltip>
+                                    <Tooltip title="Отмена">
+                                        <UndoOutlined @click="cancel(record)" class="action-icon undo"
+                                            v-if="record.isEdited" />
+                                    </Tooltip>
+                                </section>
                             </template>
                             <template v-else>
-                                <Input v-model:value="record[column.dataIndex]" @change="edit(record)" />
+                                <Input v-model:value="record[String(column.dataIndex)]" @focus="edit(record)" />
                             </template>
                         </template>
                         <template #summary>

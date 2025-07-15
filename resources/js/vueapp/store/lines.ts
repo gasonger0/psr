@@ -1,10 +1,10 @@
 import { defineStore } from "pinia";
-import { Slot } from "./dicts.ts";
-import dayjs, { Dayjs } from 'dayjs'
-import { ResponsibleInfo } from "./responsibles.ts";
+import { Slot } from "@stores/dicts";
+import * as dayjs from 'dayjs'
+import { ResponsibleInfo } from "@stores/responsibles";
 import { reactive, Ref, ref } from "vue";
-import { deleteRequest, getRequest, getTimeString, postRequest, putRequest } from "../functions.ts";
-import { WorkerInfo } from "./workers.ts";
+import { deleteRequest, getRequest, getTimeString, postRequest, putRequest } from "@/functions";
+import { WorkerInfo } from "@stores/workers";
 import { AxiosResponse } from "axios";
 import { SelectValue } from "ant-design-vue/es/select/index";
 import { now } from "moment";
@@ -23,7 +23,7 @@ export type LineInfo = {
     line_extra_id?: number,
     workers_count: number,
     work_time: Slot,
-    down_from?: Dayjs,
+    down_from?: dayjs.Dayjs,
     cancel_reason?: number,          // TODO придумать, как привести к значениям только из справочника
     master?: number,
     engineer?: number,
@@ -31,7 +31,7 @@ export type LineInfo = {
     after_time: number,
     extra_title?: string,
     detector: Detector,
-    date: Dayjs,
+    date: dayjs.Dayjs,
     isDay: boolean,
     edit: boolean
 };
@@ -39,8 +39,8 @@ export type LineInfo = {
 type Detector = {
     line_extra_id?: number, //TODO ХЗ, надо ли оно тут вообще
     has_detector: boolean,
-    detector_start?: Dayjs,
-    detector_end?: Dayjs
+    detector_start?: dayjs.Dayjs,
+    detector_end?: dayjs.Dayjs
 };
 
 export const useLinesStore = defineStore('lines', () => {
@@ -78,7 +78,7 @@ export const useLinesStore = defineStore('lines', () => {
             reason: reason ? reason : ''
         }, (response: AxiosResponse) => {
             if (reason) {
-                line.down_from = dayjs();
+                line.down_from = dayjs.default();
             } else {
                 line.down_from = undefined;
             }
@@ -90,7 +90,7 @@ export const useLinesStore = defineStore('lines', () => {
         return;
     };
 
-    function getById(line_id: number): LineInfo|undefined {
+    function getByID(line_id: number): LineInfo|undefined {
         return lines.value.find((el: LineInfo) => el.line_id == line_id);
     }
 
@@ -109,8 +109,8 @@ export const useLinesStore = defineStore('lines', () => {
         lines.value.push({
             edit: true,
             work_time: {
-                started_at: dayjs(),
-                ended_at: dayjs(),
+                started_at: dayjs.default(),
+                ended_at: dayjs.default(),
             },
             title: 'Новая линия',
             workers_count: 0,
@@ -120,7 +120,7 @@ export const useLinesStore = defineStore('lines', () => {
             detector: {
                 has_detector: false
             } as Detector,
-            date: dayjs(sessionStorage.getItem('date'), 'y-m-d'),
+            date: dayjs.default(sessionStorage.getItem('date'), 'y-m-d'),
             isDay: Boolean(Number(sessionStorage.getItem('isDay')))
         } as LineInfo);
 
@@ -130,10 +130,10 @@ export const useLinesStore = defineStore('lines', () => {
         line.edit = false;
         line.color = ref(line.color);
         line.showDelete = ref(false);
-        line.date = dayjs(line.date);
+        line.date = dayjs.default(line.date);
         line.work_time = ref({
-            started_at: dayjs(line.started_at, 'HH:mm:ss'),
-            ended_at: dayjs(line.ended_at, 'HH:mm:ss')
+            started_at: dayjs.default(line.started_at, 'HH:mm:ss'),
+            ended_at: dayjs.default(line.ended_at, 'HH:mm:ss')
         });
         line.detector = ref({
             has_detector: line.has_detector,
@@ -154,5 +154,5 @@ export const useLinesStore = defineStore('lines', () => {
         delete item.detector, item.work_time;
         return item;
     }
-    return { lines, _load, _create, _update, _delete, _sendStop, getIfDone, add, splice, getById }
+    return { lines, _load, _create, _update, _delete, _sendStop, getIfDone, add, splice, getByID }
 })

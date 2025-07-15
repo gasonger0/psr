@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    // "baseUrl": ".",
+    // "target": "es2024", // Или "es6", "es2017", "esnext"
+    "lib": ["ES2024", "DOM"],
+    "esModuleInterop": true,
+    "paths": {
+        "@/*": ["./resources/js/vueapp/*"],
+        "@boards/*": ["./resources/js/vueapp/components/boards/*"],
+        "@common/*": ["./resources/js/vueapp/components/common/*"],
+        "@modals/*": ["./resources/js/vueapp/components/modals/*"],
+        "@stores/*": ["./resources/js/vueapp/store/*"],
+    }
+  },
+}

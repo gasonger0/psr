@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite';
 import vuePlugin from '@vitejs/plugin-vue';
 import laravel from 'laravel-vite-plugin';
+import path from 'path';
 
 export default defineConfig({
     plugins: [
@@ -10,6 +11,15 @@ export default defineConfig({
         }),
         vuePlugin()
     ],
+    resolve: {
+        alias: {
+            '@': path.resolve(__dirname, './resources/js/vueapp'),
+            '@boards': path.resolve(__dirname, './resources/js/vueapp/components/boards'),
+            '@common': path.resolve(__dirname, './resources/js/vueapp/components/common'),
+            '@modals': path.resolve(__dirname, './resources/js/vueapp/components/modals'),
+            '@stores': path.resolve(__dirname, './resources/js/vueapp/store'),
+        }
+    },
     server: {
         hmr: {
             host: 'localhost',

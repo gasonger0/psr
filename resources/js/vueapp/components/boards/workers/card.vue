@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { Card, Tooltip, Popconfirm, Popover, Select } from 'ant-design-vue';
-import { useWorkersStore, WorkerInfo } from '../../../store/workers.ts';
+import { useWorkersStore, WorkerInfo } from '@stores/workers';
 import { computed, ref } from 'vue';
 import { CoffeeOutlined, UserSwitchOutlined, UserDeleteOutlined } from '@ant-design/icons-vue';
-import { notify, SelectOption } from '../../../functions.ts';
+import { notify, SelectOption } from '@/functions';
 import { DefaultOptionType, LabelInValueType, RawValueType } from 'ant-design-vue/es/vc-select/Select';
-import { useWorkerSlotsStore } from '../../../store/workerSlots.ts';
+import { useWorkerSlotsStore } from '@stores/workerSlots';
 
 const props = defineProps({
     cardData: {
@@ -32,7 +32,7 @@ const replaceWorker = async (v: RawValueType | LabelInValueType, ev: DefaultOpti
         replacer.value = null;
         return;
     }
-    let newWorker = store.getById(ev.key)
+    let newWorker = store.getByID(ev.key)
     if (!newWorker){
         return;     // TODO придумать как обработать
     }

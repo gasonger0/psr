@@ -6,6 +6,7 @@ use App\withSession;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\Request;
 
 class LinesExtra extends Model
 {
@@ -48,7 +49,7 @@ class LinesExtra extends Model
         return $this->belongsTo(LinesExtra::class, 'line_id');
     }
 
-    public function scopeGetOrInsert(Builder $query, Lines $line): LinesExtra
+    public function scopeGetOrInsert(Builder $query, Lines $line, Request $request): LinesExtra
     {
         $extra = $query->where('line_id', $line->line_id)->first();
         if ($extra) {
@@ -60,10 +61,11 @@ class LinesExtra extends Model
                 $attributes[$el['column']] = $el['value'];
             }
         }
+        // TODO почему-то не всегда сразу создаёт с параметрами сессии. Видимо, надо их заюивать до всех запросов
         return LinesExtra::create(
             ['line_id' => $line->line_id] +
             $attributes +
-            Util::getDefaults($line->line_id)
+            Util::getDefaults($line->line_id) 
         );
     }
 }

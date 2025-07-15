@@ -12,18 +12,21 @@ import {
     CheckCircleOutlined,
     TableOutlined
 } from '@ant-design/icons-vue';
-import dayjs, { Dayjs } from 'dayjs';
+import * as dayjs from "dayjs";
 import { Ref, ref } from 'vue';
 import { FileType } from 'ant-design-vue/es/upload/interface';
 import { notify, postRequest } from '../../functions';
 import { AxiosResponse } from 'axios';
 import locale from 'ant-design-vue/es/date-picker/locale/ru_RU';
+import { useModalsStore } from '@stores/modal';
 
 const boardMode: Ref<boolean> = ref(false);
 const uploadedFile: Ref<UploadFile[] | undefined> = ref();
-const date: Dayjs = dayjs(new Date(sessionStorage.getItem('date')!));
+const date: dayjs.Dayjs = dayjs.default(new Date(sessionStorage.getItem('date')!));
 const isDay: Ref<boolean> = ref(Boolean(Number(sessionStorage.getItem('isDay')!)));
 const showAccept: Ref<boolean> = ref(false);
+
+const modalStore = useModalsStore();
 
 const changeBoard = () => emit('change-board');
 const processOrder = (file: FileType) => {
@@ -55,6 +58,9 @@ const updateSession = () => {
         window.location.reload();
     });
 }
+const openModal = (name: string) => {
+    modalStore.open(name);
+}
 const props = defineProps({
     boils: {
         type: Number,
@@ -70,6 +76,7 @@ const emit = defineEmits([
     'workers-window',
     'logs-window'
 ]);
+defineExpose(props);
 </script>
 <template>
     <div class="top-container">
@@ -77,7 +84,7 @@ const emit = defineEmits([
             <Switch checked-children="Продукция" un-checked-children="Работники" v-model:checked="boardMode"
                 @change="changeBoard" />
             <Dropdown>
-                <Button class="excel-button">
+                <Button class="excel-button" type="primary">
                     <FileExcelOutlined />
                     Загрузить
                 </Button>
@@ -95,11 +102,11 @@ const emit = defineEmits([
                     </Menu>
                 </template>
             </Dropdown>
-            <Button type="default" @click="$emit('result-window')">
+            <Button type="default" @click="openModal('result')">
                 <BarChartOutlined />
                 Отчёт
             </Button>
-            <Button type="primary" @click="$emit('graph-window')">
+            <Button type="primary" @click="openModal('graph')">
                 <EditOutlined />
                 Редактировать график
             </Button>
@@ -111,19 +118,19 @@ const emit = defineEmits([
                 <template #overlay>
                     <Menu>
                         <MenuItem>
-                        <Button type="primary" @click="$emit('plans-window')">
+                        <Button type="primary" @click="openModal('plans')">
                             <CalendarOutlined />
                             Реестр планов
                         </Button>
                         </MenuItem>
                         <MenuItem>
-                        <Button type="primary" @click="$emit('products-window')">
+                        <Button type="primary" @click="openModal('products')">
                             <AppstoreOutlined />
                             Реестр продукции
                         </Button>
                         </MenuItem>
                         <MenuItem>
-                        <Button type="primary" @click="$emit('workers-window')">
+                        <Button type="primary" @click="openModal('workers')">
                             <TeamOutlined />
                             Реестр работников
                         </Button>
@@ -131,7 +138,7 @@ const emit = defineEmits([
                     </Menu>
                 </template>
             </Dropdown>
-            <Button type="dashed" @click="$emit('logs-window')">
+            <Button type="dashed" @click="openModal('logs')">
                 <TableOutlined />
                 Журнал
             </Button>

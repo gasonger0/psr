@@ -272,6 +272,9 @@ section.worker .tools {
     background-color: green;
     color: white;
 }
+.excel-button:hover {
+    background-color: rgb(26, 156, 26) !important;
+}
 
 .accept-button {
     color: green;
@@ -284,10 +287,35 @@ section.worker .tools {
     width: 40%;
     height: 80%;
 }
-
+.actions {
+    display:flex;
+    justify-content: space-around;
+    width:75px;
+}
 .modal.workers div.workers {
     max-height: 74vh;
     overflow: auto;
+}
+
+.plans-toolbar {
+    height: fit-content;
+    margin-left: 1vw;
+    display: flex;
+    gap: 10px;
+}
+.action-icon {
+    height:25px;
+    width: 25px;
+    font-size: 22px;
+}
+.action-icon.delete {
+    color:red
+}
+.action-icon.save {
+    color: #1677ff;
+}
+.action-icon.undo {
+    color:#f48c05;
 }
 
 /* TEST */

@@ -1,9 +1,10 @@
 import axios, { AxiosResponse } from "axios";
-import dayjs, { Dayjs } from "dayjs";
+import * as dayjs from "dayjs";
 import { notification } from "ant-design-vue";
 
 function handleResponse(r: AxiosResponse) {
-    let data = JSON.parse(r.data);
+    let data = r.data;
+    console.log(data);
     if (data.error) {
         notify('error', data.error);
         return;
@@ -89,8 +90,8 @@ export async function deleteRequest(
     })
 }
 
-export function getTimeString(): Dayjs {
-    return dayjs();
+export function getTimeString(): dayjs.Dayjs {
+    return dayjs.default();
 }
 
 export function notify(type: string, message: string) {

@@ -20,7 +20,7 @@ export default {
     data() {
         return {
             uploadedFile: ref(null),
-            date: dayjs(new Date(sessionStorage.getItem('date'))),
+            date: dayjs.default(new Date(sessionStorage.getItem('date'))),
             isDay: ref(sessionStorage.getItem('isDay') == 'true'),
             boardMode: this.$props.boardMode,
             showAccept: ref(false)

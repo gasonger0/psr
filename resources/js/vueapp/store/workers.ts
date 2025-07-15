@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import dayjs from 'dayjs';
+import * as dayjs from 'dayjs';
 import { deleteRequest, getRequest, getTimeString, notify, postRequest, putRequest, SelectOption } from "../functions";
 import { AxiosError, AxiosResponse } from "axios";
 import { Slot } from "./dicts";
@@ -18,7 +18,7 @@ export type WorkerInfo = {
     company?: string,
     on_break?: boolean,
     popover?: boolean,
-    isEdited?: Ref<boolean>
+    isEdited: boolean
 };
 
 // Форма для нового сотрудника в справочнике/веб-интерфейсе
@@ -53,7 +53,7 @@ export const useWorkersStore = defineStore('workers', () => {
     async function _load(): Promise<void> {
         const items = await getRequest('/api/workers/get');
         workers.value = items.map((worker: any): WorkerInfo => {
-            worker.isEdited = ref(false);
+            worker.isEdited = false;
             return serialize(worker);
         });
     };
@@ -62,7 +62,7 @@ export const useWorkersStore = defineStore('workers', () => {
      * @param {WorkerInfo} fields набор полей нового сотрудника 
      */
     async function _create(fields: WorkerInfo): Promise<boolean> {
-        return await postRequest('/api/worker/create',
+        return await postRequest('/api/workers/create',
             fields,
             (r: AxiosResponse) => {
                 fields.worker_id = r.data.worker_id;
@@ -79,14 +79,14 @@ export const useWorkersStore = defineStore('workers', () => {
      * @param fields 
      */
     async function _update(fields: WorkerInfo): Promise<boolean> {
-        return await putRequest('/api/worker/update', fields);
+        return await putRequest('/api/workers/update', fields);
     }
     /**
      * Удаляет сотрудника из БД
      * @param worker 
      */
     async function _delete(worker: WorkerInfo): Promise<boolean> {
-        return await deleteRequest('/api/worker/delete', worker,
+        return await deleteRequest('/api/workers/delete', worker,
             (r: AxiosResponse) => {
                 splice(worker.worker_id!);
             }
@@ -108,8 +108,8 @@ export const useWorkersStore = defineStore('workers', () => {
      */
     function serialize(fields: any): WorkerInfo {
         fields.break = {
-            started_at: dayjs(fields.break_started_at, 'HH:mm:ss'),
-            ended_at: dayjs(fields.break_ended_at, 'HH:mm:ss')
+            started_at: fields.break_started_at ? dayjs.default(fields.break_started_at, 'HH:mm:ss') : dayjs.default(),
+            ended_at: fields.break_ended_at ? dayjs.default(fields.break_ended_at, 'HH:mm:ss') : dayjs.default()
         };
         delete fields.break_started_at;
         delete fields.break_ended_at;
@@ -129,7 +129,7 @@ export const useWorkersStore = defineStore('workers', () => {
         workers.value.push({
             title: '',
             company: '',
-            isEdited: ref(true)
+            isEdited: true
         });
         return;
     };
@@ -138,7 +138,7 @@ export const useWorkersStore = defineStore('workers', () => {
      * @param worker_id 
      * @returns 
      */
-    function getById(worker_id: number): WorkerInfo | undefined {
+    function getByID(worker_id: number): WorkerInfo | undefined {
         return workers.value.find((el: WorkerInfo) => el.worker_id == worker_id);
     };
     /**
@@ -173,7 +173,7 @@ export const useWorkersStore = defineStore('workers', () => {
         splice,
         serialize,
         add,
-        getById,
+        getByID,
         getByLine,
         toSelectOptions
     };

@@ -127,11 +127,11 @@ export default {
                 axios.get('/api/get_product_plans')
                     .then((response) => {
                         let curTime = new Date();
-                        let timeString = dayjs();
+                        let timeString = dayjs.default();
                         this.plans = response.data.map((el) => {
                             let prod = this.products.find((i) => i.product_id == el.product_id);
-                            el.started_at = dayjs(el.started_at, 'HH:mm:ss');
-                            el.ended_at = dayjs(el.ended_at, 'HH:mm:ss');
+                            el.started_at = dayjs.default(el.started_at, 'HH:mm:ss');
+                            el.ended_at = dayjs.default(el.ended_at, 'HH:mm:ss');
                             if (el.ended_at < el.started_at && sessionStorage.isDay == "false") {
                                 el.ended_at = el.ended_at.add(1, 'day');
                             }
@@ -285,14 +285,14 @@ export default {
                             if (lastProd.length > 0 && this.active.position > 0) {
                                 console.log(lastProd);
                                 lastProd = lastProd.find(i => i.position == (this.active.position-1));
-                                this.active.started_at = ref(dayjs(lastProd.ended_at, 'HH:mm'));
+                                this.active.started_at = ref(dayjs.default(lastProd.ended_at, 'HH:mm'));
                             } else if (this.active.line.started_at != null) {
                                 this.active.started_at = ref(this.active.line.started_at);
                                 if (this.active.line.prep_time) {
                                     this.active.started_at = this.active.started_at.add(this.active.line.prep_time, 'minute');
                                 }
                             } else {
-                                this.active.started_at = ref(dayjs());
+                                this.active.started_at = ref(dayjs.default());
                             }
                             this.active.time = (this.active.amount * prod.amount2parts * prod.parts2kg / this.active.perfomance).toFixed(2);
                             this.active.ended_at = ref(this.active.started_at.add(this.active.time, 'hour'));
@@ -459,9 +459,9 @@ export default {
                         let minPos = Math.min(...positions);
                         let maxPos = Math.max(...positions);
                         console.log(minPos, maxPos, items);
-                        el.started_at = dayjs(items.find(i => i.position == minPos).started_at, 'HH:mm:ss');
+                        el.started_at = dayjs.default(items.find(i => i.position == minPos).started_at, 'HH:mm:ss');
                         //el.started_at = el.started_at.add(-el.prep_time, 'minute');
-                        el.ended_at = dayjs(items.find(i => i.position == maxPos).ended_at, 'HH:mm:ss');
+                        el.ended_at = dayjs.default(items.find(i => i.position == maxPos).ended_at, 'HH:mm:ss');
                         if (el.started_at > el.ended_at && sessionStorage.isDay == "false") {
                             el.ended_at = el.ended_at.add(1, 'day');
                         }
@@ -705,10 +705,10 @@ export default {
                 .then((response) => {
                     this.$emit('notify', 'success', 'Сохранено');
                     let i = this.lines.find(el => el.line_id == record['line_id']);
-                    // i.started_at = dayjs(record.started_at.format('HH:mm'));
-                    // i.ended_at = dayjs(record.ended_at.format('HH:mm'));
-                    // i.started_at = dayjs(record.started_at.format('HH:mm'));
-                    // i.ended_at = dayjs(record.ended_at.format('HH:mm'));
+                    // i.started_at = dayjs.default(record.started_at.format('HH:mm'));
+                    // i.ended_at = dayjs.default(record.ended_at.format('HH:mm'));
+                    // i.started_at = dayjs.default(record.started_at.format('HH:mm'));
+                    // i.ended_at = dayjs.default(record.ended_at.format('HH:mm'));
                     let arr = [];
                     if (i.master) {
                         let f = this.responsible.find(m => m.responsible_id == i.master);
@@ -775,7 +775,7 @@ export default {
                 this.active.perfomance = (this.active.slot && this.active.slot.perfomance) ? this.active.slot.perfomance : 1;
 
                 this.active.title = prod.title;
-                this.active.started_at = dayjs(plan.started_at, 'HH:mm');
+                this.active.started_at = dayjs.default(plan.started_at, 'HH:mm');
 
                 this.active.time = (this.active.amount * prod.amount2parts * prod.parts2kg / this.active.perfomance).toFixed(2);
                 this.active.ended_at = ref(this.active.started_at.add(this.active.time, 'hour'));

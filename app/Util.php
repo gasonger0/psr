@@ -36,16 +36,16 @@ class Util
     {
         if ($strong) {
             if ($model::where($values)->count() > 0) {
-                return false;
+                return true;
             }
         } else {
             foreach ($fields as $field) {
                 if ($model::where($field, $values[$field])->count() > 0) {
-                    return false;
+                    return true;
                 }
             }
         }
-        return true;
+        return false;
     }
 
     /**

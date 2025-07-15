@@ -9,7 +9,7 @@ export type ResponsibleInfo = {
     responsible_id?: number,
     title: string,
     position: number,
-    isEdited?: Ref<boolean>
+    isEdited: boolean
 };
 
 export const useResponsiblesStore = defineStore('responsible', () => {
@@ -26,10 +26,19 @@ export const useResponsiblesStore = defineStore('responsible', () => {
                 position_id: el.position,
                 title: positions[el.position]
             };
-            el.isEdited = ref(false);
+            el.isEdited = false;
             return el as ResponsibleInfo;
         });
     };
+    // TODO
+    async function _create(rec: ResponsibleInfo): Promise<void> {
+
+    }
+
+    async function _update(rec: ResponsibleInfo): Promise<void> {
+
+    }
+
     /**
      * Удалить ответственного из реестра
      * @param rec Данные ответственного
@@ -53,7 +62,7 @@ export const useResponsiblesStore = defineStore('responsible', () => {
         this.responsibles.push({
             title: '',
             position: ref(1),
-            isEdited: ref(true)
+            isEdited: true
         });
     };
     /**
@@ -66,9 +75,9 @@ export const useResponsiblesStore = defineStore('responsible', () => {
         return;
     };
 
-    function getById(id: number): ResponsibleInfo|undefined{
+    function getByID(id: number): ResponsibleInfo|undefined{
         return responsibles.value.find((el: ResponsibleInfo) => el.responsible_id == id);
     }
 
-    return { responsibles, _load, _delete, add, splice, getById }
+    return { responsibles, _load, _create, _update, _delete, add, splice, getByID }
 });

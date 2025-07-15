@@ -1,4 +1,4 @@
-import dayjs, { Dayjs } from 'dayjs';
+import * as dayjs from 'dayjs';
 import { defineStore } from 'pinia';
 import { reactive, ref, Ref } from 'vue';
 import { getRequest, deleteRequest, notify, putRequest, postRequest } from '../functions';
@@ -10,10 +10,10 @@ export type WorkerSlot = {
     slot_id?: number,
     worker_id: number,
     line_id: number,
-    time_planned: Dayjs
-    started_at: Dayjs,
-    ended_at: Dayjs,
-    date: Dayjs,
+    time_planned: dayjs.Dayjs
+    started_at: dayjs.Dayjs,
+    ended_at: dayjs.Dayjs,
+    date: dayjs.Dayjs,
     isDay: boolean,
     popover?: Ref
 };
@@ -32,11 +32,11 @@ export const useWorkerSlotsStore = defineStore('workersSlots', () => {
      */
     async function _create(worker: WorkerInfo, line_id: number): Promise<void> {
         const ls = useLinesStore();
-        let line = ls.getById(line_id);
+        let line = ls.getByID(line_id);
         await postRequest('/api/workers_slots/create', {
             worker_id: worker.worker_id,
             line_id: line_id,
-            started_at: dayjs(),
+            started_at: dayjs.default(),
             ended_at: line?.work_time.ended_at
         },
             (r: AxiosResponse) => {
@@ -70,8 +70,8 @@ export const useWorkerSlotsStore = defineStore('workersSlots', () => {
      */
     async function _replace(old_worker_id: number, new_worker_id: number) {
         const ws = useWorkersStore();
-        let old_worker = ws.getById(old_worker_id);
-        let new_worker = ws.getById(new_worker_id);
+        let old_worker = ws.getByID(old_worker_id);
+        let new_worker = ws.getByID(new_worker_id);
         return await putRequest('/api/workers_slots/replace', {
             old_worker_id: old_worker!.worker_id,
             slot_id: old_worker!.current_slot_id,

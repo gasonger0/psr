@@ -29,8 +29,8 @@ export default {
             this.workers.forEach(el => {
                 el.break = {
                     time: ref([
-                        el.break_started_at != null ? dayjs(el.break_started_at, 'hh:mm') : dayjs(), 
-                        el.break_ended_at != null ? dayjs(el.break_ended_at, 'hh:mm') : dayjs()
+                        el.break_started_at != null ? dayjs.default(el.break_started_at, 'hh:mm') : dayjs.default(), 
+                        el.break_ended_at != null ? dayjs.default(el.break_ended_at, 'hh:mm') : dayjs.default()
                     ]),
                     worker_id: el.worker_id
                 };
@@ -47,7 +47,7 @@ export default {
                 if (slots) {
                     slots.forEach(n => {
                         el[n.line_id] = {
-                            time: ref([dayjs(n.started_at, 'hh:mm'), dayjs(n.ended_at, 'HH:mm')]),
+                            time: ref([dayjs.default(n.started_at, 'hh:mm'), dayjs.default(n.ended_at, 'HH:mm')]),
                             slot_id: n.slot_id,
                             line_id: n.line_id
                         }
@@ -166,7 +166,7 @@ export default {
             let id = this.workers.find(el => record.worker_id == el.worker_id);
             if (id) {
                 id[line_id] = {
-                    time: ref([dayjs(), dayjs()]),
+                    time: ref([dayjs.default(), dayjs.default()]),
                     worker_id: record.worker_id,
                     line_id: line_id,
                     new: true

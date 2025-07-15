@@ -58,7 +58,7 @@ export default {
             newWorkerFields: {
                 worker_id: null,
                 title: null,
-                break: [dayjs(), dayjs()]
+                break: [dayjs.default(), dayjs.default()]
             },
             positions: {
                 1: 'Начальник смены',
@@ -97,10 +97,10 @@ export default {
         },
         async processData() {
             return new Promise((resolve, reject) => {
-                let timeString = dayjs();
+                let timeString = dayjs.default();
                 this.slots.forEach(slot => {
-                    // let start = dayjs(slot.started_at, 'HH:mm:ss');
-                    // let end = dayjs(slot.ended_at, 'HH:mm:ss');
+                    // let start = dayjs.default(slot.started_at, 'HH:mm:ss');
+                    // let end = dayjs.default(slot.ended_at, 'HH:mm:ss');
                     console.log(slot, timeString);
                     if (slot.started_at <= timeString && timeString <= slot.ended_at) {
                         let worker = this.workers.find(worker => worker.worker_id == slot.worker_id);
@@ -183,8 +183,8 @@ export default {
                 axios.get('/api/get_slots')
                     .then(response => {
                         this.slots = response.data.map(sl => {
-                            sl.started_at = dayjs(sl.started_at, "HH:mm:ss");
-                            sl.ended_at = dayjs(sl.ended_at, "HH:mm:ss");
+                            sl.started_at = dayjs.default(sl.started_at, "HH:mm:ss");
+                            sl.ended_at = dayjs.default(sl.ended_at, "HH:mm:ss");
                             if (sl.started_at > sl.ended_at && sessionStorage.getItem('isDay') == "false") {
                                 sl.ended_at = sl.ended_at.add(1, 'day');
                             }
@@ -283,11 +283,11 @@ export default {
                             el.edit = false;
                             el.color = ref(el.color);
                             el.showDelete = ref(false);
-                            el.started_at = el.started_at ? dayjs(el.started_at, 'hh:mm') : dayjs(),
-                            el.ended_at  = el.ended_at ? dayjs(el.ended_at, 'HH:mm') : dayjs()
+                            el.started_at = el.started_at ? dayjs.default(el.started_at, 'hh:mm') : dayjs.default(),
+                            el.ended_at  = el.ended_at ? dayjs.default(el.ended_at, 'HH:mm') : dayjs.default()
                             el.detector_time = ref([
-                                el.detector_start ? dayjs(el.detector_start, 'hh:mm') : dayjs(),
-                                el.detector_end ? dayjs(el.detector_end, 'HH:mm') : dayjs()
+                                el.detector_start ? dayjs.default(el.detector_start, 'hh:mm') : dayjs.default(),
+                                el.detector_end ? dayjs.default(el.detector_end, 'HH:mm') : dayjs.default()
                             ]);
                             if (el.ended_at < el.started_at && sessionStorage.isDay == "false") {
                                 el.ended_at = el.ended_at.add(1, 'day');
@@ -297,7 +297,7 @@ export default {
                                 el.detector_end = el.detector_end.add(1, 'day');
                             }
 
-                            let timeString = dayjs();
+                            let timeString = dayjs.default();
                             if (!(timeString < el.ended_at && timeString > el.started_at)) {
                                 el.done = true;
                             } else {
@@ -341,7 +341,7 @@ export default {
         addLineFront() {
             this.lines.push({
                 edit: true,
-                time: ref([dayjs(), dayjs()]),
+                time: ref([dayjs.default(), dayjs.default()]),
                 title: 'Новая линия',
                 workers_count: 0,
                 line_id: -1
@@ -399,8 +399,8 @@ export default {
                 .then((response) => {
                     this.$emit('notify', 'success', 'Сохранено');
                     let i = this.lines.find(el => el.line_id == record['line_id']);
-                    // i.started_at = dayjs(record.started_at.format('HH:mm'));
-                    // i.ended_at = dayjs(record.ended_at.format('HH:mm'));
+                    // i.started_at = dayjs.default(record.started_at.format('HH:mm'));
+                    // i.ended_at = dayjs.default(record.ended_at.format('HH:mm'));
 
                     let arr = [];
                     if (i.master) {

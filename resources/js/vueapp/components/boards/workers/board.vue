@@ -2,7 +2,7 @@
 import { BackTop, Card, FloatButton, Input, Switch, TimeRangePicker, FloatButtonGroup, Tooltip, Button, Popover, Select, notification, SelectOption, Popconfirm, Modal, TimePicker, RadioGroup, RadioButton, Checkbox, Form, FormItem } from 'ant-design-vue';
 import { ref, reactive, Ref, watch, computed, onBeforeMount, TemplateRef } from 'vue';
 import Loading from './../../../deprecated/loading.vue';
-import dayjs from 'dayjs';
+import * as dayjs from "dayjs";
 import { ColorPicker } from 'vue-color-kit';
 import 'vue-color-kit/dist/vue-color-kit.css';
 import { ForwardOutlined, LoginOutlined, PlusCircleOutlined, StopOutlined, InfoCircleOutlined, UserDeleteOutlined, UserSwitchOutlined, UserAddOutlined, RightOutlined, LeftOutlined, PrinterOutlined } from '@ant-design/icons-vue';
@@ -26,9 +26,10 @@ const workerSlotsStore = useWorkerSlotsStore();
 // const products = useProductsStore();
 
 //TODO добавитьт загрузку данных в хранилки
-let newWorker: WorkerInfo = reactive({
+let newWorker: WorkerInfo = ref({
     title: '',
-    company: ''
+    company: '',
+    isEdited: true
 });
 let showNewWorker = ref(false);
 let linesContainer = ref();
@@ -41,7 +42,7 @@ const processData = async () => {
         let ts = getTimeString();
         workerSlotsStore.slots.forEach(slot => {
             if (slot.started_at <= ts && ts <= slot.ended_at) {
-                let worker = workersStore.getById(slot.worker_id);
+                let worker = workersStore.getByID(slot.worker_id);
                 worker!.current_line_id = slot ? slot.line_id : null;
                 worker!.current_slot_id = slot.slot_id;
                 slot.popover = ref(false);
@@ -68,7 +69,8 @@ const addWorker = async () => {
     if (await workersStore._create(newWorker)) {
         newWorker = {
             title: '',
-            company: ''
+            company: '',
+            isEdited: true
         };
     }
 }
@@ -137,7 +139,7 @@ onBeforeMount(async () => {
             let target = ev.target as Element;
             if (target.classList.contains('selected') && ev.target == active.value) {
                 target.classList.remove(`selected`);
-                let worker = workersStore.getById(
+                let worker = workersStore.getByID(
                     Number(
                         target.getAttribute('data-id')
                     )
@@ -195,7 +197,6 @@ onBeforeMount(async () => {
     });
     document.querySelector('.lines-container')!.scrollTo({ left: 0 });
 })
-// dayjs.locale('ru-ru');
 </script>
 <template>
     <div class="lines-toolbar">
