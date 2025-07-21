@@ -68,13 +68,7 @@ const props = defineProps({
     }
 });
 const emit = defineEmits([
-    'change-board',
-    'result-window',
-    'graph-window',
-    'plans-window',
-    'products-window',
-    'workers-window',
-    'logs-window'
+    'change-board'
 ]);
 defineExpose(props);
 </script>
@@ -83,25 +77,13 @@ defineExpose(props);
         <section>
             <Switch checked-children="Продукция" un-checked-children="Работники" v-model:checked="boardMode"
                 @change="changeBoard" />
-            <Dropdown>
-                <Button class="excel-button" type="primary">
+            <Upload v-model:file-list="uploadedFile" name="file" :before-upload="(ev) => processOrder(ev)"
+                :showUploadList="false">
+                <Button type="primary" class="excel-button">
                     <FileExcelOutlined />
-                    Загрузить
+                    Загрузить заказы
                 </Button>
-                <template #overlay>
-                    <Menu>
-                        <MenuItem>
-                        <Upload v-model:file-list="uploadedFile" name="file" :before-upload="(ev) => processOrder(ev)"
-                            :showUploadList="false">
-                            <Button type="primary" class="excel-button">
-                                <UploadOutlined />
-                                Анализ заказов
-                            </Button>
-                        </Upload>
-                        </MenuItem>
-                    </Menu>
-                </template>
-            </Dropdown>
+            </Upload>
             <Button type="default" @click="openModal('result')">
                 <BarChartOutlined />
                 Отчёт

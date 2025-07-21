@@ -36,4 +36,8 @@ class ProductsDictionary extends Model
     public function slots(){
         return $this->hasMany(ProductsSlots::class, 'product_id');
     }
+
+    public function category() {
+        return $this->belongsTo(ProductsCategories::class,'category_id','category_id');
+    }
 }

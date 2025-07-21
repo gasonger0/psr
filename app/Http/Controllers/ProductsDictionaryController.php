@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ProductsCategories;
 use App\Models\ProductsDictionary;
 use App\Util;
 use Illuminate\Http\Request;
@@ -11,6 +12,7 @@ class ProductsDictionaryController extends Controller
 {
     private const PRODUCT_ALREADY_EXISTS = 'Такая продукция уже существует';
     private const PRODUCT_NOT_EXISTS = 'Такой продукции не существует.';
+
     public function getList(Request $request)
     {
         if ($id = $request->post('category_id')) {
@@ -44,12 +46,30 @@ class ProductsDictionaryController extends Controller
         }
     }
 
+    public function get(Request $request)
+    {
+        // $pack = $request->post('pack');
+        // if ($pack === null) {
+        // }
+        $category_id = $request->post('category_id');
+        if ($category_id !== null) { 
+            return ProductsDictionary::where('category_id', $category_id)->get()->toArray();
+        }
+
+        return ProductsDictionary::all()->toArray();
+        // $categories = ProductsCategories::all
+        // return ProductsCategories::where('pack', $pack)->products()->each(function(&$prod) {
+        //     $prod->hide = true;
+        // })->toArray();
+    }
+
     public function create(Request $request)
     {
         $exists = Util::checkDublicate(new ProductsDictionary, ['title'], $request->post());
         if ($exists) {
             return Util::errorMsg(self::PRODUCT_ALREADY_EXISTS, 400);
         }
+        $request->mergeIfMissing(['category_id' => $request->post('category')['category_id']]);
 
         $result = ProductsDictionary::create(
             $request->only(
@@ -84,7 +104,8 @@ class ProductsDictionaryController extends Controller
         }
     }
 
-    public function delete(Request $request) {
+    public function delete(Request $request)
+    {
         $delete = ProductsDictionary::find($request->post('product_id'))->delete();
 
         if ($delete) {

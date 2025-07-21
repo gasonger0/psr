@@ -10,22 +10,11 @@ class Workers extends Model
     protected $table = 'workers';
     protected $primaryKey = 'worker_id';
     public $incrementing = true;
-    // protected $dateFormat = 'U';
+    public $timestamps = false;
     protected $fillable = [
         'title',
-        'created_at',
-        'updated_at',
         'company'
     ];
-    public function setCreatedAtAttribute($value)
-    {
-        $this->attributes['created_at'] = Carbon::parse($value)->format('Y-m-d H:i:s');
-    }
-
-    public function setUpdatedAtAttribute($value)
-    {
-        $this->attributes['updated_at'] = Carbon::parse($value)->format('Y-m-d H:i:s');
-    }
 
     public function slots() {
         return $this->hasMany(Slots::class, 'slot_id');

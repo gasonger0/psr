@@ -92,4 +92,74 @@ export const prepareDate = (data: any) => {
     });
 
     return data;
-}; 
+};
+
+/**
+ * Табы окна реестра продукции
+ */
+export const productsTabs = {
+    1: "Варка",
+    2: "Упаковка",
+    3: "Справочная информация"
+};
+
+/**
+ * Столбцы для таблиц в реестре продукции
+ */
+export const productsTableColumns = {
+    1: [{
+        title: 'Действия',
+        dataIndex: 'actions',
+        width: '5%'
+    }, {
+        title: 'Линия',
+        dataIndex: 'line_id',
+        // width: '65%'
+    }, {
+        title: 'Оборудование',
+        dataIndex: 'hardware',
+        width: '15%'
+    }, {
+        title: 'Кол-во сотрудников',
+        dataIndex: 'people_count',
+        width: '5%'
+    }, {
+        title: 'Кг в час',
+        dataIndex: 'perfomance',
+        width: '10%'
+    }],
+    2: [{
+        title: 'Действия',
+        dataIndex: 'actions',
+        width: '5%'
+    }, {
+        title: 'Линия',
+        dataIndex: 'line_id',
+        // width: '80%'
+    }, {
+        title: 'Кол-во сотрудников',
+        dataIndex: 'people_count',
+        width: '5%'
+    }, {
+        title: 'Кг в час',
+        dataIndex: 'perfomance',
+        width: '10%'
+    }],
+    3: [
+        { title: 'Штук в Ящике:', dataIndex: 'amount2parts', addon: '' },
+        { title: 'Штуки в Кг:', dataIndex: 'parts2kg', addon: 'Шт ×' },
+        { title: 'Кг в Варки:', dataIndex: 'kg2boil', addon: 'Кг ×' },
+        { title: 'Телеги:', dataIndex: 'cars', addon: 'Варка ×' },
+        { title: 'Поддоны:', dataIndex: 'cars2plates', addon: '(Варка - Варка(цел)) ×' },
+        { title: 'Отображать, даже если нет в анализе', dataIndex: 'always_show', addon: false },
+    ]
+};
+
+/**
+ * Список оборудования
+ */
+export const hardwares = [
+    { value: 1, label: 'ТОРНАДО' },
+    { value: 2, label: 'Мондомикс' },
+    { value: 3, label: 'Китайский Аэрос' }
+]

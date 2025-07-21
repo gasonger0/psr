@@ -9,7 +9,7 @@ export type ResponsibleInfo = {
     responsible_id?: number,
     title: string,
     position: number,
-    isEdited: boolean
+    isEditing: boolean
 };
 
 export const useResponsiblesStore = defineStore('responsible', () => {
@@ -26,7 +26,7 @@ export const useResponsiblesStore = defineStore('responsible', () => {
                 position_id: el.position,
                 title: positions[el.position]
             };
-            el.isEdited = false;
+            el.isEditing = false;
             return el as ResponsibleInfo;
         });
     };
@@ -62,7 +62,7 @@ export const useResponsiblesStore = defineStore('responsible', () => {
         this.responsibles.push({
             title: '',
             position: ref(1),
-            isEdited: true
+            isEditing: true
         });
     };
     /**

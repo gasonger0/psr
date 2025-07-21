@@ -21,7 +21,7 @@ const workerSlotsStore = useWorkerSlotsStore();
 let newWorker: Ref<WorkerInfo> = ref({
     title: '',
     company: '',
-    isEdited: true
+    isEditing: true
 });
 let showNewWorker = ref(false);
 let linesContainer = ref();
@@ -69,7 +69,7 @@ const addWorker = async () => {
         newWorker.value = {
             title: '',
             company: '',
-            isEdited: true
+            isEditing: true
         };
     }
 }
@@ -108,12 +108,6 @@ watch(
 );
 
 onBeforeMount(async () => {
-    dayjs.locale('ru-ru');
-    // TODO перенести в app
-    await linesStore._load();
-    await workersStore._load();
-    await responsiblesStore._load();
-    await workerSlotsStore._load();
     await processData();
 
     recalcCounters();

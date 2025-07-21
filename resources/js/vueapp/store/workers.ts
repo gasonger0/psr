@@ -18,7 +18,7 @@ export type WorkerInfo = {
     company?: string,
     on_break?: boolean,
     popover?: boolean,
-    isEdited: boolean
+    isEditing: boolean
 };
 
 // Форма для нового сотрудника в справочнике/веб-интерфейсе
@@ -53,7 +53,7 @@ export const useWorkersStore = defineStore('workers', () => {
     async function _load(): Promise<void> {
         const items = await getRequest('/api/workers/get');
         workers.value = items.map((worker: any): WorkerInfo => {
-            worker.isEdited = false;
+            worker.isEditing = false;
             return serialize(worker);
         });
     };
@@ -129,7 +129,7 @@ export const useWorkersStore = defineStore('workers', () => {
         workers.value.push({
             title: '',
             company: '',
-            isEdited: true
+            isEditing: true
         });
         return;
     };

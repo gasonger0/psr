@@ -72,7 +72,7 @@ Route::group(['middleware' => ['web', ParseSession::class]], function () {
         ->prefix('/products')
         ->middleware(ForceJsonResponse::class)
         ->group(function () {
-            Route::get('/get', 'get');
+            Route::post('/get', 'get');
             Route::post('/create', 'create');
             Route::put('/update', 'update');
             Route::delete('/delete', 'delete');
@@ -84,7 +84,13 @@ Route::group(['middleware' => ['web', ParseSession::class]], function () {
      ********************/
 
     // TODO CRUD
-    Route::get('/get_categories', [ProductsCategoriesController::class, 'getTree']);
+    Route::controller(ProductsCategoriesController::class)
+        ->prefix('/categories')
+        ->middleware(ForceJsonResponse::class)
+        ->group(function () {
+            Route::get('/get', 'get');
+            Route::get('/get_tree', 'getTree');
+        });
 
 
     /****************
@@ -107,9 +113,15 @@ Route::group(['middleware' => ['web', ParseSession::class]], function () {
     /****************
      * PRODUCTS_SLOTS
      ***************/
-    Route::post('/get_product_slots', [ProductsSlotsController::class, 'getList']);
-    Route::post('/add_product_slots', [ProductsSlotsController::class, 'addSlots']);
-    Route::post('/delete_product_slot', [ProductsSlotsController::class, 'delete']);
+    Route::controller(ProductsSlotsController::class)
+        ->prefix('/products_slots')
+        ->middleware(ForceJsonResponse::class)
+        ->group(function () {
+            Route::get('/get', 'get');
+            Route::post('/create', 'create');
+            Route::put('/update', 'update');
+            Route::delete('/delete', 'delete');
+        });
 
     /*****************
      * PRODUCTS_ORDERS

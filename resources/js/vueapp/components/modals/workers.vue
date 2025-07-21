@@ -72,7 +72,7 @@ const save = (rec: Record<string, any>): void => {
             responsibles._update(rec as ResponsibleInfo);
         }
     }
-    rec.isEdited = false;
+    rec.isEditing = false;
 }
 /**
  * Удалить сотрудника
@@ -95,7 +95,7 @@ const cancel = (rec: Record<string, any>) => {
         Object.assign(rec, original.value[2][rec.responsible_id]);
         delete original.value[2][rec.responsible_id];
     }
-    rec.isEdited = false;
+    rec.isEditing = false;
     return;
 }
 /**
@@ -117,15 +117,9 @@ const edit = (rec: Record<string, any>): void => {
         original.value[2][rec.responsible_id] = Object.assign({}, rec);
     }
     console.log(original);
-    rec.isEdited = true;
+    rec.isEditing = true;
     return;
 }
-
-onBeforeMount(async () => {
-    // TODO Это будет происходить в головном комопоненте
-    await responsibles._load();
-    await workers._load();
-});
 
 
 const exit = (): void => {
@@ -136,7 +130,7 @@ const exit = (): void => {
 
 </script>
 <template>
-    <Modal v-model:open="modal.visibility['workers']" @close="$emit('close-modal')" :closable="false"
+    <Modal v-model:open="modal.visibility['workers']" @close="exit" :closable="false"
         class="modal workers" style="width:60%;">
         <div class="workers">
             <Tabs v-model:activeKey="activeTab">
@@ -156,11 +150,11 @@ const exit = (): void => {
                                     </Tooltip>
                                     <Tooltip title="Сохранить">
                                         <SaveOutlined @click="save(record)" class="action-icon save"
-                                            v-if="record.isEdited" />
+                                            v-if="record.isEditing" />
                                     </Tooltip>
                                     <Tooltip title="Отмена">
                                         <UndoOutlined @click="cancel(record)" class="action-icon undo"
-                                            v-if="record.isEdited" />
+                                            v-if="record.isEditing" />
                                     </Tooltip>
                                 </section>
                             </template>

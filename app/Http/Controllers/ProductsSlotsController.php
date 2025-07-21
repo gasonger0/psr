@@ -3,21 +3,15 @@
 namespace App\Http\Controllers;
 
 use App\Models\ProductsSlots;
+use App\Util;
 use Illuminate\Http\Request;
 
 class ProductsSlotsController extends Controller
 {
-    public function getList(Request $request)
+    public const SLOT_ALREADY_EXISTS = "Такой слот изготовления уже существует";
+    public function get()
     {
-        $type_id = $request->post('type_id');
-        $id = $request->post('product_id');
-        if ($id) {
-            return ProductsSlots::where('product_id', '=', $id)->get()->toJson();
-        } else if ($type_id) {
-            return ProductsSlots::where('type_id', '=', $type_id)->get()->toJson();
-        } else {
-            return ProductsSlots::all()->toJson();
-        }
+        return ProductsSlots::all();
     }
 
     public function addSlots(Request $request)
@@ -48,6 +42,23 @@ class ProductsSlotsController extends Controller
             }
         }
         return json_encode($ret); 
+    }
+
+    public function create(Request $request) {
+        $exists = Util::checkDublicate(new ProductsSlots(), [], $request->post(), true);
+        if ($exists) {
+            return Util::errorMsg(self::SLOT_ALREADY_EXISTS, 400);
+        }
+        $result = ProductsSlots::create(
+            $request->only(
+                (new ProductsSlots())->getFillable()
+            )
+        );
+        if ($result) {
+            return Util::successMsg($result, 201);
+        } else {
+            return Util::errorMsg($result);
+        }
     }
 
     public function delete(Request $request)

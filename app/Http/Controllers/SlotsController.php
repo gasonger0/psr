@@ -20,7 +20,6 @@ class SlotsController extends Controller
 
     public function create(Request $request)
     {
-        $values = $request->post();
         Util::appendSessionToData($request);
         $exists = Util::checkDublicate(new Slots(), [], $request->post(), true);
         if ($exists) {

@@ -1,12 +1,11 @@
 <script setup lang="ts">
 import { FileExcelOutlined } from '@ant-design/icons-vue';
 import { Button, Card, Popconfirm, Switch } from 'ant-design-vue';
-import { computed, ref, Ref } from 'vue';
+import { computed, onBeforeMount, ref, Ref } from 'vue';
 import { ProductInfo, useProductsStore } from '@stores/products';
 
 const productsStore = useProductsStore();
 
-const key: Ref<number> = ref(1);    // TODO Возможно deprecated
 const showList: Ref<boolean> = ref(false);
 const hideEmpty: Ref<boolean> = ref(false);
 const categorySwitch: Ref<boolean> = ref(false);
@@ -25,6 +24,7 @@ const hideEmptyLinesTitle = computed(() => {
 const categorizedProducts = computed(() => {
     return productsStore.products.filter((el: ProductInfo) => el.category.type.value == categorySwitch.value);
 });
+
 </script>
 <template>
     <section class="plans-toolbar">
@@ -45,7 +45,7 @@ const categorizedProducts = computed(() => {
             </Button>
         </Popconfirm>
     </section>
-    <section class="lines-container" :key="key">
+    <section class="lines-container">
         <div class="line" data-id="-1" v-show="showList">
             <Card :bordered="false" class="head" :headStyle="{ 'background-color': 'white' }">
                 <template #title>
