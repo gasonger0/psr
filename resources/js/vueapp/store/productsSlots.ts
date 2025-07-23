@@ -18,6 +18,10 @@ export type ProductSlot = {
     isEditing?: boolean
 };
 
+export type SlotsByStages = {
+    1: ProductSlot[],
+    2: ProductSlot[]
+};
 export const useProductsSlotsStore = defineStore('productsSlots', () => {
     const slots: Ref<ProductSlot[]> = ref([]);
 
@@ -60,6 +64,14 @@ export const useProductsSlotsStore = defineStore('productsSlots', () => {
         return slots.value.filter((el: ProductSlot) => el.product_id == product_id && el.type_id == type_id)!;
     }
 
+    function getByLineId(line_id: number) {
+        return slots.value.filter((slot: ProductSlot) => slot.line_id == line_id);
+    }
+
+    function getById(slot_id: number) {
+        return slots.value.find((el: ProductSlot) => el.product_slot_id == slot_id);
+    }
+
     function add(product: ProductInfo, type_id: number): ProductSlot {
         let newSlot = {
             product_id: product.product_id,
@@ -86,6 +98,8 @@ export const useProductsSlotsStore = defineStore('productsSlots', () => {
         _update,
         _delete,
         add,
-        getByTypeAndProductID 
+        getByTypeAndProductID,
+        getByLineId,
+        getById
     };
 });

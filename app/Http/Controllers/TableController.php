@@ -251,7 +251,7 @@ class TableController extends Controller
                 // Ловим продукты
                 if ($curCat && ($product = ProductsDictionary::where('title', $row[1])->first())){
                     $amounts[] = [
-                        'product_id'    => $product->id,
+                        'product_id'    => $product->product_id,
                         'amount'        => $row[3]
                     ];
                     continue;
@@ -271,13 +271,17 @@ class TableController extends Controller
                 }
             }
 
-            foreach ($amounts as $amount) {
+            foreach ($amounts as &$amount) {
                 if (($val = $amount['amount']) && $amount['amount'] > 0) {
-                    ProductsOrder::withSession($request)
+                    $rec = ProductsOrder::withSession($request)
                         ->updateOrCreate(
-                            ['product_id' => $amount['product_id']],
+                            ['product_id'   => $amount['product_id'],
+                            'isDay'         => $request->attributes->get('isDay'),
+                            'date'          => $request->attributes->get('date')
+                        ],
                             ['amount' => $val]
                         );
+                    $amount['order_id'] = $rec->order_id;
                 }
             }
             return Util::successMsg([

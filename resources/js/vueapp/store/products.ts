@@ -4,20 +4,27 @@ import { CategoryInfo, useCategoriesStore } from "./categories";
 import { deleteRequest, getRequest, postRequest, putRequest } from "../functions";
 import { AxiosResponse } from "axios";
 
+export type ProductOrder = {
+    order_id: number,
+    product_id: number,
+    amount: number
+};
 
 export type ProductInfo = {
     product_id?: number,
     title: string,
-    category_id: number,
+    category_id?: number,
     amount2parts: string,
     parts2kg: string,
     kg2boil: string,
     cars: string,
     cars2plates: string,
-    always_show?: Ref<boolean>,
+    always_show?: boolean,
     category: CategoryInfo,
-    order: ProductOrder, //TODO полдумать о размещении заказов
-    isEditing: boolean
+    order?: ProductOrder, //TODO полдумать о размещении заказов
+    isEditing: boolean,
+    errors?: number,
+    hide: boolean
 };
 
 export const useProductsStore = defineStore('products', () => {
@@ -30,8 +37,10 @@ export const useProductsStore = defineStore('products', () => {
         products.value = (await postRequest('/api/products/get', data)).map((el: ProductInfo) => {
             el.category = catStore.getByID(el.category_id);
             el.isEditing = false;
+            el.hide = [1,3].includes(el.category.type_id.value) ? true : false;
             return el;
         });
+        console.log(products.value);
     }
 
     async function _create(product: ProductInfo): Promise<void> {
@@ -70,15 +79,31 @@ export const useProductsStore = defineStore('products', () => {
             cars: '',
             cars2plates: '',
             category: category,
-            always_show: ref(false),
-            isEditing: true
+            always_show: false,
+            isEditing: true,
         };
         products.value.push(newProduct as ProductInfo);
         return newProduct as ProductInfo;
     }
 
-    function getByType(type_id: number) {
-        return products.value.filter((el: ProductInfo) => [type_id, 3].find(i => el.category.type.value == i));
+    function hide(type_id: number) {
+        products.value.forEach((el: ProductInfo) => {
+            console.log(el.hide);
+            if ([type_id, 3].includes(el.category.type_id.value)) {
+                el.hide = true;
+            } else {
+                el.hide = false;
+            }
+        });
+    }
+
+    function fillOrders(orders: Array<ProductOrder>) {
+        orders.forEach((el: ProductOrder) => {
+            let product = getByID(el.product_id);
+            if (product) {
+                product.order = el;
+            }
+        });
     }
 
     function splice(id: number): void {
@@ -94,6 +119,8 @@ export const useProductsStore = defineStore('products', () => {
         _update,
         getByID,
         getByCategoryID,
+        hide,
+        fillOrders,
         add
     }
 });

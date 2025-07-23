@@ -5,7 +5,7 @@ import { RightOutlined, LeftOutlined } from '@ant-design/icons-vue';
 const props = defineProps({
     containerRef: {
         type: HTMLElement,
-        required: true
+        // required: true
     },
     speed: {
         type: Number,
@@ -13,7 +13,7 @@ const props = defineProps({
     }
 });
 
-let isScrolling: NodeJS.Timeout | null = null;
+let isScrolling: number | null = null;
 const speed = props.speed;
 const scroll = (direction: string, isStart: boolean) => {
     if (isStart) {

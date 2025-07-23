@@ -33,7 +33,8 @@ export type LineInfo = {
     detector: Detector,
     date: dayjs.Dayjs,
     isDay: boolean,
-    edit: boolean
+    edit: boolean,
+    has_plans?: boolean
 };
 
 type Detector = {

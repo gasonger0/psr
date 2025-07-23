@@ -45,6 +45,38 @@ body {
     max-width: 270px;
 }
 
+.line_head-form {
+    width: 100%;
+    max-width: 400px;
+}
+
+.line_head-form section {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    align-items: center;
+}
+
+.line_head-form section span {
+    height: fit-content;
+}
+
+.timepicker {
+    width: 47%;
+}
+
+.select {
+    width: 100%;
+}
+.select.reason,
+.select.resp,
+.metal {
+    margin-top: 10px;
+}
+section.metal {
+    display: flex; justify-content: space-between;
+}
+
 .line_items {
     min-height: 10vh;
 }
@@ -233,6 +265,12 @@ section.worker .tools {
     display: none;
 }
 
+.hiding-data.icon {
+    font-size: 20px;
+    position: absolute;
+    right: 10px;
+}
+
 .line.hidden {
     opacity: 0.1;
 }
@@ -346,7 +384,8 @@ section.products {
 }
 
 .action-icon.delete,
-.icon.delete {
+.icon.delete,
+.icon.error {
     color: red
 }
 
@@ -356,7 +395,8 @@ section.products {
     color: #1677ff;
 }
 
-.action-icon.undo {
+.action-icon.undo,
+.icon.warn {
     color: #f48c05;
 }
 
@@ -371,6 +411,12 @@ section.products {
     padding: 5px;
     border-radius: 3px;
     color: white;
+}
+
+.plan_card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
 }
 
 /* TEST */

@@ -13,14 +13,14 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('products_categories', function (Blueprint $table) {
-            $table->tinyInteger('pack')->default(1);
+            $table->tinyInteger('type_id')->default(1);
         });
         // Фасовка
-        ProductsCategories::whereIn('category_id', [4])->update(['pack' => 1]);
+        ProductsCategories::whereIn('category_id', [4])->update(['type_id' => 1]);
         // Весовка
-        ProductsCategories::whereIn('category_id', [3, 5, 17])->update(['pack' => 2]);
+        ProductsCategories::whereIn('category_id', [3, 5, 17])->update(['type_id' => 2]);
         // Смешанное
-        ProductsCategories::whereIn('category_id', [25, 26, 27, 28, 29])->update(['pack' => 3]);
+        ProductsCategories::whereIn('category_id', [25, 26, 27, 28, 29])->update(['type_id' => 3]);
     }
 
     /**

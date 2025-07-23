@@ -126,7 +126,7 @@ Route::group(['middleware' => ['web', ParseSession::class]], function () {
     /*****************
      * PRODUCTS_ORDERS
      ****************/
-    Route::get('/get_product_orders', [ProductsOrderController::class, 'getList']);
+    // Route::get('/products/get_orders', [ProductsOrderController::class, 'get']);
 
     /*************
      * RESPONSIBLE

@@ -19,10 +19,11 @@ import { notify, postRequest } from '../../functions';
 import { AxiosResponse } from 'axios';
 import locale from 'ant-design-vue/es/date-picker/locale/ru_RU';
 import { useModalsStore } from '@stores/modal';
+import { useProductsStore } from '@/store/products';
 
 const boardMode: Ref<boolean> = ref(false);
 const uploadedFile: Ref<UploadFile[] | undefined> = ref();
-const date: dayjs.Dayjs = dayjs.default(new Date(sessionStorage.getItem('date')!));
+const date: Ref<dayjs.Dayjs> = ref(dayjs.default(sessionStorage.getItem('date'), 'YYYY-MM-DD'));
 const isDay: Ref<boolean> = ref(Boolean(Number(sessionStorage.getItem('isDay')!)));
 const showAccept: Ref<boolean> = ref(false);
 
@@ -34,13 +35,14 @@ const processOrder = (file: FileType) => {
     fd.append('file', file);
     notify('info', "Подождите, идёт обработка файла...");
 
-    postRequest('/api/table/load_order', fd,
+    postRequest('/api/tables/load_order', fd,
         (r: AxiosResponse) => {
             let data = JSON.parse(r.data);
             if (data.uncategorized.length > 0) {
                 notify('warning', 'Следующие строки не были обработаны: ' + data.uncategorized.join(', '));
             }
             if (data.amounts.length > 0) {
+                useProductsStore().fillOrders(data.amounts);
                 // TODO добавить объёмы в продукцию
                 notify('success', 'Данные обновлены');
             }
@@ -48,13 +50,14 @@ const processOrder = (file: FileType) => {
     )
 };
 const updateSession = () => {
+    console.log(date);
     postRequest('/api/update_session', {
-        date: date.format('YYYY-MM-DD'),
-        isDay: Number(isDay)
+        date: date.value.format('YYYY-MM-DD'),
+        isDay: Number(isDay.value)
     }, (r: AxiosResponse) => {
-        sessionStorage.setItem('date', date.format('YYYY-MM-DD'));
+        console.log(r, date, isDay);
+        sessionStorage.setItem('date', date.value.format('YYYY-MM-DD'));
         sessionStorage.setItem('isDay', String(Number(isDay.value)));
-        // TODO возможно, из-за этого полетит сессия
         window.location.reload();
     });
 }
@@ -129,7 +132,7 @@ defineExpose(props);
             </div>
         </section>
         <section>
-            <DatePicker v-model:value="date" format="DD.MM.YYYY" mode="date" @change="showAccept = true"
+            <DatePicker v-model:value="date" format="DD.MM.YYYY" mode="date" @open-change="showAccept = true;"
                 :locale="locale" />
             <Switch v-model:checked="isDay" @change="showAccept = true" checkedChildren="День"
                 unCheckedChildren="Ночь" />

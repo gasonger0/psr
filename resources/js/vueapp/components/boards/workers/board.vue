@@ -5,7 +5,7 @@ import * as dayjs from "dayjs";
 import 'vue-color-kit/dist/vue-color-kit.css';
 import { LoginOutlined, PlusCircleOutlined, UserAddOutlined, PrinterOutlined } from '@ant-design/icons-vue';
 import { useWorkersStore, WorkerForm, WorkerInfo } from '@stores/workers';
-import { getNextElement, getTimeString, notify } from '@/functions';
+import { getNextElement, getTimeString, notify, scrollToTop } from '@/functions';
 import ItemCard from '@boards/workers/card.vue';
 import ScrollButtons from '@/components/common/scrollButtons.vue';
 import { LineInfo, useLinesStore } from '@stores/lines';
@@ -15,7 +15,6 @@ import LineForm from '@/components/common/lineForm.vue';
 
 const linesStore = useLinesStore();
 const workersStore = useWorkersStore();
-const responsiblesStore = useResponsiblesStore();
 const workerSlotsStore = useWorkerSlotsStore();
 
 let newWorker: Ref<WorkerInfo> = ref({
@@ -23,8 +22,8 @@ let newWorker: Ref<WorkerInfo> = ref({
     company: '',
     isEditing: true
 });
-let showNewWorker = ref(false);
-let linesContainer = ref();
+let showNewWorker: Ref<boolean> = ref(false);
+let linesContainer: Ref<HTMLElement | null> = ref();
 let active: Ref<HTMLElement | null> = ref(null);
 const showList = ref(false);
 const workerRefs = ref<Record<number, InstanceType<typeof ItemCard>>>({})
@@ -73,20 +72,6 @@ const addWorker = async () => {
         };
     }
 }
-// TODO Поправить
-const scrollToTop = () => {
-    let x: TemplateRef | null = linesContainer.value;
-    if (x == null) {
-        return;
-    } else {
-        // TODO сомнения
-        setTimeout((x) => {
-            x.scrollTo(
-                { left: x.scrollWidth, behavior: 'smooth' }
-            );
-        }, 100);
-    }
-};
 
 const print_graph = () => {
     window.open('/api/print_slots', '_blank');
@@ -101,7 +86,6 @@ const recalcCounters = () => {
 watch(
     () => workerSlotsStore.slots,
     (newWorkers) => {
-        console.log('watcher');
         recalcCounters()
     },
     { deep: true }
@@ -118,7 +102,7 @@ onBeforeMount(async () => {
                 return;
             }
             let target = ev.target as HTMLElement;
-            scrollToTop();
+            scrollToTop(linesContainer);
             target.classList.add(`selected`);
             document.querySelectorAll('.done-line').forEach(el => {
                 el.classList.toggle('hidden');

@@ -10,7 +10,8 @@ export const useModalsStore = defineStore('modals', () => {
         products: ref(false),
         result: ref(false),
         logs: ref(false),
-        graph: ref(false)
+        graph: ref(false),
+        plan: ref(false)
     };
     
     /**
@@ -30,6 +31,8 @@ export const useModalsStore = defineStore('modals', () => {
     } 
 
     return {
-        open, close, visibility
+        open, 
+        close, 
+        visibility
     }
 })

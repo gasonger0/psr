@@ -1,3 +1,4 @@
+import { DefaultOptionType } from 'ant-design-vue/es/select';
 import dayjs, { Dayjs } from 'dayjs';
 
 // Причины простоя
@@ -25,7 +26,7 @@ export const cancelReasons = [{
 }, {
     label: 'Иное',
     value: 8
-}] as const;
+}] as DefaultOptionType[];
 
 // export type CancelReasonValue = typeof cancelReasons[number];
 
@@ -104,6 +105,22 @@ export const productsTabs = {
 };
 
 /**
+ * Этапы изготовления продукции
+ */
+export const stages = {
+    1: "Варка",
+    2: "Упаковка"
+}
+/**
+ * Варочные колонки
+ */
+export const colons = {
+    1: "Колонка №1",
+    2: "Колонка №2",
+    3: "Колонки №1 и №2"
+}
+
+/**
  * Столбцы для таблиц в реестре продукции
  */
 export const productsTableColumns = {
@@ -163,3 +180,15 @@ export const hardwares = [
     { value: 2, label: 'Мондомикс' },
     { value: 3, label: 'Китайский Аэрос' }
 ]
+/**
+ * Список оборудования для упаковки
+ */
+export const packHardwares = [
+    { value: 4, label: 'ЗМ №1', tooltip: 'Завёрточная машина №1' },
+    { value: 5, label: 'ЗМ №2', tooltip: 'Завёрточная машина №2' },
+    { value: 6, label: 'ЗМ №1 и №2', tooltip: 'Завёрточные машины №1 и №2' },
+]
+/**
+ * ИД линий, которые показываем при drag'n'drop даже если варка уже есть
+ */
+export const alwaysShowLines = [8, 9, 10, 11, 12];

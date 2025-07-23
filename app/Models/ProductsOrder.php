@@ -12,7 +12,13 @@ class ProductsOrder extends Model
     protected $table = 'products_order';
     protected $primaryKey = 'order_id';
     public $incrementing = true;
-
+    public $timestamps = false;
+    protected $fillable = [
+        'product_id',
+        'amount',
+        'isDay',
+        'date'
+    ];
     public function setCreatedAtAttribute($value)
     {
         $this->attributes['created_at'] = Carbon::parse($value)->format('Y-m-d H:i:s');

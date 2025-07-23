@@ -1,6 +1,7 @@
 import axios, { AxiosResponse } from "axios";
 import * as dayjs from "dayjs";
 import { notification } from "ant-design-vue";
+import { Ref, TemplateRef } from "vue";
 
 function handleResponse(r: AxiosResponse) {
     let data = r.data;
@@ -122,3 +123,16 @@ export interface SelectOption {
     label: string,
     value: string
 };
+
+export function scrollToTop(container: Ref<HTMLElement|null>) {
+    if (!container.value) {
+        return;
+    }
+
+    setTimeout(() => {
+        container.value?.scrollTo({
+            top: 0,  // Прокрутка вверх (если нужно вниз — используйте `scrollHeight`)
+            behavior: 'smooth'
+        });
+    }, 100);
+}

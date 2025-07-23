@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\ProductsCategories;
 use App\Models\ProductsDictionary;
+use App\Models\ProductsOrder;
 use App\Util;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -48,19 +49,15 @@ class ProductsDictionaryController extends Controller
 
     public function get(Request $request)
     {
-        // $pack = $request->post('pack');
-        // if ($pack === null) {
-        // }
         $category_id = $request->post('category_id');
-        if ($category_id !== null) { 
+        if ($category_id !== null) {
             return ProductsDictionary::where('category_id', $category_id)->get()->toArray();
         }
 
-        return ProductsDictionary::all()->toArray();
-        // $categories = ProductsCategories::all
-        // return ProductsCategories::where('pack', $pack)->products()->each(function(&$prod) {
-        //     $prod->hide = true;
-        // })->toArray();
+        return ProductsDictionary::all()->map(function ($el) use ($request) {
+            $el->order = ProductsOrder::where('product_id', $el['product_id'])->withSession($request)->get()->first();
+            return $el;
+        })->toArray();
     }
 
     public function create(Request $request)
