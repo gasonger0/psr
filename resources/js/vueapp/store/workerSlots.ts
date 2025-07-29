@@ -4,14 +4,14 @@ import { reactive, ref, Ref } from 'vue';
 import { getRequest, deleteRequest, notify, putRequest, postRequest } from '../functions';
 import { useWorkersStore, WorkerInfo } from './workers';
 import { AxiosError, AxiosResponse } from 'axios';
-import { useLinesStore } from './lines';
+import { LineInfo, useLinesStore } from './lines';
 import { format } from './dicts';
 
 export type WorkerSlot = {
     slot_id?: number,
     worker_id: number,
     line_id: number,
-    time_planned: dayjs.Dayjs
+    // time_planned: dayjs.Dayjs
     started_at: dayjs.Dayjs,
     ended_at: dayjs.Dayjs,
     date: dayjs.Dayjs,
@@ -21,6 +21,9 @@ export type WorkerSlot = {
 
 export const useWorkerSlotsStore = defineStore('workersSlots', () => {
     const slots: Ref<WorkerSlot[]> = ref([]);
+
+
+    /****** API ******/
     /**
      * Загружает данные в хранилище из БД
      */
@@ -51,6 +54,9 @@ export const useWorkerSlotsStore = defineStore('workersSlots', () => {
             }
         )
     }
+    async function _update(slot: WorkerSlot): Promise<void> {
+        await putRequest('/api/workers_slots/update', unserialize(slot));
+    }
     /**
      * Удалить работника со смены
      * @param rec Запись о слоте сотрудника
@@ -58,7 +64,6 @@ export const useWorkerSlotsStore = defineStore('workersSlots', () => {
      */
     async function _delete(rec: WorkerInfo, del: Boolean) {
         await deleteRequest('/api/workers_slots/delete', {
-            worker_id: rec.worker_id,
             slot_id: rec.current_slot_id,
             delete: del
         }, (response: AxiosResponse) => {
@@ -80,20 +85,16 @@ export const useWorkerSlotsStore = defineStore('workersSlots', () => {
         let old_worker = ws.getByID(old_worker_id);
         let new_worker = ws.getByID(new_worker_id);
         return await putRequest('/api/workers_slots/replace', {
-            old_worker_id: old_worker!.worker_id,
-            slot_id: old_worker!.current_slot_id,
+            slot_id: old_worker!.current_slot_id!,
             new_worker_id: new_worker!.worker_id
         }, async (r: any) => {
             old_worker!.popover = false;
             splice(old_worker!.current_slot_id!);
+            new_worker!.current_slot_id = r.slot_id;
+            new_worker!.current_line_id = old_worker!.current_line_id;
             old_worker!.current_line_id = undefined;
             old_worker!.current_slot_id = undefined;
-            new_worker!.current_slot_id = r.slot_id;
-            new_worker!.current_line_id = r.line_id;
             return true;
-        }, (err: AxiosError) => {
-            notify('error', err.message);
-            return false;
         });
     };
     /**
@@ -112,6 +113,7 @@ export const useWorkerSlotsStore = defineStore('workersSlots', () => {
             });
     }
 
+    /****** LOCAL ******/
     /**
      * Удалить слот из лоакального хранилища
      * @param id ИД слота
@@ -119,18 +121,43 @@ export const useWorkerSlotsStore = defineStore('workersSlots', () => {
     function splice(id: number): void {
         slots.value = slots.value.filter((n: WorkerSlot) => n.slot_id != id);
     };
+    function getByWorker(id: number): WorkerSlot[] {
+        return slots.value.filter((el: WorkerSlot) => el.worker_id == id);
+    }
+    async function _add(line: LineInfo, worker_id: number) {
+        slots.value.push({
+            worker_id: worker_id,
+            line_id: line.line_id,
+            // time_planned: dayjs.default(),
+            started_at: line.work_time.started_at,
+            ended_at: line.work_time.ended_at,
+            isDay: line.isDay,
+            date: line.date
+        });
+
+        let slot = slots.value.at(-1);
+        await postRequest('/api/workers_slots/create', unserialize(slot),
+            (r: AxiosResponse) => {
+                slot.slot_id = r.data.slot_id;
+            });
+        return slot;
+    }
+    function unserialize(slot: WorkerSlot) {
+        let payload = JSON.parse(JSON.stringify(slot));
+        payload.started_at = slot.started_at.format(format);
+        payload.ended_at = slot.ended_at.format(format);
+        return payload;
+    }
 
     return {
         slots,
-        // add 
-        // TODO add для графика
+        _add,
         _load,
         _create,
-        // _update,
+        _update,
         _delete,
         _change,
         _replace,
-        // _print 
-        // TODO будет в контроллере таблиц мб?
+        getByWorker
     };
 });

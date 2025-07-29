@@ -21,12 +21,12 @@ class ProductsSlots extends Model
     ];
 
     public function product(){
-        return $this->hasOne(ProductsDictionary::class,'product_id');
+        return $this->belongsTo(ProductsDictionary::class,'product_id','product_id');
     }
     public function line(){
-        return $this->hasOne(Lines::class,'line_id');
+        return $this->hasOne(Lines::class,'line_id', 'line_id');
     }
     public function plans() {
-        return $this->hasMany(ProductsPlan::class,'plan_product_id');
+        return $this->hasMany(ProductsPlan::class,'slot_id', 'product_slot_id');
     }
 }

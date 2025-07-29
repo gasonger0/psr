@@ -1,15 +1,17 @@
 <script setup lang="ts">
 import { DeleteOutlined, SaveOutlined, UndoOutlined } from '@ant-design/icons-vue';
-import { Modal, Table, TabPane, Tabs, Button, Input, Select, TableSummary, TableSummaryRow, TableSummaryCell, Pagination, Tooltip } from 'ant-design-vue';
+import { Modal, Table, TabPane, Tabs, Button, Input, Select, TableSummary, TableSummaryRow, TableSummaryCell, Pagination, Tooltip, SelectOption } from 'ant-design-vue';
 import { onBeforeMount, Ref, ref } from 'vue';
 import { useWorkersStore, WorkerInfo } from '@stores/workers';
 import { responsibleDictColumns, positions, workerDictColumns } from '@stores/dicts';
 import { ResponsibleInfo, useResponsiblesStore } from '@stores/responsibles';
 import { useModalsStore } from '@stores/modal';
+import { useCompaniesStore } from '@/store/companies';
 
 const workers = useWorkersStore();
 const responsibles = useResponsiblesStore();
 const modal = useModalsStore();
+const companies = useCompaniesStore();
 /**
  * Оригинальные значения
  */
@@ -59,7 +61,7 @@ const addNewFront = (): void => {
  * Сохрнанение данных - создание/редактирование
  */
 const save = (rec: Record<string, any>): void => {
-    if ("company" in rec) {
+    if ("company_id" in rec) {
         if (!rec.worker_id) {
             workers._create(rec as WorkerInfo);
         } else {
@@ -130,8 +132,8 @@ const exit = (): void => {
 
 </script>
 <template>
-    <Modal v-model:open="modal.visibility['workers']" @close="exit" :closable="false"
-        class="modal workers" style="width:60%;">
+    <Modal v-model:open="modal.visibility['workers']" @close="exit" :closable="false" class="modal workers"
+        style="width:60%;">
         <div class="workers">
             <Tabs v-model:activeKey="activeTab">
                 <TabPane v-for="(v, k) in workerDictTabs" :key="k" :tab="v">
@@ -139,8 +141,16 @@ const exit = (): void => {
                         :columns="k == 1 ? workerDictColumns : responsibleDictColumns" :pagination="false">
                         <template #bodyCell="{ column, record, text }">
                             <template v-if="column.dataIndex == 'position'">
-                                <Select v-model:value="record['position']" style="width: 100%;" :options="poss"
+                                <Select v-model:value="record[column.dataIndex as string]" style="width: 100%;"
+                                    :options="poss" @dropdownVisibleChange="edit(record)">
+                                </Select>
+                            </template>
+                            <template v-else-if="column.dataIndex == 'company_id'">
+                                <Select v-model:value="record[column.dataIndex as string]" style="width: 100%"
                                     @dropdownVisibleChange="edit(record)">
+                                    <SelectOption v-for="i in companies.companies" :value="i.company_id">
+                                        {{ i.title }}
+                                    </SelectOption>
                                 </Select>
                             </template>
                             <template v-else-if="column.dataIndex == 'actions'">

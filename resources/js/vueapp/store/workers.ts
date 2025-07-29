@@ -2,11 +2,9 @@ import { defineStore } from "pinia";
 import * as dayjs from 'dayjs';
 import { deleteRequest, getRequest, getTimeString, notify, postRequest, putRequest, SelectOption } from "../functions";
 import { AxiosError, AxiosResponse } from "axios";
-import { Slot } from "./dicts";
+import { format, Slot } from "./dicts";
 import { computed, reactive, Ref, ref } from "vue";
-// TODO проверить АПИ-роуты и перенеси подгрузку слотов в отдельную хранилку мейби?
-
-// Интерфейсы
+import { CompanyInfo, useCompaniesStore } from "./companies";
 
 // Информация о сотруднике
 export type WorkerInfo = {
@@ -15,7 +13,7 @@ export type WorkerInfo = {
     worker_id?: number,
     current_line_id?: number | null,
     current_slot_id?: number,
-    company?: string,
+    company?: CompanyInfo,
     on_break?: boolean,
     popover?: boolean,
     isEditing: boolean
@@ -32,7 +30,7 @@ export const WorkerForm = {
         }]
     },
     company: {
-        name: 'company',
+        name: 'company_id',
         label: 'Компания',
         rules: [{
             required: true,
@@ -44,7 +42,9 @@ export const WorkerForm = {
 export const useWorkersStore = defineStore('workers', () => {
     const workers: Ref<WorkerInfo[]> = ref([]);
 
-    const calcBreak = (worker: WorkerInfo) => computed(() => worker.on_break ? 'break' : '');
+    const calcBreak = (worker: WorkerInfo) => computed(() => 
+        worker.break.started_at <= getTimeString() && getTimeString() <= worker.break.ended_at ? 'break' : ''
+    );
 
     /*----------API----------*/
     /**
@@ -79,14 +79,14 @@ export const useWorkersStore = defineStore('workers', () => {
      * @param fields 
      */
     async function _update(fields: WorkerInfo): Promise<boolean> {
-        return await putRequest('/api/workers/update', fields);
+        return await putRequest('/api/workers/update', unserialize(fields));
     }
     /**
      * Удаляет сотрудника из БД
      * @param worker 
      */
     async function _delete(worker: WorkerInfo): Promise<boolean> {
-        return await deleteRequest('/api/workers/delete', worker,
+        return await deleteRequest('/api/workers/delete', unserialize(worker),
             (r: AxiosResponse) => {
                 splice(worker.worker_id!);
             }
@@ -107,28 +107,27 @@ export const useWorkersStore = defineStore('workers', () => {
      * @returns {WorkerInfo} массив обработанных полей сотрудника
      */
     function serialize(fields: any): WorkerInfo {
-        fields.break = {
-            started_at: fields.break_started_at ? dayjs.default(fields.break_started_at, 'HH:mm:ss') : dayjs.default(),
-            ended_at: fields.break_ended_at ? dayjs.default(fields.break_ended_at, 'HH:mm:ss') : dayjs.default()
-        };
-        delete fields.break_started_at;
-        delete fields.break_ended_at;
-
-        // TODO: Хз, сработает ли тренарно
-        if (fields.break.started_at <= getTimeString() <= fields.break.ended_at) {
-            fields.onBreak = true;
-        }
+        fields.break.started_at = dayjs.default(fields.break.started_at, format);
+        fields.break.ended_at = dayjs.default(fields.break.ended_at, format);
+        fields.company = useCompaniesStore().getByID(fields.company_id);
 
         fields.popover = false;
         return fields as WorkerInfo;
     };
+    function unserialize(worker: WorkerInfo): Object {
+        let payload = JSON.parse(JSON.stringify(worker));
+        payload.break.started_at = worker.break.started_at.format(format);
+        payload.break.ended_at = worker.break.ended_at.format(format);
+        payload.company_id = payload.company.company_id;
+        return payload;
+    }
     /**
      * Добавляет новго пустого сотружника в хранилку
      */
     function add(): void {
         workers.value.push({
             title: '',
-            company: '',
+            company: useCompaniesStore().companies.at(0),
             isEditing: true
         });
         return;

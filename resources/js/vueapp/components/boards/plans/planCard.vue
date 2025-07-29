@@ -22,10 +22,14 @@ const boils = computed((): Number => {
         eval(product.amount2parts) *
         eval(product.parts2kg);
 
-})
+});
+
+const emit = defineEmits<{
+  (e: 'edit', payload: ProductPlan): void;
+}>();
 </script>
 <template>
-    <Card class="draggable-card" :data-id="data.plan_product_id" :data-order="data.position" :key="data.plan_product_id"
+    <Card class="draggable-card" :data-id="data.plan_product_id" :key="data.plan_product_id"
         draggable="true">
         <template #title>
             <div class="plan_card">
@@ -36,12 +40,12 @@ const boils = computed((): Number => {
                     <DeleteOutlined class="icon delete" @click="usePlansStore()._delete(data)" />
                 </Tooltip>
                 <Tooltip title="Редактировать">
-                    <EditOutlined class="icon edit" /> 
-                    <!-- @click="editPlan(v.plan_product_id)" /> -->
+                    <EditOutlined class="icon edit"
+                    @click="emit('edit', data)" />
                 </Tooltip>
             </div>
         </template>
-        <b v-if="data.type_id == 1">Количество варок: {{ boils.toFixed(2) }}<br></b>
+        <b v-if="slot.type_id == 1">Количество варок: {{ boils.toFixed(2) }}<br></b>
         <b style="margin-bottom: 10px;display: block;">Объём изготовления: {{ data.amount }}</b>
         <br>
         <span style="white-space: break-spaces;">{{ product.title }}</span>

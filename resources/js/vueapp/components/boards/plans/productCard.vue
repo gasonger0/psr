@@ -40,7 +40,6 @@ const amountFact = (stage_id: number) => {
     return usePlansStore().getAmountFact(activeSlots, stage_id);
 }
 
-// TODO отображение используемых слотов
 defineExpose(props);
 </script>
 <template>

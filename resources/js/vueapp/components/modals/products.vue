@@ -39,7 +39,7 @@ const handleProductSelect = async (key: number) => {
 
 /* PRODUCTS */
 const addProduct = () => products.value.push(productsStore.add(activeCategory.value));
-const editProduct = (product: ProductInfo) => product.isEditing = true;     // TODO баги?
+const editProduct = (product: ProductInfo) => product.isEditing = true;    
 const saveProduct = (product: ProductInfo) => {
     if (product.product_id) {
         productsStore._update(product);
@@ -55,7 +55,7 @@ const deleteProduct = (product: ProductInfo) => {
 
 /* SLOTS */
 const addSlot = () => slots.value.push(slotsStore.add(activeProduct.value, Number(activeTab.value)));
-const editSlot = (slot: ProductSlot) => slot.isEditing = true;  // TODO баги?
+const editSlot = (slot: ProductSlot) => slot.isEditing = true;
 const saveSlot = (slot: ProductSlot) => {
     if (slot.product_slot_id) {
         slotsStore._update(slot);
@@ -66,6 +66,9 @@ const saveSlot = (slot: ProductSlot) => {
 };
 const deleteSlot = (slot: ProductSlot) => slotsStore._delete(slot);
 
+const getClass = (item: ProductInfo) => {
+    return activeProduct.value && activeProduct.value.product_id == item.product_id ? 'active' : '';
+}
 
 /**
  * Закрыть окно
@@ -90,9 +93,7 @@ const exit = () => {
                 <List :data-source="products" v-if="products.length != 0" class="product_list">
                     <template #renderItem="{ item }">
                         <ListItem v-if="!item.isEditing" class="product_list-item"
-                            :class="activeProduct && activeProduct.product_id == item.product_id ? 'active' : ''"
-                            style="">
-                            <!-- TODO сверзу вычислять класс проще -->
+                            :class="getClass(item)">
                             <a href="#" @click="handleProductSelect(item.product_id)">{{ item.title }}</a>
                             <div class="icons-container">
                                 <EditOutlined @click="editProduct(item)" class="icon edit" />
@@ -101,7 +102,6 @@ const exit = () => {
                         </ListItem>
                         <ListItem v-else class="product_list-item" style="display: flex;">
                             <Input v-model:value="item.title" style="max-width:88%" />
-                            <!-- TODO надо что-то по поводу ширины придумать -->
                             <SaveOutlined @click="saveProduct(item)" class="icon save" />
                         </ListItem>
                     </template>
@@ -116,7 +116,6 @@ const exit = () => {
             </section>
             <Divider type="vertical" style="height:unset;" />
             <section style="width: 60%; ">
-                <!-- TODO надо что-то по поводу ширины придумать -->
                 <Tabs v-model:activeKey="activeTab">
                     <TabPane v-for="(v, k) in productsTabs" :key="k" :tab="v">
                         <template v-if="k == 3">

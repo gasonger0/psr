@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { BackTop, Card, FloatButton, Input, FloatButtonGroup, Button, Form, FormItem } from 'ant-design-vue';
-import { ref, Ref, watch, computed, onBeforeMount, TemplateRef } from 'vue';
+import { ref, Ref, watch, computed, onBeforeMount, TemplateRef, onMounted } from 'vue';
 import * as dayjs from "dayjs";
 import 'vue-color-kit/dist/vue-color-kit.css';
 import { LoginOutlined, PlusCircleOutlined, UserAddOutlined, PrinterOutlined } from '@ant-design/icons-vue';
@@ -12,6 +12,7 @@ import { LineInfo, useLinesStore } from '@stores/lines';
 import { useResponsiblesStore } from '@stores/responsibles';
 import { useWorkerSlotsStore } from '@stores/workerSlots';
 import LineForm from '@/components/common/lineForm.vue';
+import { useCompaniesStore } from '@/store/companies';
 
 const linesStore = useLinesStore();
 const workersStore = useWorkersStore();
@@ -19,7 +20,7 @@ const workerSlotsStore = useWorkerSlotsStore();
 
 let newWorker: Ref<WorkerInfo> = ref({
     title: '',
-    company: '',
+    company: useCompaniesStore().getByID(1),
     isEditing: true
 });
 let showNewWorker: Ref<boolean> = ref(false);
@@ -28,21 +29,6 @@ let active: Ref<HTMLElement | null> = ref(null);
 const showList = ref(false);
 const workerRefs = ref<Record<number, InstanceType<typeof ItemCard>>>({})
 
-const processData = async () => {
-    return new Promise((resolve, reject) => {
-        let ts = getTimeString();
-        workerSlotsStore.slots.forEach(slot => {
-            if (slot.started_at <= ts && ts <= slot.ended_at) {
-                let worker = workersStore.getByID(slot.worker_id);
-                worker!.current_line_id = slot ? slot.line_id : null;
-                worker!.current_slot_id = slot.slot_id;
-                slot.popover = ref(false);
-            }
-        });
-
-        resolve(true);
-    });
-};
 const setWorkerRef = (el: any, workerId: number) => {
     if (el) workerRefs.value[workerId] = el;
 };
@@ -56,25 +42,33 @@ const newListText = computed(() => {
     return showList.value ? 'Скрыть' : 'Показать список рабочих';
 });
 const getLineClass = (line: LineInfo) => {
-    return linesStore.getIfDone(line) ? 'done-line' : '';
+    return (linesStore.getIfDone(line) ? 'done-line ' : '') 
+    //+ (line.has_plans ? '' : 'hidden-hard');
 }
 
 const addLineFront = () => {
     linesStore.add();
+    let cont = document.querySelector('.lines-container');
+    setTimeout(() => {
+        cont.scrollTo({
+            left: cont.scrollWidth,
+            behavior: 'smooth'
+        }), 100
+    });
 }
 
 const addWorker = async () => {
     if (await workersStore._create(newWorker.value)) {
         newWorker.value = {
             title: '',
-            company: '',
+            company: useCompaniesStore().getByID(1),
             isEditing: true
         };
     }
 }
 
 const print_graph = () => {
-    window.open('/api/print_slots', '_blank');
+    window.open('/api/workers_slots/print', '_blank');
 }
 
 const recalcCounters = () => {
@@ -91,9 +85,7 @@ watch(
     { deep: true }
 );
 
-onBeforeMount(async () => {
-    await processData();
-
+onMounted(async () => {
     recalcCounters();
     let draggable = document.querySelectorAll('.line_items');
     draggable.forEach(line => {
@@ -105,28 +97,28 @@ onBeforeMount(async () => {
             scrollToTop(linesContainer);
             target.classList.add(`selected`);
             document.querySelectorAll('.done-line').forEach(el => {
-                el.classList.toggle('hidden');
+                el.classList.add('hidden-hard');
             })
             active.value = target;
         })
 
         line.addEventListener(`dragend`, (ev) => {
             document.querySelectorAll('.done-line').forEach(el => {
-                el.classList.toggle('hidden');
+                el.classList.toggle('hidden-hard');
             })
-            let target = ev.target as Element;
+            let target = ev.target as HTMLElement;
             if (target.classList.contains('selected') && ev.target == active.value) {
                 target.classList.remove(`selected`);
                 let worker = workersStore.getByID(
                     Number(
-                        target.getAttribute('data-id')
+                        target.dataset.id
                     )
                 );
                 if (!worker) {
                     notify('warning', 'Такого сотрудника не существует');
                     return;
                 }
-                let line_id = line.parentElement!.getAttribute('data-id');
+                let line_id = line.parentElement!.dataset.id;
                 if (typeof worker?.current_line_id == 'number') {
                     workerSlotsStore._change(worker, Number(line_id));
                     handleCardChange(worker.worker_id);
@@ -175,7 +167,9 @@ onBeforeMount(async () => {
         })
     });
     document.querySelector('.lines-container')!.scrollTo({ left: 0 });
-})
+});
+
+const emit = defineEmits(['ready']);
 </script>
 <template>
     <div class="lines-toolbar">

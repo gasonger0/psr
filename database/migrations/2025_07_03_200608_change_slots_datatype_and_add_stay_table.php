@@ -61,7 +61,6 @@ return new class extends Migration {
 
         // Schema::create('lines_stops', function (Blueprint $table) {
         //     $table->id('stop_id')->primary()->autoIncrement();
-        // TODO подумать надо логами
         // });
 
         // Компании

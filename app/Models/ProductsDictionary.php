@@ -23,15 +23,7 @@ class ProductsDictionary extends Model
         'updated_at'
     ];
 
-    public function setCreatedAtAttribute($value)
-    {
-        $this->attributes['created_at'] = Carbon::parse($value)->format('Y-m-d H:i:s');
-    }
-
-    public function setUpdatedAtAttribute($value)
-    {
-        $this->attributes['updated_at'] = Carbon::parse($value)->format('Y-m-d H:i:s');
-    }
+    public $timestamps = false;
 
     public function slots(){
         return $this->hasMany(ProductsSlots::class, 'product_id');

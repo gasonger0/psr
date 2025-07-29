@@ -14,12 +14,14 @@ trait withSession
      * @param array $params [ключ => значение]
      * @return Builder
      */
-    public function scopeWithSession($query, Request $request)
+    public function scopeWithSession($query, Request|array $request)
     {
-        // $data = $reuest->cookie('date')
-        $query->where('date', $request->attributes->get('date') ?? null);
+        $data = $request instanceof Request ? [
+            'date' => $request->attributes->get('date') ?? null,
+            'isDay' => $request->attributes->get('isDay') ?? null
+        ] : $request;
 
-        $query->where('isDay', $request->attributes->get('isDay') ?? null);
+        $query->where('date', $data['date'])->where('isDay', $data['isDay']);
         return $query;
     }
 }

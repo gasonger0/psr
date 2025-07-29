@@ -43,7 +43,6 @@ const processOrder = (file: FileType) => {
             }
             if (data.amounts.length > 0) {
                 useProductsStore().fillOrders(data.amounts);
-                // TODO добавить объёмы в продукцию
                 notify('success', 'Данные обновлены');
             }
         }

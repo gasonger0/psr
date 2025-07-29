@@ -68,13 +68,22 @@ body {
 .select {
     width: 100%;
 }
+
 .select.reason,
 .select.resp,
 .metal {
     margin-top: 10px;
 }
+
 section.metal {
-    display: flex; justify-content: space-between;
+    display: flex;
+    justify-content: space-between;
+}
+
+.pack-options {
+    flex-direction: column;
+    max-width: 100%;
+    white-space: break-spaces;
 }
 
 .line_items {
@@ -100,11 +109,12 @@ section.metal {
     font-weight: 700;
 }
 
-.line-title span {
-    font-weight: 400;
+.line_title span {
+    font-weight: lighter;
     display: block;
     width: 100%;
-    white-space: collapse;
+    font-size: small;
+    white-space: break-spaces;
 }
 
 .line-input {
@@ -116,6 +126,14 @@ section.metal {
     display: flex;
     justify-content: space-between;
     align-items: center;
+}
+
+.line-card_section .icons {
+    font-size: 22px;
+    height: min-content;
+    display: flex;
+    color: white;
+    gap: 5px;
 }
 
 .line-card_section section {
@@ -343,12 +361,45 @@ section.worker .tools {
     overflow: auto;
 }
 
-.modal.products {
+.modal.products,
+.modal.graph {
     width: 100vw !important;
     height: 100vh;
     top: 0;
     left: 0;
     position: fixed;
+}
+
+.modal.graph {
+    scrollbar-color: unset;
+}
+
+.modal.graph .ant-modal-content {
+    width: 100vw !important;
+    height: 100vh;
+}
+
+.table-container {
+    margin-top: 15px;
+}
+
+.centered-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: left;
+}
+
+.overflow-span {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.pickers {
+    display: flex;
+    justify-content: space-between;
+    flex-direction: row;
 }
 
 .modal.products .ant-modal-content {

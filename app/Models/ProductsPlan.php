@@ -17,46 +17,22 @@ class ProductsPlan extends Model
     public $fillable = [
         'started_at',
         'ended_at',
-        'product_id',
-        'line_id',
         'slot_id',
-        'workers_count',
-        'type_id',
-        'started_at',
-        'ended_at',
         'amount',
         'date',
         'isDay',
-        'hardware',
-        'position'
+        'delay',
+        'colon',
+        'parent'
     ];
+    public $timestamps = false;
 
-    public function setCreatedAtAttribute($value)
-    {
-        $this->attributes['created_at'] = Carbon::parse($value)->format('Y-m-d H:i:s');
-    }
-
-    public function setUpdatedAtAttribute($value)
-    {
-        $this->attributes['updated_at'] = Carbon::parse($value)->format('Y-m-d H:i:s');
-    }
-
-    public static function joinProductTitle(Builder $query)
-    {
-        return $query->join('products_dictionary', 'products_plan.product_id', '=', 'products_dictionary.product_id')
-            ->select('products_plan.*', DB::raw('products_dictionary.title as title'));
-    }
-
-    // public function product()
-    // {
-    //     return $this->hasOne(ProductsDictionary::class, 'product_id');
-    // }
-    // public function line()
-    // {
-    //     return $this->hasOne(Lines::class, 'line_id');
-    // }
     public function slot()
     {
-        return $this->hasOne(ProductsSlots::class, 'slot_id');
+        return $this->hasOne(ProductsSlots::class, 'product_slot_id', 'slot_id');
+    }
+
+    public function line() {
+        return $this->hasManyThrough(Lines::class, ProductsSlots::class,'plan_product_id','slot_id');
     }
 }

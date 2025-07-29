@@ -5,7 +5,7 @@ import { cancelReasons } from '../../store/dicts';
 import { ResponsibleInfo, useResponsiblesStore } from '../../store/responsibles';
 import { DefaultOptionType } from 'ant-design-vue/es/select';
 import { Card, Input, Switch, Tooltip, Popconfirm, Select, SelectOption, TimePicker, RadioGroup, RadioButton, Checkbox } from 'ant-design-vue';
-import { InfoCircleOutlined, ForwardOutlined, StopOutlined } from '@ant-design/icons-vue';
+import { InfoCircleOutlined, ForwardOutlined, StopOutlined, ExperimentOutlined, InboxOutlined } from '@ant-design/icons-vue';
 import { ColorPicker } from 'vue-color-kit';
 const props = defineProps({
     data: {
@@ -81,6 +81,8 @@ const workerCount = computed(() => {
 const currentWorkerCount = computed(() => {
     return props.data.count_current ? props.data.count_current : '0'
 })
+
+// TODO стили!
 </script>
 <template>
     <Card :bordered="false" class="head" :headStyle="lineHead">
@@ -104,7 +106,7 @@ const currentWorkerCount = computed(() => {
                     </template>
                     <section :style="getHeadColor" v-show="data.edit"></section>
                 </Tooltip>
-                <div>
+                <div class="icons">
                     <Tooltip v-if="data.cancel_reason != null && !data.edit"
                         :title="'Время работы было изменено по причине: ' + cancelReasons.find((el) => el.value == data.cancel_reason)!.label">
                         <InfoCircleOutlined id="info-icon" />
@@ -114,12 +116,14 @@ const currentWorkerCount = computed(() => {
                         <Popconfirm v-else :showCancel="false" id="popover" placement="right">
                             <template #title>
                                 <Select placeholder="Причина остановки" class="cancel-select"
-                                    @change="(value, option) => sendStop(data, option)" :options="cancelReasons" 
+                                    @change="(value, option) => sendStop(data, option)" :options="cancelReasons"
                                     :dropdown-match-select-width="false" />
                             </template>
                             <StopOutlined id="stop-icon" />
                         </Popconfirm>
                     </Tooltip>
+                    <ExperimentOutlined v-if="data.type_id == 1 && !data.edit" />
+                    <InboxOutlined v-else-if="!data.edit" />
                 </div>
             </div>
         </template>
@@ -131,24 +135,13 @@ const currentWorkerCount = computed(() => {
                 </section>
                 <span>Время работы:</span><br />
                 <div style="display: flex; justify-content: space-between;">
-                    <TimePicker 
-                        v-model:value="data.work_time.started_at" 
-                        format="HH:mm" 
-                        :showTime="true"
-                        :allowClear="true" 
-                        type="time" 
-                        :showDate="false" 
-                        class="timepicker"/>
-                    <TimePicker 
-                        v-model:value="data.work_time.ended_at" 
-                        format="HH:mm" 
-                        :showTime="true"
-                        :allowClear="true" 
-                        type="time" 
-                        :showDate="false" 
-                        class="timepicker" />
+                    <TimePicker v-model:value="data.work_time.started_at" format="HH:mm" :showTime="true"
+                        :allowClear="true" type="time" :showDate="false" class="timepicker" />
+                    <TimePicker v-model:value="data.work_time.ended_at" format="HH:mm" :showTime="true"
+                        :allowClear="true" type="time" :showDate="false" class="timepicker" />
                 </div>
-                <Select v-model:value="data.cancel_reason" placeholder="Причина переноса старта" class="select reason" :options="cancelReasons" :dropdown-match-select-width="false"/>
+                <Select v-model:value="data.cancel_reason" placeholder="Причина переноса старта" class="select reason"
+                    :options="cancelReasons" :dropdown-match-select-width="false" />
                 <span>Подготовительное время(мин):</span>
                 <Input v-model:value="data.prep_time" placeholder="0" />
                 <span>Заключительное время(мин):</span>
@@ -159,13 +152,9 @@ const currentWorkerCount = computed(() => {
                     <RadioButton value="2">Упаковка</RadioButton>
                 </RadioGroup>
                 <span>Ответственные:</span>
-                <Select v-model:value="data.master" 
-                    class="select" 
-                    :dropdown-match-select-width="false" 
+                <Select v-model:value="data.master" class="select" :dropdown-match-select-width="false"
                     :options="selectResponsible" />
-                <Select v-model:value="data.engineer" 
-                    class="select resp"
-                    :dropdown-match-select-width="false" 
+                <Select v-model:value="data.engineer" class="select resp" :dropdown-match-select-width="false"
                     :options="selectResponsible" />
                 <Checkbox v-model:checked="data.detector.has_detector" class="metal">
                     Установить металодетектор

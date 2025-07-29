@@ -1,6 +1,9 @@
 <?php
 
 namespace App;
+use App\Models\ProductsDictionary;
+use App\Models\ProductsSlots;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 
@@ -10,7 +13,7 @@ class Util
      * Получает стандартыне значения для линии
      * @param mixed $line_id ИД линии
      */
-    public static function getDefaults($line_id = false)
+    public static function getDefaults($line_id = false): array|bool
     {
         $defs = config('lines_defaults');
         if ($line_id !== false) {
@@ -88,11 +91,46 @@ class Util
      * @param \Illuminate\Http\Request $request Запрос
      * @return void
      */
-    public static function appendSessionToData(Request $request)
+    public static function appendSessionToData(Request &$request)
     {
         $request->merge([
-            'date'  => $request->attributes->get('date') ?? null,
+            'date' => $request->attributes->get('date') ?? null,
             'isDay' => $request->attributes->get('isDay') ?? null
         ]);
+    }
+
+    public static function getSessionAsArray(Request $request): array
+    {
+        return [
+            'date' => $request->attributes->get('date'),
+            'isDay' => $request->attributes->get('isDay')
+        ];
+    }
+
+    /**
+     * Рассчитывает длительность 
+     * @param \App\Models\ProductsDictionary $product ГП
+     * @param int $amount Объём изготовления
+     * @param \App\Models\ProductsSlots $slot Слот изготовления
+     * @return float
+     */
+    public static function calcDuration(ProductsDictionary $product, int $amount, ProductsSlots $slot): float
+    {
+        return 
+            eval ("return $product->parts2kg*$amount*$product->amount2parts;") /
+            $slot->perfomance;
+    }
+
+    public static function createDate(array $data, Request $request)
+    {
+        $isDay = $request->attributes->get("isDay");
+        $date = Carbon::createFromFormat('Y-m-d', $request->attributes->get('date'));
+        $stime = Carbon::createFromFormat('H:i', $data['started_at']);
+        $etime = Carbon::createFromFormat('H:i', $data['ended_at']);
+
+        $data['started_at'] = $date->setTime($stime->hour, $stime->minute, 0)->addHours($isDay ? 0 : 12)->format('Y-m-d H:i:s');
+        $data['ended_at'] = $date->setTime($etime->hour, $etime->minute, 0)->addHours($isDay ? 0 : 12)->format('Y-m-d H:i:s');
+
+        return $data;
     }
 }

@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\Lines;
 use App\Models\LinesExtra;
-use App\Models\ProductsPlan;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use App\Util;
@@ -14,30 +13,39 @@ class LinesController extends Controller
 
     public const LINE_NOT_FOUND = "Такой линии не существует.";
     public const LINE_ALREADY_EXISTS = 'Такая линия уже существует';
-    // TODO протестить создание 
 
 
     /* CRUD */
-    public static function get(Request $request)
-    {   
+    public function get(Request $request)
+    {
         $result = [];
+        $session = Util::getSessionAsArray($request);
 
-        Lines::all()->each(function ($line) use (&$result, $request) {
-            $extra = LinesExtra::withSession($request)->getOrInsert($line, $request);
-            $has_plans = $line->plans()->withSession($request)->count() > 0;
-            // $has_plans = ProductsPlan::withSession($request)->slot()->where('line_id', $line->line_id)->count() > 0;
+        // Оптимизация: загружаем все линии с нужными отношениями одним запросом
+        Lines::with([
+            'plans' => function ($query) use ($session) {
+                $query->where('date', $session['date'])
+                    ->where('isDay', $session['isDay']);
+            },
+            'linesExtra'
+        ])->chunk(200, function ($lines) use (&$result, $request) {
+            foreach ($lines as $line) {
+                $extra = LinesExtra::withSession($request)->getOrInsert($line, $request);
 
-            $result[] = array_merge(
-                $line->toArray(), 
-                $extra->toArray(), 
-                ['has_plans' => $has_plans]
-            );
+                $has_plans = $line->plans->isNotEmpty();
+
+                $result[] = array_merge(
+                    $line->makeHidden('plans', 'linesExtra')->toArray(), // Скрываем plans из результата
+                    $extra->toArray(),
+                    ['has_plans' => $has_plans]
+                );
+            }
         });
 
         return Util::successMsg($result);
     }
 
-    public static function create(Request $request)
+    public function create(Request $request)
     {
         $exists = Util::checkDublicate(new Lines(), ['title'], $request->post());
         if ($exists) {
@@ -54,28 +62,32 @@ class LinesController extends Controller
         $extra_id = LinesExtra::insertGetId($request->only((new LinesExtra)->getFillable()));
         if ($extra_id) {
             return Util::successMsg([
-                'line_id' => $id, 
+                'line_id' => $id,
                 'line_extra_id' => $extra_id
             ], 201);
         } else {
             return Util::errorMsg($extra_id, 400);
         }
     }
-    
-    public static function update(Request $request){
-        $line = LinesExtra::where('line_id', $request->post('line_id'))->withSession($request)->first();
+
+    public function update(Request $request)
+    {
+        $line = LinesExtra::find($request->post('line_extra_id'))->first();
         if (!$line) {
             return Util::errorMsg(self::LINE_NOT_FOUND, 404);
         }
 
+        $old = $line->toArray();
+
         $line->update($request->only((new LinesExtra)->getFillable()));
         $line->lines->update($request->only((new Lines)->getFillable()));
 
-        //TODO Обновление слотов сотрудников, графиков и добавлене записи в журнал?
+        SlotsController::afterLineUpdate($request, $old);
         return Util::successMsg("Линия обновлена");
     }
 
-    public function delete(Request $request) {
+    public function delete(Request $request)
+    {
         $delete = Lines::find($request->post('line_id'))->delete();
         if ($delete) {
             return Util::successMsg('Линия удалена', 200);
@@ -86,7 +98,8 @@ class LinesController extends Controller
 
 
     /* ACTIONS */
-    public static function down(Request $request) {
+    public static function down(Request $request)
+    {
         $line = LinesExtra::where('line_id', $request->post('line_id'))
             ->withSession($request)
             ->first();
@@ -102,7 +115,13 @@ class LinesController extends Controller
             $line->save();
         }
 
-        return Util::successMsg($downFrom ? 'Простой завершён' :'Простой зафиксирован', 200);
-        // TODO Добавить запись в журнал 
+        $logData = [
+            'line_id'   => $line->id,
+            'action'    => 'Остановка работы линии'
+        ] + Util::getSessionAsArray($request);
+
+        $log = $downFrom ? LogsController::update($logData) : LogsController::create($logData); 
+
+        return Util::successMsg($log, 200);
     }
 }

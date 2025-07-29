@@ -17,14 +17,5 @@ class Responsible extends Model
         'created_at',
         'updated_at'
     ];
-
-    public function setCreatedAtAttribute($value)
-    {
-        $this->attributes['created_at'] = Carbon::parse($value)->format('Y-m-d H:i:s');
-    }
-
-    public function setUpdatedAtAttribute($value)
-    {
-        $this->attributes['updated_at'] = Carbon::parse($value)->format('Y-m-d H:i:s');
-    }
+    public $timestamps = false;
 }

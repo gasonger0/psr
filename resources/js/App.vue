@@ -10,7 +10,7 @@ import Result from './vueapp/deprecated/result.vue';
 import WorkersWindow from './vueapp/components/modals/workers.vue';
 import Toolbar from '@common/toolbar.vue';
 import { useModalsStore } from './vueapp/store/modal';
-import { postRequest } from '@/functions';
+import { getTimeString, postRequest } from '@/functions';
 import { useProductsStore } from '@/store/products';
 import dayjs from 'dayjs';
 import { useLinesStore } from '@/store/lines';
@@ -18,6 +18,11 @@ import { useWorkersStore } from '@/store/workers';
 import { useResponsiblesStore } from '@/store/responsibles';
 import { useCategoriesStore } from '@/store/categories';
 import { useProductsSlotsStore } from '@/store/productsSlots';
+import { usePlansStore } from '@/store/productsPlans';
+import { useWorkerSlotsStore } from '@/store/workerSlots';
+import Loading from '@/deprecated/loading.vue';
+import Graph from '@modals/graph.vue';
+import { useCompaniesStore } from '@/store/companies';
 
 
 // const modals = useModalsStore();
@@ -25,9 +30,9 @@ import { useProductsSlotsStore } from '@/store/productsSlots';
 //     modals.open(modal);
 // }
 
-const boardKey: Ref<Number> = ref(1);
 const boardType: Ref<boolean> = ref(false);
 const boils: Ref<number> = ref(0);
+const isReady: Ref<boolean> = ref(false);
 
 function changeBoard() {
     boardType.value = !boardType.value;
@@ -49,13 +54,33 @@ onBeforeMount(async () => {
     });
 
     await useLinesStore()._load();
+    await useCompaniesStore()._load();
+    await useWorkersStore()._load();
+    await useWorkerSlotsStore()._load();
+    await processData();
+    isReady.value = true;
+    await useResponsiblesStore()._load();
     await useCategoriesStore()._load();
     await useProductsStore()._load({});
     await useProductsSlotsStore()._load();
-    await useWorkersStore()._load();
-    await useResponsiblesStore()._load();
-    await useWorkersStore()._load();
-})
+    await usePlansStore()._load();
+});
+
+const processData = async () => {
+    return new Promise((resolve, reject) => {
+        let ts = getTimeString();
+        useWorkerSlotsStore().slots.forEach(slot => {
+            if (slot.started_at <= ts && ts <= slot.ended_at) {
+                let worker = useWorkersStore().getByID(slot.worker_id);
+                worker!.current_line_id = slot ? slot.line_id : null;
+                worker!.current_slot_id = slot.slot_id;
+                slot.popover = ref(false);
+            }
+        });
+
+        resolve(true);
+    });
+};
 </script>
 <template>
     <Toolbar :boils="boils" :boardMode="boardType" @change-board="changeBoard" />
@@ -65,7 +90,8 @@ onBeforeMount(async () => {
     <!-- <ProductsDict :open="openProductsDict" :data="data" @close-modal="closeModal" @notify="notify" /> -->
     <ProductsDict />
     <WorkersWindow />
-    <WorkersBoard v-if="!boardType" />
+    <Graph />
+    <WorkersBoard v-if="!boardType && isReady" />
     <PlansBoard v-else />
-    <!-- <PlansDict /> -->
+    <Loading v-show="!isReady"/>
 </template>

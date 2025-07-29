@@ -2,17 +2,24 @@
 
 namespace App\Models;
 
+use App\withSession;
 use Illuminate\Database\Eloquent\Model;
 use Carbon\Carbon;
 class Logs extends Model
 {
+    use withSession;
     protected $table = 'logs';
     protected $primaryKey = 'log_id';
     public $incrementing = true;
-
-    
-    public function setCreatedAtAttribute($value)
-    {
-        $this->attributes['created_at'] = Carbon::parse($value)->format('Y-m-d H:i:s');
-    }
+    public $timestamps = false;
+    public $fillable = [
+        'action',
+        'extra',
+        'people_count',
+        'line_id',
+        'workers',
+        'type',
+        'date',
+        'isDay'
+    ];
 }

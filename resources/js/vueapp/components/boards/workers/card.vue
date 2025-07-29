@@ -33,10 +33,8 @@ const replaceWorker = async (v: RawValueType | LabelInValueType, ev: DefaultOpti
         return;
     }
     let newWorker = store.getByID(ev.key)
-    if (!newWorker){
-        return;     // TODO придумать как обработать
-    }
-    if (newWorker?.current_line_id) {
+
+    if (newWorker!.current_line_id) {
         notify('warning', 'Этот сотрудник уже занят на другой линии');
         props.cardData.popover = false;
         replacer.value = null;
@@ -45,7 +43,6 @@ const replaceWorker = async (v: RawValueType | LabelInValueType, ev: DefaultOpti
     let res = await slotsStore._replace(props.cardData.worker_id!, ev.key);
     if (res) {
         replacer.value = null;
-        // TODO: emit $forceUpdate в родительский компонент???
     }
 }
 
@@ -57,9 +54,6 @@ const getBreak = computed(() => {
 
 </script>
 <template>
-    <!-- TODO: 
-     1) data-id менять на ref
-     2) Не факт, что с просами корректно работаю -->
     <Card 
         :title="props.cardData.title" 
         draggable="true" 
@@ -69,7 +63,7 @@ const getBreak = computed(() => {
         :data-id="props.cardData.worker_id">
         <template #extra>
             <span class="company-title">
-                {{ props.cardData.company }}
+                {{ props.cardData.company.title }}
             </span>
         </template>
         <section class="worker">

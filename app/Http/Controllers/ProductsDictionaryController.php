@@ -14,39 +14,6 @@ class ProductsDictionaryController extends Controller
     private const PRODUCT_ALREADY_EXISTS = 'Такая продукция уже существует';
     private const PRODUCT_NOT_EXISTS = 'Такой продукции не существует.';
 
-    public function getList(Request $request)
-    {
-        if ($id = $request->post('category_id')) {
-            return ProductsDictionary::where('category_id', '=', $id)->get()->toJson();
-        } else if (($pack = $request->post('packaged')) !== null) {
-            $pack =
-                $pack ? [4, 25, 26, 27, 28, 29] : [3, 5, 17, 25, 26, 27, 28, 29];
-
-            $categories = ProductsCategoriesController::getList();
-            $children = array_filter($categories, function ($el) use ($pack) {
-                return (array_search($el['parent'], $pack) !== false || array_search($el['category_id'], $pack) !== false);
-            });
-            $children = array_map(function ($el) {
-                return $el['category_id'];
-            }, $children);
-            $show = ProductsDictionary::whereIn('category_id', $children)->get()->toArray();
-            $hide = ProductsDictionary::whereNotIn('category_id', $children)->get()->toArray();
-            $ret = array_merge(
-                array_map(function ($el) {
-                    $el['hide'] = false;
-                    return $el;
-                }, $show),
-                array_map(function ($el) {
-                    $el['hide'] = true;
-                    return $el;
-                }, $hide)
-            );
-            return json_encode($ret);
-        } else {
-            return ProductsDictionary::all()->toJson();
-        }
-    }
-
     public function get(Request $request)
     {
         $category_id = $request->post('category_id');

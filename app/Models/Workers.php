@@ -13,18 +13,13 @@ class Workers extends Model
     public $timestamps = false;
     protected $fillable = [
         'title',
-        'company'
+        'company_id'
     ];
 
     public function slots() {
         return $this->hasMany(Slots::class, 'slot_id');
     }
-
-    // public function addMinutes(int $minutes) {
-    //     $c1 = Carbon::instance(new \DateTime($this->time_planned));
-    //     $c1->addMinutes($minutes);
-    //     return $this->update([
-    //         'time_planned' => $c1
-    //     ]);
-    // }
+    public function company() {
+        return $this->belongsTo(Companies::class,'company_id');
+    }
 }

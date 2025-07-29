@@ -1,16 +1,16 @@
 <script setup lang="ts">
 import { FileExcelOutlined } from '@ant-design/icons-vue';
 import { Button, Card, Popconfirm, Switch, Divider } from 'ant-design-vue';
-import { computed, onBeforeMount, onMounted, ref, Ref, TemplateRef } from 'vue';
+import { computed, onBeforeMount, onMounted, ref, Ref, TemplateRef, VNodeRef } from 'vue';
 import { ProductInfo, useProductsStore } from '@stores/products';
 import ProductCard from '@/components/boards/plans/productCard.vue'
 import { useLinesStore } from '@/store/lines';
 import LineForm from '@/components/common/lineForm.vue';
 import PlanCard from './planCard.vue';
-import { usePlansStore } from '@/store/productsPlans';
+import { ProductPlan, usePlansStore } from '@/store/productsPlans';
 import ScrollButtons from '@/components/common/scrollButtons.vue';
 import { getNextElement, scrollToTop } from '@/functions';
-import { useProductsSlotsStore } from '@/store/productsSlots';
+import { ProductSlot, useProductsSlotsStore } from '@/store/productsSlots';
 import { alwaysShowLines, format } from '@/store/dicts';
 import * as dayjs from 'dayjs';
 import PlanModal from '@modals/plan.vue';
@@ -28,23 +28,56 @@ const categorySwitch: Ref<boolean> = ref(false);
 let linesContainer: Ref<HTMLElement | null> = ref();
 let active: Ref<HTMLElement | null> = ref(null);
 let isNewPlan: Ref<boolean> = ref(false);
-// TODO в план пишем инф-цию о продукте
-const activePlan: Ref = ref();
+const activePlan: Ref<ProductPlan | null> = ref();
+const prodLine: Ref<PropertyKey> = ref(1);
+/**
+ * Ссылки на карточки
+ */
+// const plansRef = ref<Record<number, InstanceType<typeof ProductCard>>>({})
 
+const handleCardChange = (success: boolean) => {
+    let id = slotsStore.getById(activePlan.value.slot_id).product_id;
+    // console.log(id, plansRef.value[id]);
+    // TODO не обновляется, зараза
+    // if (plansRef.value[id]) {
+    //     console.log('upd');
+        
+    //     plansRef.value[id].$forceUpdate();
+    // }
+
+    if (!success) {
+        activePlan.value = null;
+        if (isNewPlan) {
+            plansStore.removeLast();
+        }
+    }
+    prodLine.value = prodLine.value as number + 1;
+}
 const hideProducts = () => {
     productsStore.hide(Number(categorySwitch.value) + 1);
 }
 const clearPlan = () => {
-    // TODO plansStore._clear();
+    plansStore._clear();
 }
+const editPlan = (plan: ProductPlan) => {
+    activePlan.value = plan;
+    modal.open('plan');
+}
+const downloadPlan = () => {
+    window.open('/api/tables/get_plans', '_blank');
 
+}
+// const setPlanRef = (el: any, product_id: number) => {
+//     if (el) plansRef.value[product_id] = el;
+// };
 const prodListTitle = computed(() => {
     return showList.value ? 'Скрыть' : 'Показать список продукции';
 });
 const hideEmptyLinesTitle = computed(() => {
     return hideEmpty.value ? 'Показать пустые линии' : 'Скрыть пустые линии';
 });
-onBeforeMount(async () => {
+onMounted(async () => {
+    document.querySelector('.lines-container').scrollTo({ left: 0 })
     let draggable = document.querySelectorAll('.line_items.products');
     draggable.forEach(line => {
         line.addEventListener(`dragstart`, (ev: Event) => {
@@ -99,68 +132,73 @@ onBeforeMount(async () => {
         })
 
         line.addEventListener(`dragend`, (ev: Event) => {
+            if (line.parentElement!.dataset.id == '-1') {
+                return;
+            }
             let target = ev.target as HTMLElement;
             if (target.classList.contains('selected') && target == active.value) {
                 target.classList.remove(`selected`);
                 let childs = Array.from(target.parentNode.children);
-                let line = linesStore.getByID(Number(target.closest('.line').getAttribute('data-id')));
-
+                let curLine = linesStore.getByID(Number(
+                    line.parentElement!.dataset.id
+                ));
 
                 if (isNewPlan.value) {
                     document.querySelectorAll('.line').forEach(el => {
                         el.classList.remove('hidden-hard');
                     });
-
-                    let product = productsStore.getByID(Number(target.getAttribute('data-id'))),
-                        position = childs.indexOf(target);
-
-                    let slots = slotsStore.getByLineId(line.line_id),
-                        plans = plansStore.getByLine(line.line_id),
+                    let product = productsStore.getByID(Number(target.dataset.id)),
+                        position = childs.indexOf(target),
+                        slots = slotsStore.getByLineId(curLine.line_id),
+                        plans = plansStore.getByLine(curLine.line_id),
                         lastProd = null,
                         started_at = dayjs.default();
 
                     if (plans.length > 0 && position > 0) {
-                        lastProd = plans.find(i => i.position == (position - 1));
+                        lastProd = plans.reduce((latest, current) => {
+                            return current.ended_at.isAfter(latest.ended_at) ? current : latest;
+                        }, plans[0]);
                         started_at = dayjs.default(lastProd.ended_at, format);
-                    } else if (line.work_time.started_at != null) {
-                        started_at = line.work_time.started_at;
-                        if (line.prep_time) {
-                            started_at = started_at.add(line.prep_time, 'minute');
+                    } else if (curLine.work_time.started_at != null) {
+                        started_at = curLine.work_time.started_at;
+                        if (curLine.prep_time) {
+                            started_at = started_at.add(curLine.prep_time, 'minute');
                         }
                     }
+
+                    // Фильтруем слоты по продукции
+                    slots = slots.filter((el: ProductSlot) => el.product_id == product.product_id);
                     activePlan.value = plansStore.add(
                         slots[0].product_slot_id,
                         started_at,
-                        product.order.amount,
-                        position
+                        product.order ? product.order.amount : 0
                     )
                     modal.open("plan");
 
                 } else {
-                        let ids = childs.map(el => el.getAttribute('data-id'));
+                    let ids = childs.map(el => (el as HTMLElement).dataset.id);
 
-                        let cards = [];
-                        ids.forEach((el, k) => {
-                            let pl = plansStore.plans.find(f => f.plan_product_id == Number(el));
-                            pl.position = k;
-                            cards.push(pl);
-                        })
+                    let cards = [];
+                    ids.forEach((el, k) => {
+                        let pl = plansStore.plans.find(f => f.plan_product_id == Number(el));
+                        cards.push(pl);
+                    })
 
-                        for (let i in cards) {
-                            let timeDiff = cards[i].ended_at.diff(cards[i].started_at, 'minutes');
-                            if (Number(i) == 0) {
-                                cards[i].started_at = line.work_time.started_at.add(line.prep_time, 'minutes');
-                                // if (line.prep_time) {
-                            } else {
-                                cards[i].started_at = cards[Number(i) - 1].ended_at;
-                            }
-                            cards[i].ended_at = cards[i].started_at.add(timeDiff, 'minutes');
+                    for (let i in cards) {
+                        let timeDiff = cards[i].ended_at.diff(cards[i].started_at, 'minutes');
+                        if (Number(i) == 0) {
+                            cards[i].started_at = curLine.work_time.started_at.add(curLine.prep_time, 'minutes');
+                        } else {
+                            cards[i].started_at = cards[Number(i) - 1].ended_at;
                         }
-                        console.log("Cards:", cards);
-                        
-                        plansStore._change(cards);                    
+                        cards[i].ended_at = cards[i].started_at.add(timeDiff, 'minutes');
+                    }
+                    console.log("Cards:", cards);
+                    plansStore._change(cards);
                 }
             }
+            line.removeChild(target);
+            prodLine
         });
 
         line.addEventListener('dragover', (ev) => {
@@ -202,7 +240,6 @@ onBeforeMount(async () => {
         })
     });
 });
-onMounted(() => document.querySelector('.lines-container').scrollTo({ left: 0 }))
 </script>
 <template>
     <section class="plans-toolbar">
@@ -212,7 +249,7 @@ onMounted(() => document.querySelector('.lines-container').scrollTo({ left: 0 })
         <Button type="dashed" @click="() => hideEmpty = !hideEmpty">
             {{ hideEmptyLinesTitle }}
         </Button>
-        <Button type="primary" class="excel-button">
+        <Button type="primary" class="excel-button" @click="downloadPlan">
             <FileExcelOutlined />
             Скачать XLSX
         </Button>
@@ -224,7 +261,7 @@ onMounted(() => document.querySelector('.lines-container').scrollTo({ left: 0 })
         </Popconfirm>
     </section>
     <section class="lines-container" ref="linesContainer">
-        <div class="line" data-id="-1" v-show="showList">
+        <div class="line" data-id="-1" v-show="showList" :key="prodLine">
             <Card :bordered="false" class="head" :headStyle="{ 'background-color': 'white' }">
                 <template #title>
                     <div style="display: flex; justify-content: space-between;">
@@ -235,7 +272,8 @@ onMounted(() => document.querySelector('.lines-container').scrollTo({ left: 0 })
                 </template>
             </Card>
             <div class="line_items products">
-                <ProductCard v-for="i in productsStore.products" :product="i">{{ 1 }}</ProductCard>
+                <ProductCard v-for="i in productsStore.products" :product="i" />
+                    <!-- :ref="(el) => setPlanRef(el, i.product_id)" /> -->
             </div>
         </div>
         <Divider type="vertical" v-show="showList" style="height: unset; width: 5px;" />
@@ -243,10 +281,10 @@ onMounted(() => document.querySelector('.lines-container').scrollTo({ left: 0 })
             v-show="!(hideEmpty && !line.has_plans)">
             <LineForm :data="line" />
             <div class="line_items products">
-                <PlanCard v-for="plan in plansStore.getByLine(line.line_id)" :data="plan" />
+                <PlanCard v-for="plan in plansStore.getByLine(line.line_id)" :data="plan" @edit="editPlan" />
             </div>
         </div>
     </section>
     <ScrollButtons :containerRef="linesContainer" :speed="280" />
-    <PlanModal :data="activePlan" />
+    <PlanModal :data="activePlan" @save="handleCardChange(true)" @cancel="handleCardChange(false)" />
 </template>

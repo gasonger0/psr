@@ -14,7 +14,7 @@ class LinesExtra extends Model
     protected $table = 'lines_extra';
     protected $primaryKey = 'line_extra_id';
     public $incrementing = true;
-    protected $dateFormat = 'U';
+    // protected $dateFormat = 'U';
     public $fillable = [
         'line_id',
         'date',
@@ -34,19 +34,12 @@ class LinesExtra extends Model
         'ended_at'
     ];
 
-    public function setCreatedAtAttribute($value)
-    {
-        $this->attributes['created_at'] = Carbon::parse($value)->format('Y-m-d H:i:s');
-    }
+    public $timestamps = false;
 
-    public function setUpdatedAtAttribute($value)
-    {
-        $this->attributes['updated_at'] = Carbon::parse($value)->format('Y-m-d H:i:s');
-    }
 
     public function lines()
     {
-        return $this->belongsTo(LinesExtra::class, 'line_id', 'line_id');
+        return $this->belongsTo(Lines::class, 'line_id', 'line_id');
     }
 
     public function scopeGetOrInsert(Builder $query, Lines $line, Request $request): LinesExtra
@@ -61,11 +54,14 @@ class LinesExtra extends Model
                 $attributes[$el['column']] = $el['value'];
             }
         }
-        // TODO почему-то не всегда сразу создаёт с параметрами сессии. Видимо, надо их заюивать до всех запросов
+
+        $default = Util::getDefaults($line->line_id);
+        $default ? $default = Util::createDate($default, $request) : '';
+
         return LinesExtra::create(
             ['line_id' => $line->line_id] +
             $attributes +
-            Util::getDefaults($line->line_id) 
+            (is_array($default) ? $default : [])
         );
     }
 }

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\CompaniesController;
 use App\Http\Controllers\LinesController;
 use App\Http\Controllers\LogsController;
 use App\Http\Controllers\ProductsCategoriesController;
@@ -62,8 +63,23 @@ Route::group(['middleware' => ['web', ParseSession::class]], function () {
             // actions
             Route::put('/change', 'change');
             Route::put('/replace', 'replace');
-            Route::get('/print', 'print');
         });
+    Route::get('/workers_slots/print', [SlotsController::class, 'print']);
+
+    /***********
+     * COMPANIES
+     **********/
+    Route::controller(CompaniesController::class)
+        ->prefix('/companies')
+        ->middleware(ForceJsonResponse::class)
+        ->group(function () {
+            // TODO crud!
+            Route::get('/get', 'get');
+            Route::put('/update', 'update');
+            Route::post('/create', 'create');
+            Route::delete('/delete', 'delete');
+        });
+
 
     /*********************
      * PRODUCTS_DICTIONARY
@@ -123,11 +139,6 @@ Route::group(['middleware' => ['web', ParseSession::class]], function () {
             Route::delete('/delete', 'delete');
         });
 
-    /*****************
-     * PRODUCTS_ORDERS
-     ****************/
-    // Route::get('/products/get_orders', [ProductsOrderController::class, 'get']);
-
     /*************
      * RESPONSIBLE
      ************/
@@ -140,8 +151,6 @@ Route::group(['middleware' => ['web', ParseSession::class]], function () {
             Route::put('/update', 'update');
             Route::delete('/delete', 'delete');
         });
-    // Route::get('/get_responsible', [ResponsibleController::class, 'getList']);
-    // Route::post('/edit_responsible', [ResponsibleController::class, 'edit']);
 
     /******
      * XLSX
@@ -150,6 +159,7 @@ Route::group(['middleware' => ['web', ParseSession::class]], function () {
         ->prefix('/tables')
         ->group(function () {
             Route::middleware(ForceJsonResponse::class)->post('/load_order', 'loadOrder');
+            Route::get('/get_plans', 'getPlans');
         });
 
 

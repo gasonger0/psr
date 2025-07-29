@@ -52,7 +52,7 @@ export const workerDictColumns = [{
     width: '60%'
 }, {
     title: 'Компания',
-    dataIndex: 'company',
+    dataIndex: 'company_id',
 }];
 
 export const responsibleDictColumns = [{
@@ -68,11 +68,12 @@ export const responsibleDictColumns = [{
     dataIndex: 'position',
 }];
 
-// Слот графика / Обед / Линия / Изготовление
+// Слот Обед / Линия
 export type Slot = {
     started_at: Dayjs,
     ended_at: Dayjs,
-    slot_id?: number
+    slot_id?: number,
+    break_id?: number
 }
 
 /**
@@ -184,9 +185,9 @@ export const hardwares = [
  * Список оборудования для упаковки
  */
 export const packHardwares = [
-    { value: 4, label: 'ЗМ №1', tooltip: 'Завёрточная машина №1' },
-    { value: 5, label: 'ЗМ №2', tooltip: 'Завёрточная машина №2' },
-    { value: 6, label: 'ЗМ №1 и №2', tooltip: 'Завёрточные машины №1 и №2' },
+    { value: 4, label: 'ЗМ №1', title: 'Завёрточная машина №1' },
+    { value: 5, label: 'ЗМ №2', title: 'Завёрточная машина №2' },
+    { value: 6, label: 'ЗМ №1 и №2', title: 'Завёрточные машины №1 и №2' },
 ]
 /**
  * ИД линий, которые показываем при drag'n'drop даже если варка уже есть

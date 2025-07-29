@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Companies;
+use App\Models\Slots;
+use App\Util;
 use Illuminate\Http\Request;
 use App\Models\Logs;
 use Carbon\Carbon;
@@ -11,162 +14,187 @@ use App\Models\Workers;
 
 class LogsController extends Controller
 {
-    static public function add(Request $request)
+    public static function create(array $data)
     {
-        $date = $request->cookie('date');
-        // var_dump($request->post());
-        if (empty($request->post())) return -1;
-        $log = new Logs();
+        $workers = Slots::withSession($data)
+            ->where('line_id', $data['line_id'])
+            ->where('started_at', '<=', Carbon::now()->format('Y-m-d H:i:s'))
+            ->where('ended_at', '>=', Carbon::now()->format('Y-m-d H:i:s'))
+            ->map(function ($i) {
+                return $i->worker_id;
+            });
 
-        $log->action = $request->post('action');
-        if ($extra = $request->post('extra')) {
-            $log->extra = $extra;
-        }
-        $log->line_id = $request->post('line_id');
-        $log->people_count = $request->post('people_count');
-        $log->created_at = now('Europe/Moscow')->format(format: 'H:i:s');
-        $log->workers = $request->post('workers') ?? '';
-        $log->type = $request->post('type');
-        $log->date = $date;
-        $log->save();
-        return;
+        $log = Logs::create($data + [
+            'people_count' => count($workers),
+            'workers' => implode(',', $workers),
+            'started_at' => Carbon::now()->format('Y-m-d H:i:s')
+
+        ]);
+        return Util::successMsg($log, 201);
     }
 
-    static public function getAll(Request $request)
+    public static function update(array $data)
     {
-        $date = $request->cookie('date');
-        $logs = Logs::where('date', $date)->orderBy('created_at', 'DESC')->get()->toArray();
-        foreach ($logs as &$log) {
-            $log['line'] = Lines::find($log['line_id'])->title;
+        $log = Logs::withSession($data)->where('line_id', $data['line_id'])->where('ended_at', null)->first();
+        if ($log) {
+            $log->update([
+                'ended_at' => Carbon::now()->format('Y-m-d H:i:s')
+            ]);
         }
-        return json_encode($logs);
+        return Util::successMsg('Простой завершён');
     }
 
-    static public function logXlsx(Request $request)
+    public function get(Request $request)
     {
-        $data = self::getAll($request);
-        $data = json_decode($data, true, 512, JSON_OBJECT_AS_ARRAY);
-        $columns = [[
-            'ИД',
-            'Линия',
-            'Создан',
-            'Действие',
-            'Описание',
-            'Кол-во человек на линии'
-        ]];
-        foreach ($data as $col) {
-            unset($col['updated_at']);
-            // $col['created_at'] = ;
+        return Util::successMsg(Logs::withSession($request)->get()->toArray());
+    }
+
+    public function print(Request $request)
+    {
+        /* 1) просто выводим журнал
+         2) Обходим записи по порядку и обрабатываем как:
+            - Получаем список компаний через Compaines::get()
+            - Парсим время простоя, считаем его длительность
+            - Берём список сотрудников простоя и по компаниям перемножаем на длительности
+         */
+        $columns = [
+            [
+                'ИД',
+                'Линия',
+                'Начат',
+                'Окончен',
+                'Кол-во человек на линии'
+            ]
+        ];
+        $companies = [];
+        Logs::withSession($request)->get()->orderBy('created_at', 'ASC')->each(function ($el) use (&$columns, &$companies) {
             $columns[] = [
-                $col['log_id'],
-                $col['line'],
-                Carbon::parse($col['created_at'])->format('H:i:s'),
-                $col['action'],
-                $col['extra'],
-                $col['people_count']
+                $el->log_id,
+                $el->line,
+                Carbon::parse($el->started_at)->format('H:i:s'),
+                Carbon::parse($el->ended_at)->format('H:i:s'),
+                $el->people_count
+            ];
+
+            $duration = Carbon::parse($el->started_at)->diffInHours(Carbon::parse($el->ended_at));
+
+            foreach(explode(',', $el->workers) as $id) {
+                $worker = Workers::find($id);
+                $company = Companies::where('company_id', $worker->company_id)->first();
+
+                if (!isset($companies[$company->company_id])) {
+                    $companies[$company->company_id] = [
+                        'title' => $company->title,
+                        'hours' => 0
+                    ];
+                }
+
+                $companies[$company->company_id]['hours'] += $duration;
+            }
+            return $el;
+        });
+
+        array_push($columns, [], ['КОМПАНИИ']);
+        foreach ($companies as $company) {
+            $columns[] = [
+                $company['title'],
+                $company['hours']
             ];
         }
-        $columns[] = [];
-        $columns[] = ['КОМПАНИИ'];
 
-        $grouped = [];
-        foreach ($data as $col) {
-            $grouped[$col['line_id']][] = $col;
-        }
-        $companies = [];
 
-        foreach ($grouped as $line_id => &$f) {
-            $sorter = array_column($f, 'created_at');
-            array_multisort($sorter, SORT_ASC, $f);
-            $i = 0;
-            if (!isset($companies[$line_id])) $companies[$line_id] = [];
-            while ($i < count($f)) {
-                if ($f[$i]['type'] == 3) {
-                    // Перестановка начального времени
-                    preg_match('/\d{2}:\d{2}:\d{2}/', $f[$i]['extra'], $matches);
-                    $oldTime = $matches[0];
-                    if ($oldTime) {
-                        $newTime = Carbon::parse($f[$i]['created_at']);
-                        $diff = abs($newTime->diffInHours(Carbon::createFromFormat('H:i:s', $oldTime)));
 
-                        $comps = Workers::whereIn('worker_id', explode(',', $f[$i]['workers']))->get(['worker_id','company']);
-                        if (count($comps)>0) {
-                            $buf = [];
-                            foreach ($comps as $comp) {
-                                if (!isset($buf[$line_id])) $buf[$line_id] = [];
-                                if (isset($buf[$line_id][$comp->company])) {
-                                    $buf[$line_id][$comp->company] += 1;
-                                } else {
-                                    $buf[$line_id][$comp->company] = 1;
-                                }
-                            }
-                            if (isset($buf[$line_id])) {
-                                $buf[$line_id] = array_map(function ($val) use ($diff) {
-                                    return $val * $diff;
-                               }, $buf[$line_id]);
-                                $companies[$line_id][] = $buf[$line_id];
-                            }
-                        }
-                    }
-                    $i += 1;
-                } else if ($f[$i]['type'] == 1 and $f[$i + 1]['type'] == 2) {
-                    $newTime = Carbon::parse($f[$i]['created_at']);
-                    $oldTime = Carbon::parse($f[$i + 1]['created_at']);
+        // foreach ($data as $col) {
+        //     $grouped[$col['line_id']][] = $col;
+        // }
+        // $companies = [];
 
-                    $diff = abs($newTime->diffInHours($oldTime));
+        // foreach ($grouped as $line_id => &$f) {
+        //     $i = 0;
+        //     if (!isset($companies[$line_id]))
+        //         $companies[$line_id] = [];
 
-                    $comps = Workers::whereIn('worker_id', explode(',',$f[$i]['workers']))->get('company');
-                    if(count($comps)>0){
-                        $buf = [];
-                        foreach ($comps as $comp) {
-                            if (!isset($buf[$line_id])) {
-                                $buf[$line_id] = [];
-                            }
-                            if (isset($buf[$line_id][$comp->company])) {
-                                $buf[$line_id][$comp->company] += 1;
-                            } else {
-                                $buf[$line_id][$comp->company] = 1;
-                            }
-                        }
-                        $buf[$line_id] = array_map(function ($val) use ($diff) {
-                            return $val * $diff;
-                        }, $buf[$line_id]);
-                        $companies[$line_id][] = $buf[$line_id];
-                    }
-                    $i += 2;
-                }
-            }
-        }
-        foreach ($companies as $line => $v) {
-            $columns[] = [Lines::find($line)->first()->title];
+        //     // обходим журнал по порядку
+        //     while ($i < count($f)) {
+        //         if ($f[$i]['type'] == 3) {
+        //             // Перестановка начального времени
+        //             preg_match('/\d{2}:\d{2}:\d{2}/', $f[$i]['extra'], $matches);
+        //             $oldTime = $matches[0];
+        //             if ($oldTime) {
+        //                 $newTime = Carbon::parse($f[$i]['created_at']);
+        //                 $diff = abs($newTime->diffInHours(Carbon::createFromFormat('H:i:s', $oldTime)));
 
-            $arr = [];
-            foreach ($v as $item) {
-                foreach ($item as $key => $value) {
-                    if (isset($arr[$key])) {
-                        $arr[$key] += $value;
-                    } else {
-                        $arr[$key] = $value;
-                    }
-                }
-            }
-            foreach ($arr as $key => $value) {
-                $columns[] = [$key, $value];
-            }
-        }
+        //                 $comps = Workers::whereIn('worker_id', explode(',', $f[$i]['workers']))->select('company_id')->distinct()->get();
+        //                 if (count($comps) > 0) {
+        //                     $buf = [];
+        //                     foreach ($comps as $comp) {
+        //                         if (!isset($buf[$line_id]))
+        //                             $buf[$line_id] = [];
+        //                         if (isset($buf[$line_id][$comp->company_id])) {
+        //                             $buf[$line_id][$comp->company_id] += 1;
+        //                         } else {
+        //                             $buf[$line_id][$comp->company_id] = 1;
+        //                         }
+        //                     }
+        //                     if (isset($buf[$line_id])) {
+        //                         $buf[$line_id] = array_map(function ($val) use ($diff) {
+        //                             return $val * $diff;
+        //                         }, $buf[$line_id]);
+        //                         $companies[$line_id][] = $buf[$line_id];
+        //                     }
+        //                 }
+        //             }
+        //             $i += 1;
+        //         } else if ($f[$i]['type'] == 1 and $f[$i + 1]['type'] == 2) {
+        //             $newTime = Carbon::parse($f[$i]['created_at']);
+        //             $oldTime = Carbon::parse($f[$i + 1]['created_at']);
+
+        //             $diff = abs($newTime->diffInHours($oldTime));
+
+        //             $comps = Workers::whereIn('worker_id', explode(',', $f[$i]['workers']))->get('company');
+        //             if (count($comps) > 0) {
+        //                 $buf = [];
+        //                 foreach ($comps as $comp) {
+        //                     if (!isset($buf[$line_id])) {
+        //                         $buf[$line_id] = [];
+        //                     }
+        //                     if (isset($buf[$line_id][$comp->company_id])) {
+        //                         $buf[$line_id][$comp->company_id] += 1;
+        //                     } else {
+        //                         $buf[$line_id][$comp->company_id] = 1;
+        //                     }
+        //                 }
+        //                 $buf[$line_id] = array_map(function ($val) use ($diff) {
+        //                     return $val * $diff;
+        //                 }, $buf[$line_id]);
+        //                 $companies[$line_id][] = $buf[$line_id];
+        //             }
+        //             $i += 2;
+        //         }
+        //     }
+        // }
+        // foreach ($companies as $line => $v) {
+        //     $columns[] = [Lines::find($line)->first()->title];
+
+        //     $arr = [];
+        //     foreach ($v as $item) {
+        //         foreach ($item as $key => $value) {
+        //             if (isset($arr[$key])) {
+        //                 $arr[$key] += $value;
+        //             } else {
+        //                 $arr[$key] = $value;
+        //             }
+        //         }
+        //     }
+        //     foreach ($arr as $key => $value) {
+        //         $columns[] = [$key, $value];
+        //     }
+        // }
+
+        $session = Util::getSessionAsArray($request);
         $xlsx = SimpleXLSXGen::fromArray($columns);
-        $date = $request->cookie('date');
-        $name = 'Простои_' . date('d_m_Y', strtotime($date)) . '.xlsx';
+        $name = "Простои_$session[date]_". ($session['isDay'] ? 'День' : 'Ночь') .".xlsx";
         $xlsx->downloadAs($name);
         // return $name;
-    }
-    static public function clear($date = null, $isDay)
-    {
-        if (!$date) {
-            return;
-        }
-        Logs::where('date', $date)->where('isDay', $isDay)->each(function($log) {
-            $log->delete();
-        });
     }
 }

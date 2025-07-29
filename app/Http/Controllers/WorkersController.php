@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Workers;
+use App\Models\WorkersBreaks;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use App\Models\Slots;
 use App\Util;
@@ -11,9 +13,13 @@ class WorkersController extends Controller
 {
     public const WORKER_NOT_FOUND = "Такого сотрудника не существует";
     public const WORKER_ALREADY_EXISTS = "Такой сотрудник уже существует";
-    public function get()
+    public function get(Request $request)
     {
-        return Response(Workers::all()->toArray(), 200);
+        return Response(Workers::all()->map(function($worker) use ($request) {
+            return $worker->toArray() + [
+                'break' => WorkersBreaks::getOrInsert($worker, $request)->toArray()
+            ];
+        }), 200);
     }
     public function create(Request $request)
     {
@@ -27,6 +33,13 @@ class WorkersController extends Controller
             )
         );
         if ($result) {
+            $session = Util::getSessionAsArray($request);
+            $date = Carbon::parse($session['date']);
+            WorkersBreaks::create([
+                'worker_id' => $result->worker_id,
+                'started_at' => $date->setTime($session['isDay'] ? 12 : 0,0,0)->format('Y-m-d H:i:s'),
+                'ended_at' => $date->copy()->addHour()->format('Y-m-d H:i:s'),
+            ] + $session);
             return Util::successMsg($result, 201);
         } else {
             return Util::errorMsg($result);
@@ -35,6 +48,9 @@ class WorkersController extends Controller
     public function update(Request $request)
     {
         Workers::find($request->post('worker_id'))->update($request->only((new Workers())->getFillable()));
+        if ($break = $request->post('break')) {
+            WorkersBreaks::find($break['break_id'])->update($break);
+        }
         return Util::successMsg('Данные сотрудника обновлены');
 
     }
@@ -47,23 +63,6 @@ class WorkersController extends Controller
             ]);
         } else {
             return Util::errorMsg('Что-то пошло не так');
-        }
-    }
-
-    // TODO депрекейтед возможно
-    public function change(Request $request)
-    {
-        try {
-            foreach ($request->post() as $worker) {
-                if ($worker['slot_id']) {
-                    $slot = Slots::find($worker['slot_id']);
-                    $slot->line_id = $worker['line_id'];
-                    $slot->save();
-                }
-            }
-            return Util::successMsg('Сотрудники изменены', 200);
-        } catch (\Exception $e) {
-            return Util::errorMsg($e->getMessage(), 500);
         }
     }
 }

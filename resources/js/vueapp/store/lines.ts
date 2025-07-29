@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import { Slot } from "@stores/dicts";
+import { format, Slot } from "@stores/dicts";
 import * as dayjs from 'dayjs'
 import { ResponsibleInfo } from "@stores/responsibles";
 import { reactive, Ref, ref } from "vue";
@@ -133,8 +133,8 @@ export const useLinesStore = defineStore('lines', () => {
         line.showDelete = ref(false);
         line.date = dayjs.default(line.date);
         line.work_time = ref({
-            started_at: dayjs.default(line.started_at, 'HH:mm:ss'),
-            ended_at: dayjs.default(line.ended_at, 'HH:mm:ss')
+            started_at: dayjs.default(line.started_at),
+            ended_at: dayjs.default(line.ended_at)
         });
         line.detector = ref({
             has_detector: line.has_detector,
@@ -147,10 +147,10 @@ export const useLinesStore = defineStore('lines', () => {
 
     function unserialize(line: LineInfo) {
         const item = JSON.parse(JSON.stringify(line));
-        item.started_at = line.work_time.started_at.format('HH:mm:ss');
-        item.ended_at = line.work_time.ended_at.format('HH:mm:ss');
-        item.detector_start = line.detector.detector_start?.format('HH:mm:ss');
-        item.detector_end = line.detector.detector_end?.format('HH:mm:ss');
+        item.started_at = line.work_time.started_at.format(format);
+        item.ended_at = line.work_time.ended_at.format(format);
+        item.detector_start = line.detector.detector_start?.format(format);
+        item.detector_end = line.detector.detector_end?.format(format);
         item.date = line.date.format('YYYY-MM-DD');
         delete item.detector, item.work_time;
         return item;
