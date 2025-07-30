@@ -27,7 +27,8 @@ let showNewWorker: Ref<boolean> = ref(false);
 let linesContainer: Ref<HTMLElement | null> = ref();
 let active: Ref<HTMLElement | null> = ref(null);
 const showList = ref(false);
-const workerRefs = ref<Record<number, InstanceType<typeof ItemCard>>>({})
+const workerRefs = ref<Record<number, InstanceType<typeof ItemCard>>>({});
+const monitorInterval: Ref<number> = ref(null);
 
 const setWorkerRef = (el: any, workerId: number) => {
     if (el) workerRefs.value[workerId] = el;
@@ -42,7 +43,7 @@ const newListText = computed(() => {
     return showList.value ? 'Скрыть' : 'Показать список рабочих';
 });
 const getLineClass = (line: LineInfo) => {
-    return (linesStore.getIfDone(line) ? 'done-line ' : '') 
+    return (linesStore.getIfDone(line) ? 'done-line ' : '')
     //+ (line.has_plans ? '' : 'hidden-hard');
 }
 
@@ -85,8 +86,25 @@ watch(
     { deep: true }
 );
 
+const monitor = async () => {
+    let current = workerSlotsStore.getCurrent();
+    let ts = getTimeString();
+    workersStore.workers.forEach(worker => {
+        let curSlot = current.find(i => i.worker_id == worker.worker_id);
+        if (!curSlot) {
+            worker.current_line_id = null;
+            worker.current_slot_id = null;
+        } else if (curSlot.slot_id != worker.current_slot_id) {
+            worker.current_slot_id = curSlot.slot_id;
+            worker.current_line_id = curSlot.line_id;
+        }
+        worker.on_break = workersStore.calcBreak(worker).value;
+    });
+}
+
 onMounted(async () => {
     recalcCounters();
+    monitorInterval.value = setInterval(monitor, 3000);
     let draggable = document.querySelectorAll('.line_items');
     draggable.forEach(line => {
         line.addEventListener(`dragstart`, (ev: Event) => {

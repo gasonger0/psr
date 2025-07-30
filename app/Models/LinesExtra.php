@@ -31,7 +31,8 @@ class LinesExtra extends Model
         'down_from',
         'down_time',
         'started_at',
-        'ended_at'
+        'ended_at',
+        'cancel_reason'
     ];
 
     public $timestamps = false;

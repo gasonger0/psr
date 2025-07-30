@@ -193,3 +193,20 @@ export const packHardwares = [
  * ИД линий, которые показываем при drag'n'drop даже если варка уже есть
  */
 export const alwaysShowLines = [8, 9, 10, 11, 12];
+
+export const logColumns = [{
+    title: 'Начало',
+    dataIndex: 'started_at'
+}, {
+    title: 'Конец',
+    dataIndex: 'ended_at'
+},{
+    title: 'Действие',
+    dataIndex: 'action'
+}, {
+    title: 'Человек на линии',
+    dataIndex: 'people_count'
+}, {
+    title: 'Линия',
+    dataIndex: 'line'
+}];

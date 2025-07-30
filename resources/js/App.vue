@@ -2,7 +2,6 @@
 import WorkersBoard from '@boards/workers/board.vue';
 import PlansBoard from '@boards/plans/board.vue';
 import Stats from './vueapp/deprecated/stats.vue';
-import Logs from './vueapp/deprecated/logs.vue';
 import ProductsDict from '@modals/products.vue';
 import ProductsPlan from './vueapp/deprecated/productsPlan.vue';
 import { onBeforeMount, ref, Ref } from 'vue';
@@ -23,6 +22,8 @@ import { useWorkerSlotsStore } from '@/store/workerSlots';
 import Loading from '@/deprecated/loading.vue';
 import Graph from '@modals/graph.vue';
 import { useCompaniesStore } from '@/store/companies';
+import { useLogsStore } from '@/store/logs';
+import Logs from '@modals/logs.vue';
 
 
 // const modals = useModalsStore();
@@ -64,6 +65,7 @@ onBeforeMount(async () => {
     await useProductsStore()._load({});
     await useProductsSlotsStore()._load();
     await usePlansStore()._load();
+    await useLogsStore()._load();
 });
 
 const processData = async () => {
@@ -72,7 +74,7 @@ const processData = async () => {
         useWorkerSlotsStore().slots.forEach(slot => {
             if (slot.started_at <= ts && ts <= slot.ended_at) {
                 let worker = useWorkersStore().getByID(slot.worker_id);
-                worker!.current_line_id = slot ? slot.line_id : null;
+                worker!.current_line_id = slot.line_id;
                 worker!.current_slot_id = slot.slot_id;
                 slot.popover = ref(false);
             }
@@ -92,6 +94,7 @@ const processData = async () => {
     <WorkersWindow />
     <Graph />
     <WorkersBoard v-if="!boardType && isReady" />
-    <PlansBoard v-else />
+    <PlansBoard v-else-if="isReady" />
+    <Logs />
     <Loading v-show="!isReady"/>
 </template>

@@ -43,7 +43,9 @@ export const useWorkersStore = defineStore('workers', () => {
     const workers: Ref<WorkerInfo[]> = ref([]);
 
     const calcBreak = (worker: WorkerInfo) => computed(() => 
-        worker.break.started_at <= getTimeString() && getTimeString() <= worker.break.ended_at ? 'break' : ''
+        worker.break.started_at.format('HH:mm:ss') <= getTimeString().format('HH:mm:ss') 
+        && 
+        getTimeString().format('HH:mm:ss') <= worker.break.ended_at.format('HH:mm:ss')
     );
 
     /*----------API----------*/
@@ -54,6 +56,7 @@ export const useWorkersStore = defineStore('workers', () => {
         const items = await getRequest('/api/workers/get');
         workers.value = items.map((worker: any): WorkerInfo => {
             worker.isEditing = false;
+            worker.on_break = calcBreak;
             return serialize(worker);
         });
     };

@@ -176,9 +176,12 @@ Route::group(['middleware' => ['web', ParseSession::class]], function () {
     /******
      * LOGS
      *****/
-    Route::get('/get_logs', [LogsController::class, 'getAll']);
-    Route::post('/add_log', [LogsController::class, 'add']);
-    Route::get('/load_logs', [LogsController::class, 'logXlsx']);
+        Route::controller(LogsController::class)
+        ->prefix('/logs')
+        ->group(function () {
+            Route::get('/get', 'get')->middleware(ForceJsonResponse::class);
+            Route::get('/load', 'print');
+        });
 
 
     /********

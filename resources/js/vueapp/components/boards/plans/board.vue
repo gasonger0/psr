@@ -278,7 +278,7 @@ onMounted(async () => {
         </div>
         <Divider type="vertical" v-show="showList" style="height: unset; width: 5px;" />
         <div class="line" v-for="line in linesStore.lines" :data-id="line.line_id"
-            v-show="!(hideEmpty && !line.has_plans)">
+            v-show="!hideEmpty || line.has_plans">
             <LineForm :data="line" />
             <div class="line_items products">
                 <PlanCard v-for="plan in plansStore.getByLine(line.line_id)" :data="plan" @edit="editPlan" />

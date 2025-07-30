@@ -56,6 +56,10 @@ export const usePlansStore = defineStore("productsPlans", () => {
         await postRequest('/api/plans/create', unserialize(data, packs),
             (r: AxiosResponse) => {
                 data.plan_product_id = r.data.plan_product_id;
+                let line = useLinesStore().getByID(
+                    useProductsSlotsStore().getById(Number(data.slot_id)).line_id
+                );
+                line.has_plans = true;
                 if (r.data.packs) {
                     r.data.packs.forEach((pack: any) => {
                         plans.value.push(serialize(pack));
@@ -64,7 +68,7 @@ export const usePlansStore = defineStore("productsPlans", () => {
                 if (r.data.plansOrder) {
                     for (let i in r.data.plansOrder) {
                         console.log(i);
-                        let line = useLinesStore().getByID(
+                        line = useLinesStore().getByID(
                             useProductsSlotsStore().getById(Number(i)).line_id
                         );
                         line.has_plans = true;
@@ -102,7 +106,7 @@ export const usePlansStore = defineStore("productsPlans", () => {
         );
         return plans.value.filter((plan: ProductPlan) => slots.includes(plan.slot_id));
     }
-    function updateTimes(data: Array<any>){
+    function updateTimes(data: Array<any>) {
         data.forEach(el => {
             let pl = getById(el.plan_product_id);
             pl = serialize(el);
@@ -133,7 +137,7 @@ export const usePlansStore = defineStore("productsPlans", () => {
     }
     function serialize(plan: any) {
         plan.started_at = dayjs.default(plan.started_at),
-        plan.ended_at = dayjs.default(plan.ended_at);
+            plan.ended_at = dayjs.default(plan.ended_at);
         return plan as ProductPlan;
     }
     function unserialize(plan: ProductPlan, packs: Array<number>) {

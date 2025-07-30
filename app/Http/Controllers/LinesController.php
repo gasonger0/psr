@@ -82,8 +82,17 @@ class LinesController extends Controller
         $line->update($request->only((new LinesExtra)->getFillable()));
         $line->lines->update($request->only((new Lines)->getFillable()));
 
+        $log = null;
+        if ($request->post('cancel_reason')) {
+            $log = LogsController::create([
+                'line_id' => $line->line_id,
+                'action' => 'Перенос начала работы линии по причине: ' . $request->post('cancel_reason'),
+                'started_at' => $old['started_at'],
+                'ended_at'  => Carbon::now()->format('Y-m-d H:i:s')
+            ] + Util::getSessionAsArray($request));
+        }
         SlotsController::afterLineUpdate($request, $old);
-        return Util::successMsg("Линия обновлена");
+        return Util::successMsg($log);
     }
 
     public function delete(Request $request)
@@ -116,8 +125,8 @@ class LinesController extends Controller
         }
 
         $logData = [
-            'line_id'   => $line->id,
-            'action'    => 'Остановка работы линии'
+            'line_id'   => $line->line_id,
+            'action'    => "Остановка работы линии по причине: " . $request->post('reason')
         ] + Util::getSessionAsArray($request);
 
         $log = $downFrom ? LogsController::update($logData) : LogsController::create($logData); 

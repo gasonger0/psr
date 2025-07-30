@@ -32,7 +32,7 @@ return new class extends Migration
         Schema::table("logs", function (Blueprint $table) {
             $table->dropColumn(["updated_at", "created_at", "type"]);
             $table->dateTime("started_at");
-            $table->dateTime("ended_at");
+            $table->dateTime("ended_at")->nullable();
         });
     }
 

@@ -1,7 +1,7 @@
 import * as dayjs from 'dayjs';
 import { defineStore } from 'pinia';
 import { reactive, ref, Ref } from 'vue';
-import { getRequest, deleteRequest, notify, putRequest, postRequest } from '../functions';
+import { getRequest, deleteRequest, notify, putRequest, postRequest, getTimeString } from '../functions';
 import { useWorkersStore, WorkerInfo } from './workers';
 import { AxiosError, AxiosResponse } from 'axios';
 import { LineInfo, useLinesStore } from './lines';
@@ -149,6 +149,13 @@ export const useWorkerSlotsStore = defineStore('workersSlots', () => {
         return payload;
     }
 
+    function getCurrent() : WorkerSlot[] {
+        let ts = getTimeString();
+        return slots.value.filter(el => 
+            el.started_at <= ts && el.ended_at >= ts
+        );
+    }
+
     return {
         slots,
         _add,
@@ -158,6 +165,7 @@ export const useWorkerSlotsStore = defineStore('workersSlots', () => {
         _delete,
         _change,
         _replace,
-        getByWorker
+        getByWorker,
+        getCurrent
     };
 });

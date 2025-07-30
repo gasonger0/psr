@@ -8,6 +8,7 @@ import { WorkerInfo } from "@stores/workers";
 import { AxiosResponse } from "axios";
 import { SelectValue } from "ant-design-vue/es/select/index";
 import { now } from "moment";
+import { useLogsStore } from "./logs";
 
 // Интерфейсы
 
@@ -64,7 +65,11 @@ export const useLinesStore = defineStore('lines', () => {
         });
     }
     async function _update(line: LineInfo) {
-        await putRequest('/api/lines/update', unserialize(line));
+        await putRequest('/api/lines/update', unserialize(line), (r: AxiosResponse) => {
+            if (r.data.log_id) {
+                useLogsStore().logs.push(r.data);
+            }
+        });
     }
 
     async function _delete(line: LineInfo) {

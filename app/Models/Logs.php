@@ -14,12 +14,12 @@ class Logs extends Model
     public $timestamps = false;
     public $fillable = [
         'action',
-        'extra',
         'people_count',
         'line_id',
         'workers',
-        'type',
         'date',
-        'isDay'
+        'isDay',
+        'started_at',
+        'ended_at'
     ];
 }

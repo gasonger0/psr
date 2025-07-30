@@ -16,21 +16,26 @@ class LogsController extends Controller
 {
     public static function create(array $data)
     {
+        $start = Carbon::now()->format("Y-m-d H:i:s");
+        if (isset($data['started_at'])) {
+            $start = $data['started_at'];
+        }
         $workers = Slots::withSession($data)
             ->where('line_id', $data['line_id'])
-            ->where('started_at', '<=', Carbon::now()->format('Y-m-d H:i:s'))
-            ->where('ended_at', '>=', Carbon::now()->format('Y-m-d H:i:s'))
+            ->where('started_at', '<=', $start)
+            ->where('ended_at', '>=', $data['ended_at'] ?? Carbon::now()->format('Y-m-d H:i:s'))
+            ->get()
             ->map(function ($i) {
                 return $i->worker_id;
-            });
+            })->toArray();
 
         $log = Logs::create($data + [
             'people_count' => count($workers),
             'workers' => implode(',', $workers),
-            'started_at' => Carbon::now()->format('Y-m-d H:i:s')
-
+            'started_at' => $start,
+            'ended_at' => $data['ended_at'] ?? null
         ]);
-        return Util::successMsg($log, 201);
+        return $log->toArray();
     }
 
     public static function update(array $data)
@@ -41,7 +46,7 @@ class LogsController extends Controller
                 'ended_at' => Carbon::now()->format('Y-m-d H:i:s')
             ]);
         }
-        return Util::successMsg('Простой завершён');
+        return 'Простой завершён';
     }
 
     public function get(Request $request)
