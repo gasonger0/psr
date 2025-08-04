@@ -17,7 +17,10 @@ export const useCategoriesStore = defineStore('categories', () => {
 
     /****** API ******/
     async function _load(): Promise<void> {
-        categories.value = await getRequest('/api/categories/get');
+        categories.value = (await getRequest('/api/categories/get')).map(el => {
+            el.type_id = ref(el.type_id);
+            return el as CategoryInfo;
+        });
     }
 
     /****** LOCAL ******/

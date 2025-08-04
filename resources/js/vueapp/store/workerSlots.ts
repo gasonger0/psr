@@ -16,7 +16,7 @@ export type WorkerSlot = {
     ended_at: dayjs.Dayjs,
     date: dayjs.Dayjs,
     isDay: boolean,
-    popover?: Ref
+    popover?: Ref<boolean>
 };
 
 export const useWorkerSlotsStore = defineStore('workersSlots', () => {
@@ -31,6 +31,7 @@ export const useWorkerSlotsStore = defineStore('workersSlots', () => {
         slots.value = (await getRequest('/api/workers_slots/get')).map((el: WorkerSlot) => {
             el.started_at = dayjs.default(el.started_at, format);
             el.ended_at = dayjs.default(el.ended_at, format);
+            el.popover = ref(false);
             return el;
         });
     }

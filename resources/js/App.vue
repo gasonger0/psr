@@ -1,17 +1,12 @@
 <script setup lang="ts">
 import WorkersBoard from '@boards/workers/board.vue';
 import PlansBoard from '@boards/plans/board.vue';
-import Stats from './vueapp/deprecated/stats.vue';
 import ProductsDict from '@modals/products.vue';
-import ProductsPlan from './vueapp/deprecated/productsPlan.vue';
 import { onBeforeMount, ref, Ref } from 'vue';
-import Result from './vueapp/deprecated/result.vue';
 import WorkersWindow from './vueapp/components/modals/workers.vue';
 import Toolbar from '@common/toolbar.vue';
-import { useModalsStore } from './vueapp/store/modal';
 import { getTimeString, postRequest } from '@/functions';
 import { useProductsStore } from '@/store/products';
-import dayjs from 'dayjs';
 import { useLinesStore } from '@/store/lines';
 import { useWorkersStore } from '@/store/workers';
 import { useResponsiblesStore } from '@/store/responsibles';
@@ -19,7 +14,7 @@ import { useCategoriesStore } from '@/store/categories';
 import { useProductsSlotsStore } from '@/store/productsSlots';
 import { usePlansStore } from '@/store/productsPlans';
 import { useWorkerSlotsStore } from '@/store/workerSlots';
-import Loading from '@/deprecated/loading.vue';
+import Loading from '@common/loading.vue';
 import Graph from '@modals/graph.vue';
 import { useCompaniesStore } from '@/store/companies';
 import { useLogsStore } from '@/store/logs';

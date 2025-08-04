@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { BackTop, Card, FloatButton, Input, FloatButtonGroup, Button, Form, FormItem } from 'ant-design-vue';
 import { ref, Ref, watch, computed, onBeforeMount, TemplateRef, onMounted } from 'vue';
-import * as dayjs from "dayjs";
 import 'vue-color-kit/dist/vue-color-kit.css';
 import { LoginOutlined, PlusCircleOutlined, UserAddOutlined, PrinterOutlined } from '@ant-design/icons-vue';
 import { useWorkersStore, WorkerForm, WorkerInfo } from '@stores/workers';
@@ -9,7 +8,6 @@ import { getNextElement, getTimeString, notify, scrollToTop } from '@/functions'
 import ItemCard from '@boards/workers/card.vue';
 import ScrollButtons from '@/components/common/scrollButtons.vue';
 import { LineInfo, useLinesStore } from '@stores/lines';
-import { useResponsiblesStore } from '@stores/responsibles';
 import { useWorkerSlotsStore } from '@stores/workerSlots';
 import LineForm from '@/components/common/lineForm.vue';
 import { useCompaniesStore } from '@/store/companies';
@@ -211,7 +209,6 @@ const emit = defineEmits(['ready']);
                             :label="field.label">
                             <Input v-model:value="newWorker[field.name]" />
                         </FormItem>
-                        <!-- TODO Проверить отображение и подумать насчёт указания времени обеда -->
                         <Button type="primary" style="width:100%" html-type="submit">
                             Сохранить
                         </Button>

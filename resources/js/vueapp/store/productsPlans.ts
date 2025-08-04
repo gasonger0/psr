@@ -137,7 +137,8 @@ export const usePlansStore = defineStore("productsPlans", () => {
     }
     function serialize(plan: any) {
         plan.started_at = dayjs.default(plan.started_at),
-            plan.ended_at = dayjs.default(plan.ended_at);
+            plan.ended_at = dayjs.default(plan.ended_at),
+            plan.colon = ref(plan.colon);
         return plan as ProductPlan;
     }
     function unserialize(plan: ProductPlan, packs: Array<number>) {
