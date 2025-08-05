@@ -9,7 +9,7 @@ export type CategoryInfo = {
     key?: number,
     parent?: number,
     children?: CategoryInfo[],
-    type_id: Ref<number>
+    type_id: number
 };
 
 export const useCategoriesStore = defineStore('categories', () => {

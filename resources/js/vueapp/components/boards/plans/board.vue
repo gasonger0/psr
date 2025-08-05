@@ -30,21 +30,8 @@ let active: Ref<HTMLElement | null> = ref(null);
 let isNewPlan: Ref<boolean> = ref(false);
 const activePlan: Ref<ProductPlan | null> = ref();
 const prodLine: Ref<PropertyKey> = ref(1);
-/**
- * Ссылки на карточки
- */
-// const plansRef = ref<Record<number, InstanceType<typeof ProductCard>>>({})
 
 const handleCardChange = (success: boolean) => {
-    let id = slotsStore.getById(activePlan.value.slot_id).product_id;
-    // console.log(id, plansRef.value[id]);
-    // TODO не обновляется, зараза
-    // if (plansRef.value[id]) {
-    //     console.log('upd');
-        
-    //     plansRef.value[id].$forceUpdate();
-    // }
-
     if (!success) {
         activePlan.value = null;
         if (isNewPlan) {
@@ -77,6 +64,7 @@ const hideEmptyLinesTitle = computed(() => {
     return hideEmpty.value ? 'Показать пустые линии' : 'Скрыть пустые линии';
 });
 onMounted(async () => {
+    hideProducts();
     document.querySelector('.lines-container').scrollTo({ left: 0 })
     let draggable = document.querySelectorAll('.line_items.products');
     draggable.forEach(line => {

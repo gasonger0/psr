@@ -37,7 +37,7 @@ export const useProductsStore = defineStore('products', () => {
         products.value = (await postRequest('/api/products/get', data)).map((el: ProductInfo) => {
             el.category = catStore.getByID(el.category_id);
             el.isEditing = false;
-            el.hide = [1,3].includes(el.category.type_id.value) ? true : false;
+            el.hide = [1,3].includes(el.category.type_id) ? true : false;
             return el;
         });
         console.log(products.value);
@@ -89,11 +89,12 @@ export const useProductsStore = defineStore('products', () => {
     function hide(type_id: number) {
         products.value.forEach((el: ProductInfo) => {
             console.log(el.hide);
-            if ([type_id, 3].includes(el.category.type_id.value)) {
+            if ([type_id, 3].includes(el.category.type_id)) {
                 el.hide = true;
             } else {
                 el.hide = false;
             }
+            
         });
     }
 
