@@ -120,9 +120,9 @@ onMounted(async () => {
         })
 
         line.addEventListener(`dragend`, (ev: Event) => {
-            if (line.parentElement!.dataset.id == '-1') {
-                return;
-            }
+            // if (line.parentElement!.dataset.id == '-1') {
+            //     return;
+            // }
             let target = ev.target as HTMLElement;
             if (target.classList.contains('selected') && target == active.value) {
                 target.classList.remove(`selected`);
@@ -131,10 +131,14 @@ onMounted(async () => {
                     line.parentElement!.dataset.id
                 ));
 
+                document.querySelectorAll('.line').forEach(el => {
+                    el.classList.remove('hidden-hard');
+                });
+
+                if (!curLine) {
+                    return;
+                }
                 if (isNewPlan.value) {
-                    document.querySelectorAll('.line').forEach(el => {
-                        el.classList.remove('hidden-hard');
-                    });
                     let product = productsStore.getByID(Number(target.dataset.id)),
                         position = childs.indexOf(target),
                         slots = slotsStore.getByLineId(curLine.line_id),
@@ -186,7 +190,7 @@ onMounted(async () => {
                 }
             }
             line.removeChild(target);
-            prodLine
+            // prodLine
         });
 
         line.addEventListener('dragover', (ev) => {
@@ -261,7 +265,7 @@ onMounted(async () => {
             </Card>
             <div class="line_items products">
                 <ProductCard v-for="i in productsStore.products" :product="i" />
-                    <!-- :ref="(el) => setPlanRef(el, i.product_id)" /> -->
+                <!-- :ref="(el) => setPlanRef(el, i.product_id)" /> -->
             </div>
         </div>
         <Divider type="vertical" v-show="showList" style="height: unset; width: 5px;" />

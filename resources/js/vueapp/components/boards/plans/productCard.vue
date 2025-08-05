@@ -56,7 +56,7 @@ defineExpose(props);
                 <InfoCircleOutlined class="icon error" />
             </span>
             <span v-if="product.order">Нужно обеспечить: <b>{{ product.order.amount }}</b><br></span>
-            <span>Этапы изготовления по линиям:</span>
+            <span v-if="(slots[1].length + slots[2].length) > 0">Этапы изготовления по линиям:</span>
             <ol v-if="(slots[1].length + slots[2].length) > 0">
                 <li v-for="(v, k) in stages">
                     <span :style="highlight(k)">
