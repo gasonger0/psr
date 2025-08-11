@@ -33,9 +33,6 @@ const isReady: Ref<boolean> = ref(false);
 function changeBoard() {
     boardType.value = !boardType.value;
 };
-function onGetBoils(ev) {
-    boils.value = ev;
-};
 
 onBeforeMount(async () => {
     if (sessionStorage.getItem('date') == null) {

@@ -63,16 +63,10 @@ const updateSession = () => {
 const openModal = (name: string) => {
     modalStore.open(name);
 }
-const props = defineProps({
-    boils: {
-        type: Number,
-        required: false
-    }
-});
+
 const emit = defineEmits([
     'change-board'
 ]);
-defineExpose(props);
 </script>
 <template>
     <div class="top-container">
@@ -126,8 +120,8 @@ defineExpose(props);
                 <TableOutlined />
                 Журнал
             </Button>
-            <div v-show="boils">
-                <b>Всего варок: {{ boils }}</b>
+            <div>
+                <b>Всего варок: {{ useModalsStore().boils.toFixed(2) }}</b>
             </div>
         </section>
         <section>

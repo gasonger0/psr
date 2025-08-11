@@ -250,6 +250,11 @@ class TableController extends Controller
                 }
             }
 
+            // Чистим прошлый анализ
+            ProductsOrder::withSession($request)->each(function($p) {
+                $p->delete();
+            });
+
             foreach ($amounts as &$amount) {
                 if (($val = $amount['amount']) && $amount['amount'] > 0) {
                     $rec = ProductsOrder::withSession($request)

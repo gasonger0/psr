@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('products_dictionary', function (Blueprint $table) {
-            $table->boolean('always_show')->nullable();
+            $table->boolean('always_show')->default(false);
         });
         /**
          * 1.	Зефир "Жизель" с вареной сгущенкой глазированный с ароматом ванили 2,5кг, кг

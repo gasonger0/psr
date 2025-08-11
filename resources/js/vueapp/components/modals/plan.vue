@@ -7,7 +7,7 @@ import { ProductPlan, usePlansStore } from '@/store/productsPlans';
 import { ProductSlot, useProductsSlotsStore } from '@/store/productsSlots';
 import { CheckboxGroup, Checkbox, Modal, RadioGroup, RadioButton, InputNumber, TimePicker, Tooltip, Radio, RadioChangeEvent } from 'ant-design-vue';
 import { CheckboxOptionType, CheckboxValueType } from 'ant-design-vue/es/checkbox/interface';
-import { computed, onBeforeMount, onUpdated, ref, Ref } from 'vue';
+import { computed, onBeforeMount, onUpdated, ref, Ref, watch } from 'vue';
 
 const props = defineProps({
     data: {
@@ -122,7 +122,11 @@ const time = computed(() => {
         perfomance.value;  // Время в часах
 });
 const boils = computed(() => {
-    return (props.data.amount * eval(product.value.kg2boil)).toFixed(2);
+    return (props.data.amount * 
+        eval(product.value.kg2boil) * 
+        eval(product.value.amount2parts) *
+        eval(product.value.parts2kg)
+    ).toFixed(2);
 });
 const showError = computed(() => {
     let show = props.data.ended_at > line.value.work_time.ended_at;
@@ -146,7 +150,11 @@ const addPlan = async () => {
     for (let i in packs.value) {
         p.push(packs.value[i]);
     }
-    await plansStore._create(props.data, p);
+    if (props.data.plan_product_id) {
+        await plansStore._update(props.data, p);
+    } else {
+        await plansStore._create(props.data, p);
+    }
     emit('save');
     modal.close('plan');
 }

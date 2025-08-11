@@ -54,7 +54,7 @@ const deleteProduct = (product: ProductInfo) => {
 }
 
 /* SLOTS */
-const addSlot = () => slots.value.push(slotsStore.add(activeProduct.value, Number(activeTab.value)));
+const addSlot = () => slots.value.push(slotsStore.add(activeProduct.value, Number(activeTab.value), linesStore.lines.at(0).line_id));
 const editSlot = (slot: ProductSlot) => slot.isEditing = true;
 const saveSlot = (slot: ProductSlot) => {
     if (slot.product_slot_id) {

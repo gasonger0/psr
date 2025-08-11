@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { FileExcelOutlined } from '@ant-design/icons-vue';
 import { Button, Card, Popconfirm, Switch, Divider } from 'ant-design-vue';
-import { computed, onBeforeMount, onMounted, ref, Ref, TemplateRef, VNodeRef } from 'vue';
+import { computed, onBeforeMount, onMounted, onUpdated, ref, Ref, TemplateRef, VNodeRef } from 'vue';
 import { ProductInfo, useProductsStore } from '@stores/products';
 import ProductCard from '@/components/boards/plans/productCard.vue'
 import { useLinesStore } from '@/store/lines';
@@ -63,17 +63,18 @@ const prodListTitle = computed(() => {
 const hideEmptyLinesTitle = computed(() => {
     return hideEmpty.value ? 'Показать пустые линии' : 'Скрыть пустые линии';
 });
-onMounted(async () => {
+onUpdated(async () => {
     hideProducts();
     document.querySelector('.lines-container').scrollTo({ left: 0 })
     let draggable = document.querySelectorAll('.line_items.products');
     draggable.forEach(line => {
         line.addEventListener(`dragstart`, (ev: Event) => {
+            console.log(ev, line);
             if (!ev) {
                 return;
             }
             scrollToTop(linesContainer);
-            console.log('Scrolled!');
+
             let target = ev.target as HTMLElement;
             target.classList.add(`selected`);
 
@@ -94,6 +95,7 @@ onMounted(async () => {
                         1: slotsStore.getByTypeAndProductID(product.product_id, 1),
                         2: slotsStore.getByTypeAndProductID(product.product_id, 2)
                     };
+                    console.log(slots);
                     let activeSlots = plansStore.getActiveSlots(product.product_id);
                     // Если есть слоты варки, но не выставлены в план
                     let check1 = slots[1].filter(el => activeSlots.includes(el.product_slot_id));
@@ -104,7 +106,7 @@ onMounted(async () => {
                     }
 
                     // Если есть слоты варки или их нет и в план не выставлены
-                    if ((!slots[1] || check1.length)) {
+                    if (slots[1].length == 0 || check1.length) {
                         for (let i in slots[2]) {
                             document.querySelector('.line[data-id="' + slots[2][i].line_id + '"]').classList.remove('hidden-hard');
                         }
@@ -190,7 +192,9 @@ onMounted(async () => {
                 }
             }
             line.removeChild(target);
-            // prodLine
+            isNewPlan.value = false;
+            active.value = null;
+            document.querySelectorAll('.selected').forEach(el => el.classList.remove('selected'));
         });
 
         line.addEventListener('dragover', (ev) => {
@@ -265,7 +269,6 @@ onMounted(async () => {
             </Card>
             <div class="line_items products">
                 <ProductCard v-for="i in productsStore.products" :product="i" />
-                <!-- :ref="(el) => setPlanRef(el, i.product_id)" /> -->
             </div>
         </div>
         <Divider type="vertical" v-show="showList" style="height: unset; width: 5px;" />

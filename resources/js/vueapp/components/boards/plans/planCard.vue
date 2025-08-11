@@ -3,8 +3,9 @@ import { useProductsStore } from '@/store/products';
 import { ProductPlan, usePlansStore } from '@/store/productsPlans';
 import { useProductsSlotsStore } from '@/store/productsSlots';
 import { Card } from 'ant-design-vue';
-import { computed } from 'vue';
+import { computed, watch } from 'vue';
 import { DeleteOutlined, EditOutlined } from '@ant-design/icons-vue';
+import { useModalsStore } from '@/store/modal';
 
 const props = defineProps({
     data: {
@@ -12,25 +13,28 @@ const props = defineProps({
         required: true
     }
 });
+const modal = useModalsStore();
 
 let slot = useProductsSlotsStore().getById(props.data.slot_id);
 let product = useProductsStore().getByID(slot.product_id);
 
-const boils = computed((): Number => {
+const boils = computed((): number => {
     return props.data.amount *
         eval(product.kg2boil) *
         eval(product.amount2parts) *
         eval(product.parts2kg);
-
 });
+if (slot.type_id == 1) {
+    modal.boils += boils.value;
+}
+
 
 const emit = defineEmits<{
-  (e: 'edit', payload: ProductPlan): void;
+    (e: 'edit', payload: ProductPlan): void;
 }>();
 </script>
 <template>
-    <Card class="draggable-card" :data-id="data.plan_product_id" :key="data.plan_product_id"
-        draggable="true">
+    <Card class="draggable-card" :data-id="data.plan_product_id" :key="data.plan_product_id" draggable="true">
         <template #title>
             <div class="plan_card">
                 <span>
@@ -40,8 +44,7 @@ const emit = defineEmits<{
                     <DeleteOutlined class="icon delete" @click="usePlansStore()._delete(data)" />
                 </Tooltip>
                 <Tooltip title="Редактировать">
-                    <EditOutlined class="icon edit"
-                    @click="emit('edit', data)" />
+                    <EditOutlined class="icon edit" @click="emit('edit', data)" />
                 </Tooltip>
             </div>
         </template>

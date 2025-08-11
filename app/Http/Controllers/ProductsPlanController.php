@@ -51,7 +51,7 @@ class ProductsPlanController extends Controller
 
         $order[$line_id] = ProductsPlan::whereHas('slot', function ($query) use ($line_id) {
             $query->where('line_id', $line_id);
-        })->orderBy('started_at', 'ASC')->get()->toArray();
+        })->withSession($request)->orderBy('started_at', 'ASC')->get()->toArray();
         // Если задана упаковка... (slot_id)
         if ($pack = $request->post('packs')) {
             // Задержка от начала варки
@@ -113,11 +113,75 @@ class ProductsPlanController extends Controller
     {
         Util::appendSessionToData($request);
         $plan = ProductsPlan::find($request->post('plan_product_id'));
-        $plan->update($request->only(new ProductsPlan())->getFillable());
+
+        $plan->update($request->only((new ProductsPlan)->getFillable()));
 
         $order = [];
         $this->checkPlans($request, $plan);
         // Обновляем данные модели, проверяем упаковку
+
+        $line_id = $plan->slot->line_id;
+
+        $order[$line_id] = ProductsPlan::whereHas('slot', function ($query) use ($line_id) {
+            $query->where('line_id', $line_id);
+        })->orderBy('started_at', 'ASC')->get()->toArray();
+
+        if ($pack = $request->post('packs')) {
+            // Задержка от начала варки
+            $delay = $request->post('delay');
+            // Продукция
+            $product = ProductsDictionary::find($plan->slot->product_id);
+            // Сразу посчитаем, во сколько начнём упаковывать
+            $start = Carbon::parse($plan->started_at)->addMinutes($delay);
+            // И объём
+            $amount = $request->post('amount');
+            foreach ($pack as $p) {
+                // Конец упаковки должен быть:
+                // 1. Не раньше конца варки
+                // 2. Если раньше конца варки, то не раньше конца варки + delay
+                $slot = ProductsSlots::find($p);
+
+                $duration = Util::calcDuration(
+                    $product,
+                    $amount,
+                    $slot
+                );
+
+                $ended_at = $start->copy();
+                $ended_at->addHours($duration)->addMinutes(15);
+
+                if ($ended_at < ($d = Carbon::parse($plan->ended_at))) {
+                    $ended_at = $d->addMinutes($delay);
+                }
+
+                $packPlan = ProductsPlan::where('parent', $plan->plan_product_id)
+                    ->where('slot_id', $p)
+                    ->get()
+                    ->first();
+
+                $data = [
+                        'product_id' => $product->product_id,
+                        'slot_id' => $p,
+                        'started_at' => $start,
+                        'ended_at' => $ended_at,
+                        'parent' => $plan->plan_product_id,
+                        'amount' => $amount
+                    ] + Util::getSessionAsArray($request);
+                if ($packPlan) {
+                    $packPlan->update($data);
+                } else {
+                    $packPlan = ProductsPlan::create($data);
+                }
+
+                $this->checkPlans($request, $packPlan);
+
+                $line_id = $packPlan->slot->line_id;
+
+                $order[$line_id] = ProductsPlan::whereHas('slot', function ($query) use ($line_id) {
+                    $query->where('line_id', $line_id);
+                })->orderBy('started_at', 'ASC')->get()->toArray();
+            }
+        }
 
         // TODO? меняем время работы линии по началу первого и концу последнего плана
         return Util::successMsg($plan->toArray() + [

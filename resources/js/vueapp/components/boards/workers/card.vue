@@ -62,7 +62,6 @@ const getBreak = computed(() => {
         :class="calcBreak"
         :data-id="props.cardData.worker_id">
         <template #extra>
-            {{ props.cardData.current_line_id }}
             <span class="company-title">
                 {{ props.cardData.company.title }}
             </span>

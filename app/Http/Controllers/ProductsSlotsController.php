@@ -45,7 +45,7 @@ class ProductsSlotsController extends Controller
     }
 
     public function create(Request $request) {
-        $exists = Util::checkDublicate(new ProductsSlots(), [], $request->post(), true);
+        $exists = Util::checkDublicate(new ProductsSlots(), [], $request->only((new ProductsSlots())->getFillable()), true);
         if ($exists) {
             return Util::errorMsg(self::SLOT_ALREADY_EXISTS, 400);
         }

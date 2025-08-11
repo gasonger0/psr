@@ -22,7 +22,7 @@ class SlotsController extends Controller
     public function create(Request $request)
     {
         Util::appendSessionToData($request);
-        $exists = Util::checkDublicate(new Slots(), [], $request->post(), true);
+        $exists = Util::checkDublicate(new Slots(), [], $request->only((new Slots())->getFillable()), true);
         if ($exists) {
             return Util::errorMsg('Такой слот уже существует');
         }

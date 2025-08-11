@@ -92,12 +92,12 @@ export const useLinesStore = defineStore('lines', () => {
     }
 
     function splice(id: number): void {
-        lines.value = lines.value.filter((n: LineInfo) => n.line_id != id);
+        lines.value = lines.value.filter((n) => n.line_id != id);
         return;
     };
 
-    function getByID(line_id: number): LineInfo|undefined {
-        return lines.value.find((el: LineInfo) => el.line_id == line_id);
+    function getByID(line_id: number) {
+        return lines.value.find((el) => el.line_id == line_id);
     }
 
     function getIfDone(line: LineInfo): boolean {
@@ -112,7 +112,7 @@ export const useLinesStore = defineStore('lines', () => {
     }
 
     function add() {
-        lines.value.push({
+        let l = {
             edit: true,
             work_time: {
                 started_at: dayjs.default(),
@@ -128,11 +128,11 @@ export const useLinesStore = defineStore('lines', () => {
             } as Detector,
             date: dayjs.default(sessionStorage.getItem('date'), 'y-m-d'),
             isDay: Boolean(Number(sessionStorage.getItem('isDay')))
-        } as LineInfo);
-
+        } as LineInfo;
+        lines.value.push(l);
     }
 
-    function serialize(line) {
+    function serialize(line): LineInfo {
         line.edit = false;
         line.color = ref(line.color);
         line.showDelete = ref(false);
@@ -147,7 +147,7 @@ export const useLinesStore = defineStore('lines', () => {
             detector_end: line.detector_end
         });
         delete line.started_at, line.ended_at, line.has_detector, line.detector_start, line.detector_end;
-        return line;
+        return line as LineInfo;
     }
 
     function unserialize(line: LineInfo) {

@@ -8,7 +8,7 @@ import { CheckboxValueType } from "ant-design-vue/es/checkbox/interface";
 import { useProductsStore } from "./products";
 import { format } from "./dicts";
 import { LineInfo, useLinesStore } from "./lines";
-import ProductsPlan from "@/deprecated/productsPlan.vue";
+import { RefSymbol } from "@vue/reactivity";
 
 export type ProductPlan = {
     plan_product_id?: number,
@@ -68,22 +68,52 @@ export const usePlansStore = defineStore("productsPlans", () => {
                 if (r.data.plansOrder) {
                     for (let i in r.data.plansOrder) {
                         console.log(i);
-                        line = useLinesStore().getByID(
+                        line = useLinesStore().getByID(Number(i));
+                        line.has_plans = true;
+                        console.log(line);
+                        updateTimes(r.data.plansOrder[i]);
+                    }
+                }
+            }
+        );
+    }
+
+    async function _update(data: ProductPlan, packs: Array<number>) {
+        await putRequest('/api/plans/update', unserialize(data, packs),
+            (r: AxiosResponse) => {
+                if (r.data.packs) {
+                    plans.value.filter(el => el.parent == r.data.plan_product_id).forEach(el => {
+                        splice(el.plan_product_id);
+                    });
+
+                    r.data.packs.forEach(i => {
+                        plans.value.push(i);
+                    });
+                    // TODO ищем по паренту упаковки и сверяем со старыми
+                    // r.data.packs.forEach((pack: any) => {
+                    //     plans.value.push(serialize(pack));
+                    // });
+                }
+                if (r.data.plansOrder) {
+                    for (let i in r.data.plansOrder) {
+                        console.log(i);
+                        let line = useLinesStore().getByID(
                             useProductsSlotsStore().getById(Number(i)).line_id
                         );
                         line.has_plans = true;
                         updateTimes(r.data.plansOrder[i]);
                     }
                 }
-            }
-        );
-        // TODO Дописать АПИ чтобы возвращал обновлённые позиции планов на линиях
+            });
     }
 
     async function _clear() {
         await deleteRequest('/api/plans/clear', {},
             (r: AxiosResponse) => {
                 plans.value = [];
+                useLinesStore().lines.forEach((el: LineInfo) => {
+                    el.has_plans = false;
+                });
                 // TODO нет в апи такого метода
             }
         )
@@ -153,10 +183,12 @@ export const usePlansStore = defineStore("productsPlans", () => {
         return plans.value.find(el => el.plan_product_id == plan_id);
     }
 
+
     return {
         plans,
         _load,
         _create,
+        _update,
         _delete,
         _change,
         _clear,

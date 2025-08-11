@@ -72,15 +72,15 @@ export const useProductsSlotsStore = defineStore('productsSlots', () => {
         return slots.value.find((el: ProductSlot) => el.product_slot_id == slot_id);
     }
 
-    function add(product: ProductInfo, type_id: number): ProductSlot {
+    function add(product: ProductInfo, type_id: number, line_id: number): ProductSlot {
         let newSlot = {
             product_id: product.product_id,
-            line_id: 0,
+            line_id: line_id,
             people_count: 0,
             perfomance: 0,
             type_id: type_id,
             hardware: 1,
-            isEditing: false
+            isEditing: true
         } as ProductSlot;
         slots.value.push(newSlot);
         return newSlot;

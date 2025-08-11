@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import { ref } from "vue";
+import { Ref, ref } from "vue";
 
 /**
  * Менеджер окон
@@ -13,6 +13,7 @@ export const useModalsStore = defineStore('modals', () => {
         graph: ref(false),
         plan: ref(false)
     };
+    const boils: Ref<number> = ref(0);
     
     /**
      * Открывает модальное окно
@@ -33,6 +34,7 @@ export const useModalsStore = defineStore('modals', () => {
     return {
         open, 
         close, 
-        visibility
+        visibility,
+        boils
     }
 })

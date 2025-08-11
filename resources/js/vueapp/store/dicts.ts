@@ -177,6 +177,7 @@ export const productsTableColumns = {
  * Список оборудования
  */
 export const hardwares = [
+    { value: null, label: 'Нет'},
     { value: 1, label: 'ТОРНАДО' },
     { value: 2, label: 'Мондомикс' },
     { value: 3, label: 'Китайский Аэрос' }
@@ -185,6 +186,7 @@ export const hardwares = [
  * Список оборудования для упаковки
  */
 export const packHardwares = [
+    { value: null, label: 'Нет', title: 'Нет'},
     { value: 4, label: 'ЗМ №1', title: 'Завёрточная машина №1' },
     { value: 5, label: 'ЗМ №2', title: 'Завёрточная машина №2' },
     { value: 6, label: 'ЗМ №1 и №2', title: 'Завёрточные машины №1 и №2' },
