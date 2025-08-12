@@ -18,7 +18,7 @@ const linesStore = useLinesStore();
 
 const activeCategory: Ref<CategoryInfo> = ref();
 const products: Ref<ProductInfo[]> = ref([]);
-const slots: Ref<ProductSlot[]> = ref([]);
+const slots: Ref<Object> = ref([]);
 
 const activeProduct: Ref<ProductInfo> = ref();
 const activeTab: Ref<string> = ref('1');
@@ -30,11 +30,16 @@ const handleCategorySelect = async (key: Key[]) => {
 const handleProductSelect = async (key: number) => {
     activeProduct.value = productsStore.getByID(key);
     if (activeTab.value != '3') {
-        slots.value = slotsStore.getByTypeAndProductID(
-            activeProduct.value.product_id,
-            Number(activeTab.value)
-        );
+        slots.value = {
+            1: slotsStore.getByTypeAndProductID(
+            activeProduct.value.product_id, 1
+            ),
+            2: slotsStore.getByTypeAndProductID(
+            activeProduct.value.product_id, 2
+            )
+        }
     }
+    console.log(slots);
 }
 
 /* PRODUCTS */
@@ -54,7 +59,7 @@ const deleteProduct = (product: ProductInfo) => {
 }
 
 /* SLOTS */
-const addSlot = () => slots.value.push(slotsStore.add(activeProduct.value, Number(activeTab.value), linesStore.lines.at(0).line_id));
+const addSlot = () => slots.value[activeTab.value].push(slotsStore.add(activeProduct.value, Number(activeTab.value), linesStore.lines.at(0).line_id));
 const editSlot = (slot: ProductSlot) => slot.isEditing = true;
 const saveSlot = (slot: ProductSlot) => {
     if (slot.product_slot_id) {
@@ -134,7 +139,7 @@ const exit = () => {
                         </template>
                         <template v-else>
                             <Empty v-if="!activeProduct" description="Выберите продукцию" />
-                            <Table :columns="productsTableColumns[k]" bordered small :data-source="slots"
+                            <Table :columns="productsTableColumns[k]" bordered small :data-source="slots[k]"
                                 :pagination="false" v-else style="max-width: 100%;">
                                 <template #emptyText>
                                     <Empty description="Для данной продукции пока нет слотов изготовления" />

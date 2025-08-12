@@ -262,7 +262,7 @@ onUpdated(async () => {
                 <template #title>
                     <div style="display: flex; justify-content: space-between;">
                         <span>Продукция</span>
-                        <Switch checked-children="Фасованная" un-checked-children="Весовая"
+                        <Switch checked-children="Весовая" un-checked-children="Фасованная"
                             v-model:checked="categorySwitch" @change="hideProducts" />
                     </div>
                 </template>
