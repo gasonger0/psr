@@ -49,7 +49,7 @@ defineExpose(props);
             <span style="white-space: break-spaces;">{{ product.title }}</span>
         </template>
         <div class="hiding-data">
-            <span v-if="product.order">Нужно обеспечить: <b>{{ product.order.amount }}</b><br></span>
+            <span v-if="product.order">Нужно обеспечить: <b>{{ product.order.amount ?? 0}}</b><br></span>
             <div v-if="(slots[1].length + slots[2].length) > 0">
                 <span>Этапы изготовления по линиям:</span>
                 <ol>

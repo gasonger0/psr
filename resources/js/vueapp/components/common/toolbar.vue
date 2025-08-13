@@ -30,14 +30,16 @@ const showAccept: Ref<boolean> = ref(false);
 const modalStore = useModalsStore();
 
 const changeBoard = () => emit('change-board');
-const processOrder = (file: FileType) => {
+const processOrder = async (file: FileType) => {
     let fd = new FormData();
     fd.append('file', file);
     notify('info', "Подождите, идёт обработка файла...");
 
-    postRequest('/api/tables/load_order', fd,
+    await postRequest('/api/tables/load_order', fd,
         (r: AxiosResponse) => {
-            let data = JSON.parse(r.data);
+            console.log(r);
+            let data = r.data;
+            console.log(data, r);
             if (data.uncategorized.length > 0) {
                 notify('warning', 'Следующие строки не были обработаны: ' + data.uncategorized.join(', '));
             }
@@ -46,7 +48,9 @@ const processOrder = (file: FileType) => {
                 notify('success', 'Данные обновлены');
             }
         }
-    )
+    );
+
+    return false;
 };
 const updateSession = () => {
     console.log(date);

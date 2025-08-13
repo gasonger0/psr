@@ -223,7 +223,6 @@ const emit = defineEmits(['save', 'cancel']);
             <br>
             <h3>Оборудование:</h3>
             <RadioGroup v-model:value="hardware" @change="handleHardware">
-                <RadioButton :value="null">Нет</RadioButton>
                 <RadioButton v-for="i in hardwares" :value="i.value">
                     {{ i.label }}
                 </RadioButton>

@@ -36,7 +36,7 @@ export const useProductsStore = defineStore('products', () => {
         products.value = (await postRequest('/api/products/get', data)).map((el: ProductInfo) => {
             el.category = catStore.getByID(el.category_id);
             el.isEditing = false;
-            el.order = null;
+            // el.order = null;   
             return el;
         });
     }
@@ -86,10 +86,13 @@ export const useProductsStore = defineStore('products', () => {
 
     function hide(type_id: number) {
         products.value.forEach((el: ProductInfo) => {
-            if (!el.always_show && !el.order) {
+            // console.log(el.product_id, el.order);
+            if (!el.always_show && el.order == null) {
                 el.hide = true;
+                // console.log('-', el.product_id, el.title, el.order, el.always_show);
             } else if ([type_id, 3].includes(el.category.type_id)) {
                 el.hide = false;
+                // console.log(el);
             } else {
                 el.hide = true;
             }
@@ -99,10 +102,14 @@ export const useProductsStore = defineStore('products', () => {
 
     function fillOrders(orders: Array<ProductOrder>) {
         orders.forEach((el: ProductOrder) => {
+            if (!el.amount) {
+                return;
+            }
             let product = getByID(el.product_id);
             if (product) {
                 product.order = el;
             }
+            console.log(product);
         });
         hide(1);
     }

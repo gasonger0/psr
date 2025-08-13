@@ -16,6 +16,7 @@ use App\Http\Middleware\ForceJsonResponse;
 use App\Http\Middleware\ParseSession;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Cookie;
 
 Route::group(['middleware' => ['web', ParseSession::class]], function () {
     /*******
@@ -196,8 +197,8 @@ Route::group(['middleware' => ['web', ParseSession::class]], function () {
             $timeValue = filter_var($request->cookie('isDay'), FILTER_VALIDATE_BOOLEAN);
         }
         $response = response('Set Cookie');
-        $response->cookie('date', $dateValue, 60);
-        $response->cookie('isDay', $timeValue, 60);
+        $response->cookie('date', $dateValue, 60000);
+        $response->cookie('isDay', $timeValue, 60000);
         return $response;
 
     });
