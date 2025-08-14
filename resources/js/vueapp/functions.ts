@@ -5,12 +5,11 @@ import { Ref, TemplateRef } from "vue";
 
 function handleResponse(r: AxiosResponse) {
     let data = r.data;
-    console.log(data);
-    if (data.error) {
+    if (data && data.error) {
         notify('error', data.error);
         return;
     }
-    if (data.message) {
+    if (data && data.message) {
         notify(data.message.type, data.message.title);
         return;
     }

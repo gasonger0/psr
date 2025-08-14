@@ -62,12 +62,13 @@ class ProductsPlanController extends Controller
             $start = Carbon::parse($plan->started_at)->addMinutes($delay);
             // И объём
             $amount = $request->post('amount');
+            $packsCheck = [];
             foreach ($pack as $p) {
                 // Конец упаковки должен быть:
-                // 1. Не раньше конца варки
+                // 1. Не раньше конца варки 
                 // 2. Если раньше конца варки, то не раньше конца варки + delay
+                // 3. Упаковка не позже обсыпки
                 $slot = ProductsSlots::find($p);
-
                 $duration = Util::calcDuration(
                     $product,
                     $amount,
@@ -99,6 +100,32 @@ class ProductsPlanController extends Controller
                 $order[$line_id] = ProductsPlan::whereHas('slot', function ($query) use ($line_id) {
                     $query->where('line_id', $line_id);
                 })->orderBy('started_at', 'ASC')->get()->toArray();
+
+                if ($slot->type_id == 2) {
+                    $packsCheck[] = $packPlan;
+                    // Если упаковка, запоминаем ИД и потом будем по другим позициям чекать
+                }
+            }
+
+            // Проверка, что упаковываем не раньше глазировки
+
+            $glaz = ProductsPlan::whereHas('slot', function($query) {
+                $query->where('type_id', [3, 4]);
+            })->where('parent', $plan->plan_product_id)->first();
+            $glaz_end = Carbon::parse($glaz->ended_at)->unix();
+            foreach ($packsCheck as $p) {
+                if (Carbon::parse($p->ended_at)->unix() < $glaz_end) {
+                    $p->update([
+                        'ended_at' => $glaz->ended_at
+                    ]);
+
+                    $this->checkPlans($request, $p);
+                    $line_id = $p->slot->line_id;
+
+                    $order[$line_id] = ProductsPlan::whereHas('slot', function ($query) use ($line_id) {
+                        $query->where('line_id', $line_id);
+                    })->orderBy('started_at', 'ASC')->get()->toArray();
+                }
             }
         }
 
@@ -160,13 +187,13 @@ class ProductsPlanController extends Controller
                     ->first();
 
                 $data = [
-                        'product_id' => $product->product_id,
-                        'slot_id' => $p,
-                        'started_at' => $start,
-                        'ended_at' => $ended_at,
-                        'parent' => $plan->plan_product_id,
-                        'amount' => $amount
-                    ] + Util::getSessionAsArray($request);
+                    'product_id' => $product->product_id,
+                    'slot_id' => $p,
+                    'started_at' => $start,
+                    'ended_at' => $ended_at,
+                    'parent' => $plan->plan_product_id,
+                    'amount' => $amount
+                ] + Util::getSessionAsArray($request);
                 if ($packPlan) {
                     $packPlan->update($data);
                 } else {
@@ -238,8 +265,8 @@ class ProductsPlanController extends Controller
         $topPlan = ProductsPlan::whereHas('slot', function ($query) use ($plan) {
             $query->where('line_id', $plan->slot->line_id);
         })
-            ->where('ended_at', '>', $plan->started_at)
-            ->where('started_at', '<', $plan->started_at)
+            ->where('ended_at', '>=', $plan->started_at)
+            ->where('started_at', '<=', $plan->started_at)
             ->where('plan_product_id', '!=', $plan->plan_product_id)
             ->withSession($request)
             ->orderBy('ended_at', 'DESC')
@@ -248,8 +275,8 @@ class ProductsPlanController extends Controller
         // Проверка - залезаем ли мы концом новой ГП на начало следующей
         $bottomPlan = ProductsPlan::whereHas('slot', function ($query) use ($plan) {
             $query->where('line_id', $plan->slot->line_id);
-        })->where('started_at', '<', $plan->ended_at)
-            ->where('ended_at', '>', $plan->ended_at)
+        })->where('started_at', '<=', $plan->ended_at)
+            ->where('ended_at', '>=', $plan->ended_at)
             ->where('plan_product_id', '!=', $plan->plan_product_id)
             ->withSession($request)
             ->orderBy('started_at', 'ASC')
@@ -310,12 +337,11 @@ class ProductsPlanController extends Controller
             // Обновляем модель
             $prod->update($item);
 
-            // Проверяем, нужно ли менять порядок планов по продукции
-            $this->checkPlans($request, $prod);
-
             // Список планов по упаковке, привязанных к текущему плану
             ProductsPlan::where('parent', $prod->plan_product_id)
-                ->where('type_id', '=', 2)
+                ->whereHas('slot', function ($query) use ($prod) {
+                    $query->where('line_id', $prod->slot->line_id);
+                })
                 ->withSession($request)
                 ->each(function ($pack) use ($prod, $request) {
                     // Расчитываем время разницы в упаковке 
@@ -330,7 +356,7 @@ class ProductsPlanController extends Controller
                     $pack->ended_at = Carbon::parse($pack->started_at)->addMinutes($duration);
                     $pack->save();
 
-                    // Снова проверка
+                    // Проверка
                     $this->checkPlans($request, $pack);
                 });
         }
@@ -357,7 +383,8 @@ class ProductsPlanController extends Controller
             'date' => $plan->date,
             'isDay' => $plan->isDay
         ];
-        $prevEnd = false;
+        $line = LinesExtra::where('line_id', $plan->slot->line_id)->withSession($session)->first();
+        $prevEnd = Carbon::parse($line->started_at);
 
         ProductsPlan::withSession($session)
             ->whereHas('slot', function ($query) use ($plan) {
@@ -365,19 +392,13 @@ class ProductsPlanController extends Controller
             })
             ->orderBy('started_at', 'ASC')
             ->each(function ($item) use (&$prevEnd) {
-                switch ($prevEnd instanceof Carbon) {
-                    case true:
-                        $duration = Carbon::parse($item->started_at)->diffInMinutes(Carbon::parse($item->ended_at));
-                        $item->started_at = $prevEnd;
-                        $item->save();
-                        $prevEnd = $prevEnd->addMinutes($duration);
-                        $item->ended_at = $prevEnd;
-                        $item->save();
-                        break;
-                    default:
-                        $prevEnd = Carbon::parse($item->ended_at);
-                        break;
-                }
+                $duration = Carbon::parse($item->started_at)->diffInMinutes(Carbon::parse($item->ended_at));
+                $item->started_at = $prevEnd;
+                $item->save();
+                $prevEnd = $prevEnd->addMinutes($duration);
+                $item->ended_at = $prevEnd;
+                $item->save();
+
                 if ($item->parent == null) {
                     ProductsPlan::where('parent', $item->plan_product_id)->each(function ($p) use ($item) {
                         ProductsPlanController::composePlans($p, $item->delay);

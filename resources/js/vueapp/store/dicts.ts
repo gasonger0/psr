@@ -101,8 +101,10 @@ export const prepareDate = (data: any) => {
  */
 export const productsTabs = {
     1: "Варка",
+    3: "Глазировка",
+    4: "Обсыпка",
     2: "Упаковка",
-    3: "Справочная информация"
+    5: "Справочная информация"
 };
 
 /**
@@ -163,7 +165,41 @@ export const productsTableColumns = {
         dataIndex: 'perfomance',
         width: '10%'
     }],
-    3: [
+    3: [{
+        title: 'Действия',
+        dataIndex: 'actions',
+        width: '5%'
+    }, {
+        title: 'Линия',
+        dataIndex: 'line_id',
+        // width: '80%'
+    }, {
+        title: 'Кол-во сотрудников',
+        dataIndex: 'people_count',
+        width: '5%'
+    }, {
+        title: 'Кг в час',
+        dataIndex: 'perfomance',
+        width: '10%'
+    }],
+    4: [{
+        title: 'Действия',
+        dataIndex: 'actions',
+        width: '5%'
+    }, {
+        title: 'Линия',
+        dataIndex: 'line_id',
+        // width: '80%'
+    }, {
+        title: 'Кол-во сотрудников',
+        dataIndex: 'people_count',
+        width: '5%'
+    }, {
+        title: 'Кг в час',
+        dataIndex: 'perfomance',
+        width: '10%'
+    }],
+    5: [
         { title: 'Штук в Ящике:', dataIndex: 'amount2parts', addon: '' },
         { title: 'Штуки в Кг:', dataIndex: 'parts2kg', addon: 'Шт ×' },
         { title: 'Кг в Варки:', dataIndex: 'kg2boil', addon: 'Кг ×' },
@@ -177,7 +213,7 @@ export const productsTableColumns = {
  * Список оборудования
  */
 export const hardwares = [
-    { value: null, label: 'Нет'},
+    { value: null, label: 'Нет' },
     { value: 1, label: 'ТОРНАДО' },
     { value: 2, label: 'Мондомикс' },
     { value: 3, label: 'Китайский Аэрос' }
@@ -186,7 +222,7 @@ export const hardwares = [
  * Список оборудования для упаковки
  */
 export const packHardwares = [
-    { value: null, label: 'Нет', title: 'Нет'},
+    { value: null, label: 'Нет', title: 'Нет' },
     { value: 4, label: 'ЗМ №1', title: 'Завёрточная машина №1' },
     { value: 5, label: 'ЗМ №2', title: 'Завёрточная машина №2' },
     { value: 6, label: 'ЗМ №1 и №2', title: 'Завёрточные машины №1 и №2' },
@@ -202,7 +238,7 @@ export const logColumns = [{
 }, {
     title: 'Конец',
     dataIndex: 'ended_at'
-},{
+}, {
     title: 'Действие',
     dataIndex: 'action'
 }, {

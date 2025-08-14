@@ -32,19 +32,24 @@ const handleProductSelect = async (key: number) => {
     if (activeTab.value != '3') {
         slots.value = {
             1: slotsStore.getByTypeAndProductID(
-            activeProduct.value.product_id, 1
+                activeProduct.value.product_id, 1
             ),
             2: slotsStore.getByTypeAndProductID(
-            activeProduct.value.product_id, 2
+                activeProduct.value.product_id, 2
+            ),
+            3: slotsStore.getByTypeAndProductID(
+                activeProduct.value.product_id, 3
+            ),
+            4: slotsStore.getByTypeAndProductID(
+                activeProduct.value.product_id, 4
             )
         }
     }
-    console.log(slots);
 }
 
 /* PRODUCTS */
 const addProduct = () => products.value.push(productsStore.add(activeCategory.value));
-const editProduct = (product: ProductInfo) => product.isEditing = true;    
+const editProduct = (product: ProductInfo) => product.isEditing = true;
 const saveProduct = (product: ProductInfo) => {
     if (product.product_id) {
         productsStore._update(product);
@@ -63,7 +68,7 @@ const addSlot = () => slots.value[activeTab.value].push(slotsStore.add(activePro
 const editSlot = (slot: ProductSlot) => slot.isEditing = true;
 const saveSlot = (slot: ProductSlot) => {
     if (slot.product_slot_id) {
-        slotsStore._update(slot);
+        slotsStore._update([slot]);
     } else {
         slotsStore._create(slot);
     }
@@ -71,9 +76,30 @@ const saveSlot = (slot: ProductSlot) => {
 };
 const deleteSlot = (slot: ProductSlot) => slotsStore._delete(slot);
 
+const saveSlots = () => {
+    for (let i in slots.value) {
+        // TODO
+        console.log(i);
+    }
+}
+
 const getClass = (item: ProductInfo) => {
     return activeProduct.value && activeProduct.value.product_id == item.product_id ? 'active' : '';
 }
+const showExtra = computed(() => {
+    console.log(slots.value,
+        Object.values(slots.value).some(
+            (child: ProductSlot[]) => child.filter(
+                (el: ProductSlot) => el.isEditing === true
+            ).length > 0
+        )
+    );
+    return Object.values(slots.value).some(
+        (child: ProductSlot[]) => child.filter(
+            (el: ProductSlot) => el.isEditing === true
+        ).length > 0
+    );
+})
 
 /**
  * Закрыть окно
@@ -97,8 +123,7 @@ const exit = () => {
                 <!-- <List :data-source="products" v-if="products.length != 0" style="max-height:60vh; overflow: auto;"> -->
                 <List :data-source="products" v-if="products.length != 0" class="product_list">
                     <template #renderItem="{ item }">
-                        <ListItem v-if="!item.isEditing" class="product_list-item"
-                            :class="getClass(item)">
+                        <ListItem v-if="!item.isEditing" class="product_list-item" :class="getClass(item)">
                             <a href="#" @click="handleProductSelect(item.product_id)">{{ item.title }}</a>
                             <div class="icons-container">
                                 <EditOutlined @click="editProduct(item)" class="icon edit" />
@@ -116,14 +141,13 @@ const exit = () => {
                 </List>
                 <template v-else>
                     <Empty description="Выберите категорию" style="max-width:100%;" />
-                    <Button @click="" type="primary" class="footer-button">+</Button>
                 </template>
             </section>
             <Divider type="vertical" style="height:unset;" />
             <section style="width: 60%; ">
                 <Tabs v-model:activeKey="activeTab">
                     <TabPane v-for="(v, k) in productsTabs" :key="k" :tab="v">
-                        <template v-if="k == 3">
+                        <template v-if="k == 5">
                             <div style="display:flex; flex-direction: column; gap: 10px;">
                                 <div v-for="(v) in productsTableColumns[k]" style="display: flex;">
                                     <span style="width:20%;padding-right:5%;">{{ v.title }}</span>
@@ -135,6 +159,7 @@ const exit = () => {
                                         <Checkbox v-model:checked="activeProduct[v.dataIndex]" />
                                     </div>
                                 </div>
+                                <Button @click="saveProduct(activeProduct)" type="primary">Сохранить</Button>
                             </div>
                         </template>
                         <template v-else>
@@ -156,7 +181,7 @@ const exit = () => {
                                             </Select>
                                         </template>
                                         <template v-else-if="column.dataIndex == 'actions'">
-                                            <SaveOutlined @click="saveSlot(record as ProductSlot)" class="icon save"/>
+                                            <SaveOutlined @click="saveSlot(record as ProductSlot)" class="icon save" />
                                             <DeleteOutlined @click="deleteSlot(record as ProductSlot)"
                                                 class="icon delete" />
                                         </template>
@@ -172,7 +197,7 @@ const exit = () => {
                                     </template>
                                     <template v-else>
                                         <template v-if="column.dataIndex == 'actions'">
-                                            <EditOutlined @click="editSlot(record as ProductSlot)" class="icon edit"/>
+                                            <EditOutlined @click="editSlot(record as ProductSlot)" class="icon edit" />
                                             <DeleteOutlined @click="deleteSlot(record as ProductSlot)"
                                                 class="icon delete" />
                                         </template>
@@ -197,6 +222,9 @@ const exit = () => {
                             </Table>
                         </template>
                     </TabPane>
+                    <template #rightExtra v-if="showExtra">
+                        <Button @click="saveSlots" type="primary">Сохранить изменения</Button>
+                    </template>
                 </Tabs>
             </section>
         </div>

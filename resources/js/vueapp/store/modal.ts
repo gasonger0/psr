@@ -1,3 +1,4 @@
+import PlanCard from "@/components/boards/plans/planCard.vue";
 import { defineStore } from "pinia";
 import { Ref, ref } from "vue";
 
@@ -14,6 +15,7 @@ export const useModalsStore = defineStore('modals', () => {
         plan: ref(false)
     };
     const boils: Ref<number> = ref(0);
+    const linesRef: Ref<Array<number>> = ref([]);
     
     /**
      * Открывает модальное окно
@@ -31,10 +33,16 @@ export const useModalsStore = defineStore('modals', () => {
         visibility[modal].value = false;
     } 
 
+    const setLineRef = (lineId: number) => {
+        linesRef.value[lineId] = 1;
+    };
+
     return {
         open, 
         close, 
         visibility,
-        boils
+        boils,
+        linesRef, 
+        setLineRef
     }
 })

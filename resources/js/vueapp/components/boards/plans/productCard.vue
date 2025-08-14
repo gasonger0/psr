@@ -19,13 +19,9 @@ const slotsStore = useProductsSlotsStore();
  * Слоты данной продукции
  */
 const slots: SlotsByStages = {
-    1: [],
-    2: []
+    1: slotsStore.getByTypeAndProductID(props.product.product_id, 1),
+    2: slotsStore.getPack(props.product.product_id)
 };
-
-for (let i in stages) {
-    slots[i] = slotsStore.getByTypeAndProductID(props.product.product_id, Number(i));
-}
 
 const activeSlots: Array<number> = usePlansStore().getActiveSlots(props.product.product_id);
 

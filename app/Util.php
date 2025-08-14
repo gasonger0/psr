@@ -57,7 +57,7 @@ class Util
      * @param int $status HTTP-код
      * @return \Illuminate\Http\Response
      */
-    public static function successMsg(array|string $data, int $status = 200)
+    public static function successMsg(array|string|null $data, int $status = 200)
     {
         if (is_string($data)) {
             return Response([

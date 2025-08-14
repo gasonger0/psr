@@ -30,7 +30,10 @@ export const useProductsSlotsStore = defineStore('productsSlots', () => {
      * Загружает данные в хранилку
      */
     async function _load(): Promise<void> {
-        slots.value = await getRequest('/api/products_slots/get')
+        slots.value = (await getRequest('/api/products_slots/get')).map(el => {
+            el.isEditing = false;
+            return el as ProductSlot;
+        })
     }
 
     /**
@@ -49,7 +52,7 @@ export const useProductsSlotsStore = defineStore('productsSlots', () => {
      * Обновляет слот продукции
      * @param slot 
      */
-    async function _update(slot: ProductSlot): Promise<void> {
+    async function _update(slot: ProductSlot[]): Promise<void> {
         await putRequest('/api/products_slots/update', slot);
     }
 
@@ -62,6 +65,12 @@ export const useProductsSlotsStore = defineStore('productsSlots', () => {
     /****** LOCAL ******/
     function getByTypeAndProductID(product_id: number, type_id: number): ProductSlot[] {
         return slots.value.filter((el: ProductSlot) => el.product_id == product_id && el.type_id == type_id)!;
+    }
+    function getPack(product_id: number): ProductSlot[] {
+        return slots.value.filter((el: ProductSlot) => el.product_id == product_id && (
+            el.type_id == 2 || el.type_id == 3 || el.type_id == 4
+        ))!;
+
     }
 
     function getByLineId(line_id: number) {
@@ -100,6 +109,7 @@ export const useProductsSlotsStore = defineStore('productsSlots', () => {
         add,
         getByTypeAndProductID,
         getByLineId,
-        getById
+        getById,
+        getPack
     };
 });

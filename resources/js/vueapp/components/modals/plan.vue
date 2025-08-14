@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { colons, hardwares, packHardwares } from '@/store/dicts';
+import { colons, hardwares, packHardwares, productsTabs } from '@/store/dicts';
 import { LineInfo, useLinesStore } from '@/store/lines';
 import { useModalsStore } from '@/store/modal';
 import { ProductInfo, useProductsStore } from '@/store/products';
@@ -138,9 +138,10 @@ const showError = computed(() => {
     }
 })
 const getPackOptions = () => {
-    packOptions.value = slotsStore.getByTypeAndProductID(product.value.product_id, 2).map((el: ProductSlot) => {
+    packOptions.value = slotsStore.getPack(product.value.product_id).map((el: ProductSlot) => {
+        let slot = slotsStore.getById(el.product_slot_id);
         return {
-            label: linesStore.getByID(el.line_id).title + `(${el.perfomance} кг/ч)`,
+            label: `<${productsTabs[slot.type_id]}> ${linesStore.getByID(el.line_id).title} (${el.perfomance} кг/ч)`,
             value: el.product_slot_id
         } as CheckboxOptionType;
     });

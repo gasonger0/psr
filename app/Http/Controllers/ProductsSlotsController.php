@@ -60,10 +60,22 @@ class ProductsSlotsController extends Controller
             return Util::errorMsg($result);
         }
     }
+    public function update(Request $request) {
+        $data = $request->post();
+        foreach ($data as $slot) {
+            unset ($slot['isEditing']);
+            ProductsSlots::find($slot['product_slot_id'])->first()->update(
+                $slot
+            );
+        }
+
+        return Util::successMsg('Данные обновлены');
+    }
 
     public function delete(Request $request)
     {
         ProductsSlots::find($request->post('product_slot_id'))->delete();
+        return Util::successMsg('Этап удалён');
     }
 
     static public function clear()

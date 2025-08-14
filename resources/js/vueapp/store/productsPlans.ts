@@ -9,6 +9,7 @@ import { useProductsStore } from "./products";
 import { format } from "./dicts";
 import { LineInfo, useLinesStore } from "./lines";
 import { RefSymbol } from "@vue/reactivity";
+import { useModalsStore } from "./modal";
 
 export type ProductPlan = {
     plan_product_id?: number,
@@ -46,8 +47,8 @@ export const usePlansStore = defineStore("productsPlans", () => {
         putRequest('/api/plans/change', data.map(el => {
             return {
                 plan_product_id: el.plan_product_id,
-                started_at: el.started_at.format('HH:mm:ss'),
-                ended_at: el.ended_at.format("HH:mm:ss"),
+                started_at: el.started_at.format(format),
+                ended_at: el.ended_at.format(format),
             }
         }));
     }
@@ -56,6 +57,7 @@ export const usePlansStore = defineStore("productsPlans", () => {
         await postRequest('/api/plans/create', unserialize(data, packs),
             (r: AxiosResponse) => {
                 data.plan_product_id = r.data.plan_product_id;
+                
                 let line = useLinesStore().getByID(
                     useProductsSlotsStore().getById(Number(data.slot_id)).line_id
                 );
@@ -70,8 +72,8 @@ export const usePlansStore = defineStore("productsPlans", () => {
                         console.log(i);
                         line = useLinesStore().getByID(Number(i));
                         line.has_plans = true;
-                        console.log(line);
                         updateTimes(r.data.plansOrder[i]);
+                        useLinesStore().updateVersion(line.line_id);                        
                     }
                 }
             }
@@ -134,13 +136,20 @@ export const usePlansStore = defineStore("productsPlans", () => {
         let slots = useProductsSlotsStore().getByLineId(line_id).map(
             (el: ProductSlot) => { return el.product_slot_id }
         );
-        return plans.value.filter((plan: ProductPlan) => slots.includes(plan.slot_id));
+        return plans.value.filter((plan: ProductPlan) => slots.includes(plan.slot_id)).sort(
+            (a, b) => {
+                return a.started_at.unix() - b.started_at.unix()
+            });
     }
     function updateTimes(data: Array<any>) {
+        console.log(data);
         data.forEach(el => {
             let pl = getById(el.plan_product_id);
-            pl = serialize(el);
-        })
+            let index = plans.value.indexOf(pl);
+            plans.value[index] = serialize(el);
+            // pl = serialize(el);÷
+            // TODO обновлять линию походу надо
+        });
     }
     function getActiveSlots(product_id: number): Array<number> {
         let ids = [];

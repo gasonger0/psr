@@ -21,7 +21,7 @@ export type ProductInfo = {
     cars2plates: string,
     always_show?: boolean,
     category: CategoryInfo,
-    order?: ProductOrder, //TODO полдумать о размещении заказов
+    order?: ProductOrder, 
     isEditing: boolean,
     hide: boolean
 };
@@ -31,7 +31,6 @@ export const useProductsStore = defineStore('products', () => {
 
     /****** API ******/
     async function _load(data: Object): Promise<void> {
-        // TODO возможно чисто гетом можно
         const catStore = useCategoriesStore();
         products.value = (await postRequest('/api/products/get', data)).map((el: ProductInfo) => {
             el.category = catStore.getByID(el.category_id);
@@ -86,13 +85,10 @@ export const useProductsStore = defineStore('products', () => {
 
     function hide(type_id: number) {
         products.value.forEach((el: ProductInfo) => {
-            // console.log(el.product_id, el.order);
             if (!el.always_show && el.order == null) {
                 el.hide = true;
-                // console.log('-', el.product_id, el.title, el.order, el.always_show);
             } else if ([type_id, 3].includes(el.category.type_id)) {
                 el.hide = false;
-                // console.log(el);
             } else {
                 el.hide = true;
             }
@@ -109,7 +105,6 @@ export const useProductsStore = defineStore('products', () => {
             if (product) {
                 product.order = el;
             }
-            console.log(product);
         });
         hide(1);
     }

@@ -4,7 +4,7 @@ import { Button, Card, Popconfirm, Switch, Divider } from 'ant-design-vue';
 import { computed, onBeforeMount, onMounted, onUpdated, ref, Ref, TemplateRef, VNodeRef } from 'vue';
 import { ProductInfo, useProductsStore } from '@stores/products';
 import ProductCard from '@/components/boards/plans/productCard.vue'
-import { useLinesStore } from '@/store/lines';
+import { LineInfo, useLinesStore } from '@/store/lines';
 import LineForm from '@/components/common/lineForm.vue';
 import PlanCard from './planCard.vue';
 import { ProductPlan, usePlansStore } from '@/store/productsPlans';
@@ -39,6 +39,10 @@ const handleCardChange = (success: boolean) => {
         }
     }
     prodLine.value = prodLine.value as number + 1;
+}
+const setLineRef = (line: LineInfo) => {
+    modal.setLineRef(line.line_id);
+    return `${line.line_id}-1`
 }
 const hideProducts = () => {
     productsStore.hide(Number(categorySwitch.value) + 1);
@@ -191,7 +195,11 @@ onUpdated(async () => {
                     plansStore._change(cards);
                 }
             }
-            line.removeChild(target);
+            // TODO Сыпет ошибку
+            console.log(target);
+            if (target) {
+                line.removeChild(target);
+            }
             isNewPlan.value = false;
             active.value = null;
             document.querySelectorAll('.selected').forEach(el => el.classList.remove('selected'));
@@ -235,6 +243,7 @@ onUpdated(async () => {
             }
         })
     });
+    
 });
 </script>
 <template>
@@ -273,7 +282,8 @@ onUpdated(async () => {
         </div>
         <Divider type="vertical" v-show="showList" style="height: unset; width: 5px;" />
         <div class="line" v-for="line in linesStore.lines" :data-id="line.line_id"
-            v-show="!hideEmpty || line.has_plans">
+            v-show="!hideEmpty || line.has_plans"
+            ::key="`line-${line.line_id}-${line.version || 0}`" >
             <LineForm :data="line" />
             <div class="line_items products">
                 <PlanCard v-for="plan in plansStore.getByLine(line.line_id)" :data="plan" @edit="editPlan" />

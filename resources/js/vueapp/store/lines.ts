@@ -35,7 +35,8 @@ export type LineInfo = {
     date: dayjs.Dayjs,
     isDay: boolean,
     edit: boolean,
-    has_plans?: boolean
+    has_plans?: boolean,
+    version: number
 };
 
 type Detector = {
@@ -126,6 +127,7 @@ export const useLinesStore = defineStore('lines', () => {
             detector: {
                 has_detector: false
             } as Detector,
+            version: 1,
             date: dayjs.default(sessionStorage.getItem('date'), 'y-m-d'),
             isDay: Boolean(Number(sessionStorage.getItem('isDay')))
         } as LineInfo;
@@ -146,6 +148,7 @@ export const useLinesStore = defineStore('lines', () => {
             detector_start: line.detector_start,
             detector_end: line.detector_end
         });
+        line.version = 1;
         delete line.started_at, line.ended_at, line.has_detector, line.detector_start, line.detector_end;
         return line as LineInfo;
     }
@@ -157,8 +160,15 @@ export const useLinesStore = defineStore('lines', () => {
         item.detector_start = line.detector.detector_start?.format(format);
         item.detector_end = line.detector.detector_end?.format(format);
         item.date = line.date.format('YYYY-MM-DD');
-        delete item.detector, item.work_time;
+        delete item.detector, item.work_time, item.version;
         return item;
     }
-    return { lines, _load, _create, _update, _delete, _sendStop, getIfDone, add, splice, getByID }
+
+    const updateVersion = (lineId: number) => {
+        const line = lines.value.find(l => l.line_id === lineId);
+        if (line) {
+            line.version = (line.version || 0) + 1; // Инкрементим версию
+        }
+    };
+    return { lines, _load, _create, _update, _delete, _sendStop, getIfDone, add, splice, getByID, updateVersion }
 })

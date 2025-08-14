@@ -92,7 +92,7 @@ class LinesController extends Controller
             ] + Util::getSessionAsArray($request));
         }
         SlotsController::afterLineUpdate($request, $old);
-        return Util::successMsg($log);
+        return Util::successMsg($log ? $log : []);
     }
 
     public function delete(Request $request)
