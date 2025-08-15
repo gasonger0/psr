@@ -40,10 +40,7 @@ const handleCardChange = (success: boolean) => {
     }
     prodLine.value = prodLine.value as number + 1;
 }
-const setLineRef = (line: LineInfo) => {
-    modal.setLineRef(line.line_id);
-    return `${line.line_id}-1`
-}
+
 const hideProducts = () => {
     productsStore.hide(Number(categorySwitch.value) + 1);
 }
@@ -195,9 +192,8 @@ onUpdated(async () => {
                     plansStore._change(cards);
                 }
             }
-            // TODO Сыпет ошибку
-            console.log(target);
-            if (target) {
+
+            if (line.contains(target)) {
                 line.removeChild(target);
             }
             isNewPlan.value = false;

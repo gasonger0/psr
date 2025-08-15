@@ -109,14 +109,15 @@ class ProductsPlanController extends Controller
 
             // Проверка, что упаковываем не раньше глазировки
 
-            $glaz = ProductsPlan::whereHas('slot', function($query) {
-                $query->where('type_id', [3, 4]);
-            })->where('parent', $plan->plan_product_id)->first();
-            $glaz_end = Carbon::parse($glaz->ended_at)->unix();
+            $glaz = ProductsPlan::where('parent', $plan->plan_product_id)->whereHas('slot', function($query) {
+                $query->whereIn('type_id', [3, 4]);
+            })->max('ended_at');
+            // var_dump($glaz);
+            $glaz_end = Carbon::parse($glaz)->unix();
             foreach ($packsCheck as $p) {
                 if (Carbon::parse($p->ended_at)->unix() < $glaz_end) {
                     $p->update([
-                        'ended_at' => $glaz->ended_at
+                        'ended_at' => $glaz
                     ]);
 
                     $this->checkPlans($request, $p);

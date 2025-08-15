@@ -68,15 +68,15 @@ const slots: Ref<ProductSlot[]> = ref([]);
 const perfomance: Ref<number> = ref(0);
 
 const changeTime = () => {
-    props.data.ended_at = props.data.started_at.add(time.value, 'hour');
-    props.data.ended_at = props.data.ended_at.add(slot.value.type_id == 1 ? 10 : 15, 'minute');
+    if (!props.data.ended_at) {
+        return;
+    }
+    props.data.ended_at = props.data.started_at
+        .add(time.value, 'hour')
+        .add(slot.value.type_id == 1 ? 10 : 15, 'minute');
+    // props.data.ended_at = props.data.started_at.add(time.value, 'hour');
+    // props.data.ended_at = props.data.ended_at.add(slot.value.type_id == 1 ? 10 : 15, 'minute');
 
-    // let plans = plansStore.getByLine(line.value.line_id).map(el => el.started_at);
-    // for (let i = 0; i < plans.length; i++) {
-    //     if (plans[i] >= props.data.started_at && plans[i + 1] < props.data.started_at) {
-    //         props.data.position = i;
-    //     }
-    // }
 };
 const handleHardware = () => {
     // TODO чёто не уверен, что даст выбрать производительность при выборе из selection...
