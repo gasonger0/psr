@@ -19,10 +19,12 @@ let slot = useProductsSlotsStore().getById(props.data.slot_id);
 let product = useProductsStore().getByID(slot.product_id);
 
 const boils = computed((): number => {
-    return props.data.amount *
+    return Number(
+        (props.data.amount *
         eval(product.kg2boil) *
         eval(product.amount2parts) *
-        eval(product.parts2kg);
+        eval(product.parts2kg)).toFixed(2)
+    );
 });
 if (slot.type_id == 1) {
     modal.boils += boils.value;

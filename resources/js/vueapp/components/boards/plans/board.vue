@@ -32,13 +32,13 @@ const activePlan: Ref<ProductPlan | null> = ref();
 const prodLine: Ref<PropertyKey> = ref(1);
 
 const handleCardChange = (success: boolean) => {
-    if (!success) {
-        activePlan.value = null;
+    activePlan.value = null;
+    if (success) {
         if (isNewPlan) {
             plansStore.removeLast();
         }
+        prodLine.value = prodLine.value as number + 1;
     }
-    prodLine.value = prodLine.value as number + 1;
 }
 
 const hideProducts = () => {
@@ -169,7 +169,9 @@ onUpdated(async () => {
                         product.order ? product.order.amount : 0
                     )
                     modal.open("plan");
-
+                    if (line.contains(target)) {
+                        line.removeChild(target);
+                    }
                 } else {
                     let ids = childs.map(el => (el as HTMLElement).dataset.id);
 
@@ -191,17 +193,19 @@ onUpdated(async () => {
                     console.log("Cards:", cards);
                     plansStore._change(cards);
                 }
+            } else {
+                return;
             }
 
-            if (line.contains(target)) {
-                line.removeChild(target);
-            }
             isNewPlan.value = false;
             active.value = null;
             document.querySelectorAll('.selected').forEach(el => el.classList.remove('selected'));
         });
 
         line.addEventListener('dragover', (ev) => {
+            if (!active.value) {
+                return;
+            }
             ev.preventDefault();
             const activeElement = document.querySelector('.selected');
             const currentElement = ev.target;
@@ -221,7 +225,7 @@ onUpdated(async () => {
             if (
                 nextElement &&
                 activeElement === nextElement.previousElementSibling ||
-                activeElement === nextElement
+                activeElement === nextElement || !activeElement || !nextElement || !line
             ) {
                 // Если нет, выходим из функции, чтобы избежать лишних изменений в DOM
                 return;
@@ -229,17 +233,21 @@ onUpdated(async () => {
 
             const lastElement = line.lastElementChild;
             if (nextElement == null) {
-                line.append(activeElement);
+                line.append(activeElement as HTMLElement);
             } else {
+                if (!line) {
+                    return;
+                }
                 if (nextElement.parentElement != line) {
-                    line.append(activeElement);
+                    line.append(activeElement as HTMLElement);
                 } else {
-                    line.insertBefore(activeElement, nextElement);
+                    console.log(line, activeElement, nextElement);
+                    line.insertBefore(activeElement as HTMLElement, nextElement);
                 }
             }
         })
     });
-    
+
 });
 </script>
 <template>
@@ -277,9 +285,8 @@ onUpdated(async () => {
             </div>
         </div>
         <Divider type="vertical" v-show="showList" style="height: unset; width: 5px;" />
-        <div class="line" v-for="line in linesStore.lines" :data-id="line.line_id"
-            v-show="!hideEmpty || line.has_plans"
-            ::key="`line-${line.line_id}-${line.version || 0}`" >
+        <div class="line" v-for="line in linesStore.lines" :data-id="line.line_id" v-show="!hideEmpty || line.has_plans"
+            ::key="`line-${line.line_id}-${line.version || 0}`">
             <LineForm :data="line" />
             <div class="line_items products">
                 <PlanCard v-for="plan in plansStore.getByLine(line.line_id)" :data="plan" @edit="editPlan" />

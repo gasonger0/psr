@@ -144,7 +144,7 @@ const getPackOptions = () => {
             label: `<${productsTabs[slot.type_id]}> ${linesStore.getByID(el.line_id).title} (${el.perfomance} кг/ч)`,
             value: el.product_slot_id
         } as CheckboxOptionType;
-    });
+    }).filter(el => el.value != slot.value.product_slot_id);
 }
 const addPlan = async () => {
     let p = [];
@@ -238,7 +238,6 @@ const emit = defineEmits(['save', 'cancel']);
         </div>
         <div v-if="slot.type_id == 2">
             <RadioGroup v-model:value="hardware" @change="handleHardware">
-                <RadioButton :value="null">Нет</RadioButton>
                 <RadioButton v-for="i in packHardwares" :value="i.value">
                     <Tooltip :title="i.title">{{ i.label }}</Tooltip>
                 </RadioButton>

@@ -386,7 +386,7 @@ class ProductsPlanController extends Controller
             'isDay' => $plan->isDay
         ];
         $line = LinesExtra::where('line_id', $plan->slot->line_id)->withSession($session)->first();
-        $prevEnd = Carbon::parse($line->started_at);
+        $prevEnd = Carbon::parse($line->started_at)->addMinutes($line->prep_time);
 
         ProductsPlan::withSession($session)
             ->whereHas('slot', function ($query) use ($plan) {
