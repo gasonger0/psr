@@ -3,6 +3,7 @@ import { Ref, ref } from "vue";
 import { CategoryInfo, useCategoriesStore } from "./categories";
 import { deleteRequest, getRequest, postRequest, putRequest } from "../functions";
 import { AxiosResponse } from "axios";
+import { useProductsSlotsStore } from "./productsSlots";
 
 export type ProductOrder = {
     order_id: number,
@@ -107,11 +108,21 @@ export const useProductsStore = defineStore('products', () => {
             if (product) {
                 product.order = el.order as ProductOrder;
             } else {
-                product = el.product;
-                product.order = el.order;
+                product = el.product as ProductInfo;
+                product.order = el.order as ProductOrder;
+                product.category = useCategoriesStore().getByID(product.category_id);
+                product.isEditing = false;
                 products.value.push(product);
             }
         });
+        // Загрузим слоты
+        useProductsSlotsStore()._load(
+            products.value.map(i => i.product_id)
+        );
+        // Сортируем
+        products.value.sort((a,b) => {
+            return a.product_id - b.product_id;
+        })
         hide(1);
     }
 
