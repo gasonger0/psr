@@ -79,7 +79,7 @@ export const useWorkersStore = defineStore('workers', () => {
     };
     /**
      * Обновляет данные о сотрдунике в БД
-     * @param fields 
+     * @param {WorkerInfo} fields 
      */
     async function _update(fields: WorkerInfo): Promise<boolean> {
         return await putRequest('/api/workers/update', unserialize(fields));

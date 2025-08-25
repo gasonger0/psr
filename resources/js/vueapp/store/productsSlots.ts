@@ -29,11 +29,17 @@ export const useProductsSlotsStore = defineStore('productsSlots', () => {
     /**
      * Загружает данные в хранилку
      */
-    async function _load(): Promise<void> {
-        slots.value = (await getRequest('/api/products_slots/get')).map(el => {
+    async function _load(products: Array<number>): Promise<ProductSlot[]|null> {
+        let sls = (await postRequest('/api/products_slots/get', products)).map(el => {
             el.isEditing = false;
             return el as ProductSlot;
-        })
+        });
+        if (products.length > 1) {
+            slots.value = sls;
+            return null;
+        } else { 
+            return sls;
+        }
     }
 
     /**

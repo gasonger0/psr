@@ -18,4 +18,14 @@ class ProductsCategories extends Model
     public function products() {
         return $this->hasMany(ProductsDictionary::class, 'category_id', 'category_id');
     }
+
+    public function children() 
+    {
+        return $this->hasMany(ProductsCategories::class, 'parent');
+    }
+
+    public function childrenRecursive()
+    {
+        return $this->children()->with('childrenRecursive');
+    }
 }

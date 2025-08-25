@@ -54,8 +54,9 @@ onBeforeMount(async () => {
     isReady.value = true;
     await useResponsiblesStore()._load();
     await useCategoriesStore()._load();
-    await useProductsStore()._load({});
-    await useProductsSlotsStore()._load();
+    await useProductsStore()._load(0);
+    let products_ids = useProductsStore().products.map(i => i.product_id);
+    await useProductsSlotsStore()._load(products_ids);
     await usePlansStore()._load();
     await useLogsStore()._load();
 });

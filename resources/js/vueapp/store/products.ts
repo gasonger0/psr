@@ -21,7 +21,7 @@ export type ProductInfo = {
     cars2plates: string,
     always_show?: boolean,
     category: CategoryInfo,
-    order?: ProductOrder, 
+    order?: ProductOrder,
     isEditing: boolean,
     hide: boolean
 };
@@ -30,9 +30,10 @@ export const useProductsStore = defineStore('products', () => {
     const products: Ref<ProductInfo[]> = ref([]);
 
     /****** API ******/
-    async function _load(data: Object): Promise<void> {
+    async function _load(data: number): Promise<void> {
         const catStore = useCategoriesStore();
-        products.value = (await postRequest('/api/products/get', data)).map((el: ProductInfo) => {
+        products.value = (await postRequest('/api/products/get', {category_id: data}));
+        products.value = products.value.map((el: ProductInfo) => {
             el.category = catStore.getByID(el.category_id);
             el.isEditing = false;
             // el.order = null;   
@@ -58,14 +59,14 @@ export const useProductsStore = defineStore('products', () => {
         )
     }
 
+    async function getByCategoryID(category_id: number): Promise<ProductInfo[]> {
+        return (await postRequest('/api/products/get', {category_id: category_id})).map(el => el as ProductInfo);
+    }
+
 
     /***** LOCAL *****/
     function getByID(id: number): ProductInfo | undefined {
         return products.value.find((el: ProductInfo) => el.product_id == id);
-    }
-
-    function getByCategoryID(category_id: number): ProductInfo[] {
-        return products.value.filter((el: ProductInfo) => el.category.category_id == category_id);
     }
     function add(category: CategoryInfo): ProductInfo {
         let newProduct = {
@@ -92,18 +93,23 @@ export const useProductsStore = defineStore('products', () => {
             } else {
                 el.hide = true;
             }
-            
+
         });
     }
 
     function fillOrders(orders: Array<ProductOrder>) {
-        orders.forEach((el: ProductOrder) => {
-            if (!el.amount) {
+        orders.forEach((el: any) => {
+            if (!el.order) {
                 return;
             }
+
             let product = getByID(el.product_id);
             if (product) {
-                product.order = el;
+                product.order = el.order as ProductOrder;
+            } else {
+                product = el.product;
+                product.order = el.order;
+                products.value.push(product);
             }
         });
         hide(1);

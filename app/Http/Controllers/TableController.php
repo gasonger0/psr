@@ -26,23 +26,23 @@ class TableController extends Controller
     static $MCE = '</middle></center>';
     private static $skipPhrases = ['подготовительное время', 'заключительное время'];
     private static $colons = [
-        0 => '', 
+        0 => '',
         '' => '',
-        1 => 'Варочная колонка №1', 
+        1 => 'Варочная колонка №1',
         2 => 'Варочная колонка №2',
         3 => 'Варочные колонки №1 и №2'
     ];
     private static $hardware = [
-        0 => 'Без оборудования', 
-        "" => 'Без оборудования', 
-        1 => 'Мондомикс', 
-        2 => 'Торнадо', 
-        3 => 'Китайский аэрос', 
-        4 => 'Завёрточная машина №1', 
-        5 => 'Завёрточная машина №2', 
+        0 => 'Без оборудования',
+        "" => 'Без оборудования',
+        1 => 'Мондомикс',
+        2 => 'Торнадо',
+        3 => 'Китайский аэрос',
+        4 => 'Завёрточная машина №1',
+        5 => 'Завёрточная машина №2',
         6 => 'Завёрточные машины №1, №2'
     ];
-    
+
     private static function makeArrayHeader($session)
     {
         return
@@ -218,7 +218,7 @@ class TableController extends Controller
             $curCat = null;
             $unrecognized = [];
             $amounts = [];
-            foreach($xlsx->rows(0) as $k => $row) {
+            foreach ($xlsx->rows(0) as $k => $row) {
                 if ($row['1'] == 'Итог') {
                     break;
                 }
@@ -228,20 +228,20 @@ class TableController extends Controller
                     continue;
                 }
                 // Ловим продукты
-                if ($curCat && ($product = ProductsDictionary::where('title', $row[1])->first())){
+                if ($curCat && ($product = ProductsDictionary::where('title', $row[1])->first())) {
                     $amounts[] = [
-                        'product_id'    => $product->product_id,
-                        'amount'        => $row[3]
+                        'product_id' => $product->product_id,
+                        'amount' => $row[3]
                     ];
                     continue;
-                } else if ($curCat && !strtotime($row[1]) && ($row[2]||$row[3]||$row[4])) {
+                } else if ($curCat && !strtotime($row[1]) && ($row[2] || $row[3] || $row[4])) {
                     $product = ProductsDictionary::create([
-                        'title'         => $row[1],
-                        'category_id'   => $curCat->category_id
+                        'title' => $row[1],
+                        'category_id' => $curCat->category_id
                     ]);
                     $amounts[] = [
-                        'product_id'    => $product->product_id,
-                        'amount'        => $row[3]
+                        'product_id' => $product->product_id,
+                        'amount' => $row[3]
                     ];
                     continue;
                 }
@@ -251,7 +251,7 @@ class TableController extends Controller
             }
 
             // Чистим прошлый анализ
-            ProductsOrder::withSession($request)->each(function($p) {
+            ProductsOrder::withSession($request)->each(function ($p) {
                 $p->delete();
             });
 
@@ -259,18 +259,26 @@ class TableController extends Controller
                 if (($val = $amount['amount']) && $amount['amount'] > 0) {
                     $rec = ProductsOrder::withSession($request)
                         ->updateOrCreate(
-                            ['product_id'   => $amount['product_id'],
-                            'isDay'         => $request->attributes->get('isDay'),
-                            'date'          => $request->attributes->get('date')
-                        ],
+                            [
+                                'product_id' => $amount['product_id'],
+                                'isDay' => $request->attributes->get('isDay'),
+                                'date' => $request->attributes->get('date')
+                            ],
                             ['amount' => $val]
                         );
-                    $amount['order_id'] = $rec->order_id;
+                    $amount = [
+                        'order' => [
+                            'order_id' => $rec->order_id,
+                            'product_id' => $rec->product_id,
+                            'amount' => $rec->amount,
+                        ],
+                        'product' => ProductsDictionary::find($rec->product_id)->toArray()
+                    ];
                 }
             }
             return Util::successMsg([
-                'uncategorized' => $unrecognized, 
-                'amounts'       => $amounts
+                'uncategorized' => $unrecognized,
+                'amounts' => $amounts
             ], 201);
         }
     }
@@ -335,7 +343,7 @@ class TableController extends Controller
         // unset($lines);
 
         $arr = [
-            1 => self::makeArrayHeader($session), 
+            1 => self::makeArrayHeader($session),
             2 => self::makeArrayHeader($session)
         ];
 
@@ -343,7 +351,7 @@ class TableController extends Controller
             1 => [],
             2 => []
         ];
-        Lines::each(function($line) use (&$linesSheets) {
+        Lines::each(function ($line) use (&$linesSheets) {
             if ($line->plans->isNotEmpty()) {
                 $linesSheets[$line->type_id][] = $line;
             }
@@ -376,7 +384,7 @@ class TableController extends Controller
 
                 //     return $el;
                 // }, $linePlans);
-                
+
                 // array_multisort(
                 //     array_column($linePlans, 'position'),
                 //     SORT_ASC,
@@ -389,7 +397,7 @@ class TableController extends Controller
                     LinesExtra::withSession($request)->where('line_id', $line->line_id)->first()->toArray()
                 );
                 $line['items'] = [];
-                $hardwares = array_unique($linePlans->map(function($item) {
+                $hardwares = array_unique($linePlans->map(function ($item) {
                     return $item->slot->hardware;
                 })->toArray());
 
@@ -400,7 +408,7 @@ class TableController extends Controller
                             'items' => []
                         ];
                     }
-                    $linePlans->each(function($p) use (&$line) {
+                    $linePlans->each(function ($p) use (&$line) {
                         $line['items'][$p->slot->hardware]['items'][] = $p->toArray() + $p->slot->product->toArray();
                     });
                     // $line['items']
@@ -436,10 +444,11 @@ class TableController extends Controller
                 ];
 
                 foreach ($line['items'] as &$hw) {
-                    if (isset($hw['hwTitle'])) {    
+                    if (isset($hw['hwTitle'])) {
                         $array[] = ['', '<style bgcolor="#D8E4BC"><b>' . mb_strtoupper($hw['hwTitle']) . '</b></style>'];
                     }
-                    $colons = array_map(function($i){ return $i['colon']; }, $hw['items']);
+                    $colons = array_map(function ($i) {
+                        return $i['colon']; }, $hw['items']);
 
                     $colons = array_filter(array_unique($colons));
                     if (count($colons) > 1 || array_search(3, $colons) !== false) {
@@ -447,19 +456,19 @@ class TableController extends Controller
                     } else {
                         $array[] = ['', '<b>' . self::$colons[array_shift($colons)] . '</b>'];
                     }
-                    
+
                     // usort($hw['items'], function ($a, $b) {
                     //     return strtotime($a['started_at']) <=> strtotime($b['started_at']);
                     // });                   
-                    
+
                     foreach ($hw['items'] as $product) {
                         $crates = intval($product['amount']);
-                        $parts = ceil(eval("return $crates*$product[amount2parts];"));
-                        $kg = ceil(eval("return $parts*$product[parts2kg];"));
-                        $boils = ceil(eval("return $kg*$product[kg2boil];"));
-                        $prec =  eval("return $boils*$product[cars];");
+                        $parts = ceil(eval ("return $crates*$product[amount2parts];"));
+                        $kg = ceil(eval ("return $parts*$product[parts2kg];"));
+                        $boils = ceil(eval ("return $kg*$product[kg2boil];"));
+                        $prec = eval ("return $boils*$product[cars];");
                         $cars = floor($prec);
-                        $plates = eval("return ($prec - $cars)*$product[cars2plates];");
+                        $plates = eval ("return ($prec - $cars)*$product[cars2plates];");
                         // var_dump(10);
                         // die();
 
@@ -497,7 +506,7 @@ class TableController extends Controller
                             self::$MCS . $boils . self::$MCE,
                             self::$MCS . $cars . self::$MCE,
                             '<b>т</b>',
-                            // $prec,
+                                // $prec,
                             self::$MCS . ceil($plates) . self::$MCE,
                             '<b>под</b>',
                             self::$MCS . '<b>' . $prec . '</b>' . self::$MCE,
@@ -527,7 +536,7 @@ class TableController extends Controller
                     }
                 }
                 if ($line['after_time'] != 0) {
-                    $lastTime = Carbon::parse($array[count($array)-1][13]);
+                    $lastTime = Carbon::parse($array[count($array) - 1][13]);
                     $array[] = ['', '<style bgcolor="#FFC263"><b><i>Заключительное время</i></b></style>', '', '', '', '', '', '', '', '', '', '', $lastTime->format('H:i:s'), $lastTime->addMinutes($line['after_time'])->format('H:i:s')];
                 }
                 $array[] = [];
@@ -545,7 +554,7 @@ class TableController extends Controller
                 $array[] = [];
             }
 
-            if($sheet == 1) {
+            if ($sheet == 1) {
                 $dating = LinesExtra::withSession($request)
                     ->where('line_id', 42)
                     // ->with(['lines'])
@@ -627,7 +636,7 @@ class TableController extends Controller
             ->mergeCells('R4:AB4')
             ->mergeCells('AC4:AC6')
             ->mergeCells('M5:N5');
-        
+
         $name = 'План_' . date('d_m_Y', strtotime($session['date'])) . '.xlsx';
         $xlsx->downloadAs($name);
 

@@ -20,12 +20,12 @@ export type LineInfo = {
     title: string,
     color?: string,
     type_id: number,
-    count_current?: number, // TODO локальное свойство, нет аналога в базе
+    count_current?: number, 
     line_extra_id?: number,
     workers_count: number,
     work_time: Slot,
     down_from?: dayjs.Dayjs,
-    cancel_reason?: number,          // TODO придумать, как привести к значениям только из справочника
+    cancel_reason?: number, 
     master?: number,
     engineer?: number,
     prep_time: number,
@@ -79,7 +79,6 @@ export const useLinesStore = defineStore('lines', () => {
     }
 
     async function _sendStop(line: LineInfo, reason?: number | undefined): Promise<void> {
-        // TODO проверить, нужно отправлять текст причины
         await putRequest('/api/lines/down', {
             line_id: line.line_id!,
             reason: reason ? reason : ''

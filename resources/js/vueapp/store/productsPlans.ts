@@ -116,7 +116,6 @@ export const usePlansStore = defineStore("productsPlans", () => {
                 useLinesStore().lines.forEach((el: LineInfo) => {
                     el.has_plans = false;
                 });
-                // TODO нет в апи такого метода
             }
         )
     }

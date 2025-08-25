@@ -63,6 +63,7 @@ class ProductsPlanController extends Controller
             // И объём
             $amount = $request->post('amount');
             $packsCheck = [];
+            
             foreach ($pack as $p) {
                 // Конец упаковки должен быть:
                 // 1. Не раньше конца варки 

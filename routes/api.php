@@ -134,7 +134,7 @@ Route::group(['middleware' => ['web', ParseSession::class]], function () {
         ->prefix('/products_slots')
         ->middleware(ForceJsonResponse::class)
         ->group(function () {
-            Route::get('/get', 'get');
+            Route::post('/get', 'get');
             Route::post('/create', 'create');
             Route::put('/update', 'update');
             Route::delete('/delete', 'delete');

@@ -9,9 +9,9 @@ use Illuminate\Http\Request;
 class ProductsSlotsController extends Controller
 {
     public const SLOT_ALREADY_EXISTS = "Такой слот изготовления уже существует";
-    public function get()
+    public function get(Request $request)
     {
-        return ProductsSlots::all();
+        return ProductsSlots::whereIn('product_id', $request->post())->get();
     }
 
     public function addSlots(Request $request)

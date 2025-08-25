@@ -16,15 +16,23 @@ class ProductsDictionaryController extends Controller
 
     public function get(Request $request)
     {
+        // Если category_id != 0 - присылаем все, кто есть в загруженном анализе заказов или показаны всегда
         $category_id = $request->post('category_id');
-        if ($category_id !== null) {
+        if ($category_id !== 0 && $category_id !== null) {
+            // TODO Если ткнули в категорию НЕ нижнего уровня, надо найти все дочерние
+            $categories = ProductsCategories::with('childrenRecursive')->find($category_id);
             return ProductsDictionary::where('category_id', $category_id)->get()->toArray();
         }
 
-        return ProductsDictionary::all()->map(function ($el) use ($request) {
-            $el->order = ProductsOrder::where('product_id', $el['product_id'])->withSession($request)->get()->first();
-            return $el;
-        })->toArray();
+        return
+            array_values(
+                ProductsDictionary::all()->map(function ($el) use ($request) {
+                    $el->order = ProductsOrder::where('product_id', $el['product_id'])->withSession($request)->get()->first();
+                    return $el;
+                })->filter(function ($product) {
+                    return $product->order || $product->always_show;
+                })->toArray()
+            );
     }
 
     public function create(Request $request)

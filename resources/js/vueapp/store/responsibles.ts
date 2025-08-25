@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
-import { deleteRequest, getRequest, postRequest } from "../functions";
-import { AxiosResponse } from "axios";
+import { deleteRequest, getRequest, notify, postRequest, putRequest } from "../functions";
+import { AxiosError, AxiosResponse } from "axios";
 import { objectType } from "ant-design-vue/es/_util/type";
 import { positions } from "./dicts";
 import { reactive, ref, Ref } from "vue";
@@ -30,13 +30,29 @@ export const useResponsiblesStore = defineStore('responsible', () => {
             return el as ResponsibleInfo;
         });
     };
-    // TODO
+    /**
+     * Загружает нового сотрудника в БД
+     * @param {WorkerInfo} fields набор полей нового сотрудника 
+     */
     async function _create(rec: ResponsibleInfo): Promise<void> {
-
+        return await postRequest('/api/responsibles/create',
+            rec,
+            (r: AxiosResponse) => {
+                rec.responsible_id = r.data.responsible_id;
+                return true;
+            },
+            (err: AxiosError) => {
+                notify('warning', err.message);
+                return false;
+            }
+        )
     }
-
+    /**
+     * Обновляет данные об ответственном в БД
+     * @param {ResponsibleInfo} rec  
+     */
     async function _update(rec: ResponsibleInfo): Promise<void> {
-
+        return await putRequest('/api/responsibles/update', rec);
     }
 
     /**
@@ -75,7 +91,7 @@ export const useResponsiblesStore = defineStore('responsible', () => {
         return;
     };
 
-    function getByID(id: number): ResponsibleInfo|undefined{
+    function getByID(id: number): ResponsibleInfo | undefined {
         return responsibles.value.find((el: ResponsibleInfo) => el.responsible_id == id);
     }
 

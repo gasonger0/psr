@@ -20,30 +20,38 @@ const activeCategory: Ref<CategoryInfo> = ref();
 const products: Ref<ProductInfo[]> = ref([]);
 const slots: Ref<Object> = ref([]);
 
+const productsKey: Ref<number> = ref(1);
+const slotsKey: Ref<number> = ref(1);
+
 const activeProduct: Ref<ProductInfo> = ref();
 const activeTab: Ref<string> = ref('1');
 
 const handleCategorySelect = async (key: Key[]) => {
+    console.log(key[0]);
     activeCategory.value = categoriesStore.getByID(Number(key[0]));
-    products.value = productsStore.getByCategoryID(Number(key[0]));
+    products.value = await productsStore.getByCategoryID(Number(key[0]));
+    productsKey.value += 1;
 }
 const handleProductSelect = async (key: number) => {
     activeProduct.value = productsStore.getByID(key);
     if (activeTab.value != '3') {
+        let sls = await slotsStore._load([key]);
+
+        // TODO
         slots.value = {
-            1: slotsStore.getByTypeAndProductID(
-                activeProduct.value.product_id, 1
-            ),
-            2: slotsStore.getByTypeAndProductID(
-                activeProduct.value.product_id, 2
-            ),
-            3: slotsStore.getByTypeAndProductID(
-                activeProduct.value.product_id, 3
-            ),
-            4: slotsStore.getByTypeAndProductID(
-                activeProduct.value.product_id, 4
-            )
+            1: [],
+            2: [],
+            3: [],
+            4: []
+        };
+
+        if (sls != null) {
+            sls.forEach((el: ProductSlot) => {
+                slots.value[el.type_id].push(el);
+            });   
         }
+
+        slotsKey.value += 1;
     }
 }
 
@@ -121,7 +129,7 @@ const exit = () => {
             <section class="products">
                 <!-- TODO лишние стили мб -->
                 <!-- <List :data-source="products" v-if="products.length != 0" style="max-height:60vh; overflow: auto;"> -->
-                <List :data-source="products" v-if="products.length != 0" class="product_list">
+                <List :data-source="products" v-if="products.length != 0" class="product_list" :key="productsKey">
                     <template #renderItem="{ item }">
                         <ListItem v-if="!item.isEditing" class="product_list-item" :class="getClass(item)">
                             <a href="#" @click="handleProductSelect(item.product_id)">{{ item.title }}</a>
@@ -145,7 +153,7 @@ const exit = () => {
             </section>
             <Divider type="vertical" style="height:unset;" />
             <section style="width: 60%; ">
-                <Tabs v-model:activeKey="activeTab">
+                <Tabs v-model:activeKey="activeTab" :key="slotsKey">
                     <TabPane v-for="(v, k) in productsTabs" :key="k" :tab="v">
                         <template v-if="k == 5">
                             <div style="display:flex; flex-direction: column; gap: 10px;">
