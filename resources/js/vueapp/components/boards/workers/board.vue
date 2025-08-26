@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { BackTop, Card, FloatButton, Input, FloatButtonGroup, Button, Form, FormItem } from 'ant-design-vue';
+import { BackTop, Card, FloatButton, Input, FloatButtonGroup, Button, Form, FormItem, Switch } from 'ant-design-vue';
 import { ref, Ref, watch, computed, onBeforeMount, TemplateRef, onMounted } from 'vue';
 import 'vue-color-kit/dist/vue-color-kit.css';
 import { LoginOutlined, PlusCircleOutlined, UserAddOutlined, PrinterOutlined } from '@ant-design/icons-vue';
@@ -27,6 +27,7 @@ let active: Ref<HTMLElement | null> = ref(null);
 const showList = ref(false);
 const workerRefs = ref<Record<number, InstanceType<typeof ItemCard>>>({});
 const monitorInterval: Ref<number> = ref(null);
+const editMode: Ref<boolean> = ref(false);
 
 const setWorkerRef = (el: any, workerId: number) => {
     if (el) workerRefs.value[workerId] = el;
@@ -41,7 +42,7 @@ const newListText = computed(() => {
     return showList.value ? 'Скрыть' : 'Показать список рабочих';
 });
 const getLineClass = (line: LineInfo) => {
-    return (linesStore.getIfDone(line) ? 'done-line ' : '')
+    return linesStore.getIfDone(line) ? 'done-line ' : ''
     //+ (line.has_plans ? '' : 'hidden-hard');
 }
 
@@ -112,16 +113,20 @@ onMounted(async () => {
             let target = ev.target as HTMLElement;
             scrollToTop(linesContainer);
             target.classList.add(`selected`);
-            document.querySelectorAll('.done-line').forEach(el => {
-                el.classList.add('hidden-hard');
-            })
+            if (!editMode) {
+                document.querySelectorAll('.done-line').forEach(el => {
+                    el.classList.add('hidden-hard');
+                });
+            }
             active.value = target;
         })
 
         line.addEventListener(`dragend`, (ev) => {
-            document.querySelectorAll('.done-line').forEach(el => {
-                el.classList.toggle('hidden-hard');
-            })
+            if (!editMode) {
+                document.querySelectorAll('.done-line').forEach(el => {
+                    el.classList.toggle('hidden-hard');
+                });
+            }
             let target = ev.target as HTMLElement;
             if (target.classList.contains('selected') && ev.target == active.value) {
                 target.classList.remove(`selected`);
@@ -139,7 +144,7 @@ onMounted(async () => {
                     workerSlotsStore._change(worker, Number(line_id));
                     handleCardChange(worker.worker_id);
                 } else {
-                    workerSlotsStore._create(worker, Number(line_id));
+                    workerSlotsStore._create(worker, Number(line_id), editMode.value);
                     handleCardChange(worker.worker_id);
                 }
             }
@@ -196,6 +201,7 @@ const emit = defineEmits(['ready']);
             <PrinterOutlined />
             Распечатать график
         </Button>
+        <Switch v-model:checked="editMode" checked-children="Планирование" un-checked-children="Коррекция" />
     </div>
     <div class="lines-container" ref="linesContainer">
         <div class="line" :data-id="-1" v-show="showList">

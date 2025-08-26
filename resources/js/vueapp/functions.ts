@@ -92,7 +92,11 @@ export async function deleteRequest(
 
 export function getTimeString(): dayjs.Dayjs {
     let date = sessionStorage.getItem('date');
-    return dayjs.default(date);
+    let time = dayjs.default();
+    return dayjs.default(
+        `${date} ${time.hour()}:${time.minute}:${time.second}`,
+        'YYYY-MM-DD HH:mm:ss' 
+    );
 }
 
 export function notify(type: string, message: string) {

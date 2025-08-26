@@ -179,6 +179,7 @@ section.metal {
     margin-left: 1vw;
     gap: 15px;
     display: flex;
+    align-items: center;
 }
 
 .draggable-card {

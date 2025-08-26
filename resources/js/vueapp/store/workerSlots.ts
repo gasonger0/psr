@@ -39,14 +39,19 @@ export const useWorkerSlotsStore = defineStore('workersSlots', () => {
      * Создаёт новый рабочий слот сотрудника
      * @param fields поля слота
      */
-    async function _create(worker: WorkerInfo, line_id: number): Promise<void> {
+    async function _create(worker: WorkerInfo, line_id: number, plan: boolean): Promise<void> {
         const ls = useLinesStore();
         let line = ls.getByID(line_id);
+        alert([line.work_time.started_at.format(format), dayjs.default().format(format)])
+        let time = dayjs.default();
+        if (plan) {
+            time = line.work_time.started_at;
+        }
         await postRequest('/api/workers_slots/create', {
             worker_id: worker.worker_id,
             line_id: line_id,
-            started_at: dayjs.default().format(format),
-            ended_at: line?.work_time.ended_at.format(format)
+            started_at: time.format(format),
+            ended_at: line.work_time.ended_at.format(format)
         },
             (r: AxiosResponse) => {
                 slots.value.push(r.data);

@@ -29,7 +29,7 @@ const columns: Array<ColumnType> = [{
 const cells: Ref<any[]> = ref([]);
 
 const scroll = {
-    x: columns.length * 150
+    x: 'max-content'
 }
 
 const getWorkTime = (line: ColumnType<any>) => {
@@ -81,10 +81,11 @@ onUpdated(() => {
     }
     cells.value = workers.workers.map((el: WorkerInfo) => {
         slots.getByWorker(el.worker_id).forEach((sl: WorkerSlot) => {
-            el[sl.line_id] = sl;
+            el[String(sl.line_id)] = sl;
         });
         return el;
-    })
+    });
+    console.log(cells);
 })
 
 watch(
@@ -101,18 +102,15 @@ watch(
         <div class="table-container">
             <Table :data-source="cells" :columns="columns" small :scroll="scroll" :pagination="{pageSize: 8}">
                 <template #headerCell="{ title, column }">
-                    <div v-if="column.dataIndex != 'title' && column.dataIndex != 'break'" class="centered-cell">
-                        <span>{{ title }}</span>
-                        <span style="color:gray">
+                    <div class="centered-cell">
+                        <span style="width:160px">{{ title }}</span>
+                        <span style="color:gray" v-if="column.dataIndex != 'title' && column.dataIndex != 'break'">
                             {{ getWorkTime(column) }}
                         </span>
                     </div>
-                    <div v-else class="centered-cell">
-                        <span>{{ title }}</span>
-                    </div>
                 </template>
                 <template #bodyCell="{ column, record }">
-                    <template v-if="column.dataIndex != 'title' && record[column.dataIndex as string]">
+                    <template v-if="column.dataIndex != 'title' && record[(column as LineInfo).line_id] || column.dataIndex == 'break'">
                             <div class="pickers">
                                 <TimePicker v-model:value="record[column.dataIndex as string].started_at" format="HH:mm"
                                     :showTime="true" :allowClear="true" type="time" :showDate="false" size="small"
