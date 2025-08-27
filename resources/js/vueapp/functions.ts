@@ -91,10 +91,16 @@ export async function deleteRequest(
 }
 
 export function getTimeString(): dayjs.Dayjs {
-    let date = sessionStorage.getItem('date');
-    let time = dayjs.default();
+    let date = dayjs.default(sessionStorage.getItem('date'), 'YYYY-MM-DD'),
+        time = dayjs.default(),
+        isDay = Boolean(Number(sessionStorage.getItem('isDay')));
+    
+    if (time.hour() > 0 && time.hour() < 8 && isDay == false) {
+        date = date.add(1, 'day');
+    }
+
     return dayjs.default(
-        `${date} ${time.hour()}:${time.minute}:${time.second}`,
+        `${date.format('YYYY-MM-DD')} ${time.hour()}:${time.minute}:${time.second}`,
         'YYYY-MM-DD HH:mm:ss' 
     );
 }

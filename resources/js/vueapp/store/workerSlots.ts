@@ -29,10 +29,7 @@ export const useWorkerSlotsStore = defineStore('workersSlots', () => {
      */
     async function _load(): Promise<void> {
         slots.value = (await getRequest('/api/workers_slots/get')).map((el: WorkerSlot) => {
-            el.started_at = dayjs.default(el.started_at, format);
-            el.ended_at = dayjs.default(el.ended_at, format);
-            el.popover = ref(false);
-            return el;
+            return serialize(el);
         });
     }
     /**
@@ -40,9 +37,11 @@ export const useWorkerSlotsStore = defineStore('workersSlots', () => {
      * @param fields поля слота
      */
     async function _create(worker: WorkerInfo, line_id: number, plan: boolean): Promise<void> {
+        if (line_id == -1) {
+            return;
+        }
         const ls = useLinesStore();
         let line = ls.getByID(line_id);
-        alert([line.work_time.started_at.format(format), dayjs.default().format(format)])
         let time = dayjs.default();
         if (plan) {
             time = line.work_time.started_at;
@@ -54,7 +53,7 @@ export const useWorkerSlotsStore = defineStore('workersSlots', () => {
             ended_at: line.work_time.ended_at.format(format)
         },
             (r: AxiosResponse) => {
-                slots.value.push(r.data);
+                slots.value.push(serialize(r.data));
                 worker.current_line_id = line_id;
                 worker.current_slot_id = r.data.slot_id;
             }
@@ -148,6 +147,12 @@ export const useWorkerSlotsStore = defineStore('workersSlots', () => {
             });
         return slot;
     }
+    function serialize(slot: WorkerSlot): WorkerSlot {
+        slot.started_at = dayjs.default(slot.started_at, format);
+        slot.ended_at = dayjs.default(slot.ended_at, format);
+        slot.popover = ref(false);
+        return slot as WorkerSlot;
+    }
     function unserialize(slot: WorkerSlot) {
         let payload = JSON.parse(JSON.stringify(slot));
         payload.started_at = slot.started_at.format(format);
@@ -155,9 +160,9 @@ export const useWorkerSlotsStore = defineStore('workersSlots', () => {
         return payload;
     }
 
-    function getCurrent() : WorkerSlot[] {
+    function getCurrent(): WorkerSlot[] {
         let ts = getTimeString();
-        return slots.value.filter(el => 
+        return slots.value.filter(el =>
             el.started_at <= ts && el.ended_at >= ts
         );
     }

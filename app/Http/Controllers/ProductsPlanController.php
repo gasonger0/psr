@@ -317,7 +317,7 @@ class ProductsPlanController extends Controller
                     });
             }
         }
-        self::composePlans($plan);
+        // self::composePlans($plan);
         return true;
     }
 

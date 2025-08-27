@@ -26,15 +26,20 @@ let linesContainer: Ref<HTMLElement | null> = ref();
 let active: Ref<HTMLElement | null> = ref(null);
 const showList = ref(false);
 const workerRefs = ref<Record<number, InstanceType<typeof ItemCard>>>({});
+const linesRefs = ref({});
 const monitorInterval: Ref<number> = ref(null);
 const editMode: Ref<boolean> = ref(false);
 
 const setWorkerRef = (el: any, workerId: number) => {
     if (el) workerRefs.value[workerId] = el;
 };
-const handleCardChange = (id: number) => {
-    if (workerRefs.value[id]) {
-        workerRefs.value[id].$forceUpdate();
+const handleCardChange = (id: number, worker_id: number) => {
+    if (workerRefs[worker_id]) {
+        workerRefs[worker_id].$forceUpdate();
+    }
+    console.log(workerRefs.value[worker_id]);
+    if (linesRefs[id]) {
+        linesRefs[id] += 1;
     }
 }
 
@@ -87,7 +92,7 @@ watch(
 
 const monitor = async () => {
     let current = workerSlotsStore.getCurrent();
-    let ts = getTimeString();
+    console.log(current);
     workersStore.workers.forEach(worker => {
         let curSlot = current.find(i => i.worker_id == worker.worker_id);
         if (!curSlot) {
@@ -99,9 +104,20 @@ const monitor = async () => {
         }
         worker.on_break = workersStore.calcBreak(worker).value;
     });
+};
+
+const handleEditMode = () => {
+    if (editMode.value) {
+        clearInterval(monitorInterval.value);
+    } else {
+        monitorInterval.value = setInterval(monitor, 3000);
+    }
 }
 
 onMounted(async () => {
+    linesStore.lines.forEach((el: LineInfo) => {
+        linesRefs[el.line_id] = 1;
+    });
     recalcCounters();
     monitorInterval.value = setInterval(monitor, 3000);
     let draggable = document.querySelectorAll('.line_items');
@@ -113,7 +129,7 @@ onMounted(async () => {
             let target = ev.target as HTMLElement;
             scrollToTop(linesContainer);
             target.classList.add(`selected`);
-            if (!editMode) {
+            if (!editMode.value) {
                 document.querySelectorAll('.done-line').forEach(el => {
                     el.classList.add('hidden-hard');
                 });
@@ -122,7 +138,7 @@ onMounted(async () => {
         })
 
         line.addEventListener(`dragend`, (ev) => {
-            if (!editMode) {
+            if (!editMode.value) {
                 document.querySelectorAll('.done-line').forEach(el => {
                     el.classList.toggle('hidden-hard');
                 });
@@ -142,10 +158,10 @@ onMounted(async () => {
                 let line_id = line.parentElement!.dataset.id;
                 if (typeof worker?.current_line_id == 'number') {
                     workerSlotsStore._change(worker, Number(line_id));
-                    handleCardChange(worker.worker_id);
+                    handleCardChange(Number(line_id), worker.worker_id);
                 } else {
                     workerSlotsStore._create(worker, Number(line_id), editMode.value);
-                    handleCardChange(worker.worker_id);
+                    handleCardChange(Number(line_id), worker.worker_id);
                 }
             }
         });
@@ -201,7 +217,7 @@ const emit = defineEmits(['ready']);
             <PrinterOutlined />
             Распечатать график
         </Button>
-        <Switch v-model:checked="editMode" checked-children="Планирование" un-checked-children="Коррекция" />
+        <Switch v-model:checked="editMode" checked-children="Планирование" un-checked-children="Коррекция" @change="handleEditMode"/>
     </div>
     <div class="lines-container" ref="linesContainer">
         <div class="line" :data-id="-1" v-show="showList">
@@ -223,7 +239,8 @@ const emit = defineEmits(['ready']);
                 <ItemCard :card-data="v" v-for="(v, k) in workersStore.getByLine(null)" />
             </section>
         </div>
-        <div class="line" v-for="line in linesStore.lines" :data-id="line.line_id!" :class="getLineClass(line)">
+        <div class="line" v-for="line in linesStore.lines" :data-id="line.line_id!" :class="getLineClass(line)"
+            :key="linesRefs[line.line_id]">
             <LineForm :data="line" />
             <section class="line_items">
                 <ItemCard v-for="(v, k) in workersStore.getByLine(line.line_id!)" :cardData="v"

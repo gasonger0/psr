@@ -49,7 +49,7 @@ const formatSlotTime = (rec: Record<string, any>, col: ColumnType) => {
     }
 }
 
-const changeTime = (index: DataIndex, record: Record<string, any>) => { 
+const changeTime = (index: DataIndex, record: Record<string, any>) => {
     console.log(index, record);
 
     if (index == "break") {
@@ -69,11 +69,11 @@ const exit = () => {
     modal.close('graph');
 }
 
-onUpdated(() => {
+const processCells = () => {
     if (columns.length == 2) {
         columns.push(
             ...lines.lines.filter((el: LineInfo) => el.has_plans == true).map((i: LineInfo) => {
-                let f = i as any; 
+                let f = i as any;
                 f.dataIndex = i.line_id;
                 return f;
             }) as ColumnType[]
@@ -85,12 +85,17 @@ onUpdated(() => {
         });
         return el;
     });
-    console.log(cells);
-})
+    console.log(cells.value);
+}
+
+onUpdated(() => {
+    processCells();
+});
 
 watch(
     () => slots.slots,
     (ev) => {
+        processCells();
         console.log('change', ev)
     },
     { deep: true }
@@ -100,7 +105,7 @@ watch(
     <Modal v-model:open="modal.visibility['graph']" cancelText="Закрыть" title="Редактировать график" @ok="exit"
         @cancel="exit" wrap-class-name="modal graph" class="modal graph">
         <div class="table-container">
-            <Table :data-source="cells" :columns="columns" small :scroll="scroll" :pagination="{pageSize: 8}">
+            <Table :data-source="cells" :columns="columns" small :scroll="scroll" :pagination="{ pageSize: 8 }">
                 <template #headerCell="{ title, column }">
                     <div class="centered-cell">
                         <span style="width:160px">{{ title }}</span>
@@ -110,16 +115,17 @@ watch(
                     </div>
                 </template>
                 <template #bodyCell="{ column, record }">
-                    <template v-if="column.dataIndex != 'title' && record[(column as LineInfo).line_id] || column.dataIndex == 'break'">
-                            <div class="pickers">
-                                <TimePicker v-model:value="record[column.dataIndex as string].started_at" format="HH:mm"
-                                    :showTime="true" :allowClear="true" type="time" :showDate="false" size="small"
-                                    class="timepicker" @change="changeTime(column.dataIndex, record)" />
-                                <span> - </span>
-                                <TimePicker v-model:value="record[column.dataIndex as string].ended_at" format="HH:mm"
-                                    :showTime="true" :allowClear="true" type="time" :showDate="false" size="small"
-                                    class="timepicker" @change="changeTime(column.dataIndex, record)" />
-                            </div>
+                    <template
+                        v-if="column.dataIndex != 'title' && (record[(column as LineInfo).line_id] || column.dataIndex == 'break')">
+                        <div class="pickers">
+                            <TimePicker v-model:value="record[column.dataIndex as string].started_at" format="HH:mm"
+                                :showTime="true" :allowClear="true" type="time" :showDate="false" size="small"
+                                class="timepicker" @change="changeTime(column.dataIndex, record)" />
+                            <span> - </span>
+                            <TimePicker v-model:value="record[column.dataIndex as string].ended_at" format="HH:mm"
+                                :showTime="true" :allowClear="true" type="time" :showDate="false" size="small"
+                                class="timepicker" @change="changeTime(column.dataIndex, record)" />
+                        </div>
                     </template>
                     <template v-else-if="!record[column.dataIndex as string]">
                         <Button class="footer-button" type="dashed" @click="addSlot(column, record)">
