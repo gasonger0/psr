@@ -55,7 +55,7 @@ const showPack: Ref<boolean> = ref(false);
 /**
  * Выбранная колонка варки
  */
-const colon: Ref<CheckboxValueType[]> = ref();
+const colon = ref();
 /**
  * Выбранное оборудование
  */
@@ -151,6 +151,8 @@ const addPlan = async () => {
     for (let i in packs.value) {
         p.push(packs.value[i]);
     }
+    // TODO костыль как будто?
+    props.data.colon = ref(Number(colon.value[0]));
     if (props.data.plan_product_id) {
         await plansStore._update(props.data, p);
     } else {
@@ -184,8 +186,9 @@ onUpdated(async () => {
         if (props.data.plan_product_id) {
             // Редактирование, надо упаковки копировать
             packs.value = plansStore.plans.filter(el => el.parent == props.data.plan_product_id).map(i => i.slot_id);
+            // console.log(props.data.colon.value);
             if (props.data.colon) {
-                colon.value = [props.data.colon.value as CheckboxValueType];
+                colon.value = props.data.colon;
             }
         }
         if (packs.value) {

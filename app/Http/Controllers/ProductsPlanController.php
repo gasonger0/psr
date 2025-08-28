@@ -63,7 +63,7 @@ class ProductsPlanController extends Controller
             // И объём
             $amount = $request->post('amount');
             $packsCheck = [];
-            
+
             foreach ($pack as $p) {
                 // Конец упаковки должен быть:
                 // 1. Не раньше конца варки 
@@ -100,7 +100,7 @@ class ProductsPlanController extends Controller
 
                 $order[$line_id] = ProductsPlan::whereHas('slot', function ($query) use ($line_id) {
                     $query->where('line_id', $line_id);
-                })->orderBy('started_at', 'ASC')->get()->toArray();
+                })->withSession($request)->orderBy('started_at', 'ASC')->get()->toArray();
 
                 if ($slot->type_id == 2) {
                     $packsCheck[] = $packPlan;
@@ -110,7 +110,7 @@ class ProductsPlanController extends Controller
 
             // Проверка, что упаковываем не раньше глазировки
 
-            $glaz = ProductsPlan::where('parent', $plan->plan_product_id)->whereHas('slot', function($query) {
+            $glaz = ProductsPlan::where('parent', $plan->plan_product_id)->whereHas('slot', function ($query) {
                 $query->whereIn('type_id', [3, 4]);
             })->max('ended_at');
             // var_dump($glaz);
@@ -153,8 +153,9 @@ class ProductsPlanController extends Controller
 
         $order[$line_id] = ProductsPlan::whereHas('slot', function ($query) use ($line_id) {
             $query->where('line_id', $line_id);
-        })->orderBy('started_at', 'ASC')->get()->toArray();
+        })->withSession($request)->orderBy('started_at', 'ASC')->get()->toArray();
 
+        // Если задана упаковка... (slot_id)
         if ($pack = $request->post('packs')) {
             // Задержка от начала варки
             $delay = $request->post('delay');
@@ -164,12 +165,20 @@ class ProductsPlanController extends Controller
             $start = Carbon::parse($plan->started_at)->addMinutes($delay);
             // И объём
             $amount = $request->post('amount');
+            $packsCheck = [];
+
+            // Удаляем те, что не указаны
+            ProductsPlan::where('parent', $plan->plan_product_id)
+                ->whereNotIn('slot_id', $pack)
+                ->each(function ($el) {
+                    $el->delete();
+                });
             foreach ($pack as $p) {
                 // Конец упаковки должен быть:
-                // 1. Не раньше конца варки
+                // 1. Не раньше конца варки 
                 // 2. Если раньше конца варки, то не раньше конца варки + delay
+                // 3. Упаковка не позже обсыпки
                 $slot = ProductsSlots::find($p);
-
                 $duration = Util::calcDuration(
                     $product,
                     $amount,
@@ -183,32 +192,62 @@ class ProductsPlanController extends Controller
                     $ended_at = $d->addMinutes($delay);
                 }
 
-                $packPlan = ProductsPlan::where('parent', $plan->plan_product_id)
-                    ->where('slot_id', $p)
-                    ->get()
+                $packPlan = ProductsPlan::where('slot_id', $slot->product_slot_id)
+                    ->withSession($request)
                     ->first();
-
-                $data = [
+                $attrs = [
                     'product_id' => $product->product_id,
                     'slot_id' => $p,
                     'started_at' => $start,
                     'ended_at' => $ended_at,
                     'parent' => $plan->plan_product_id,
                     'amount' => $amount
-                ] + Util::getSessionAsArray($request);
+                ];
+                // var_dump($packPlan);
                 if ($packPlan) {
-                    $packPlan->update($data);
+                    $packPlan->update($attrs);
                 } else {
-                    $packPlan = ProductsPlan::create($data);
+                    $packPlan = ProductsPlan::create(
+                        $attrs + Util::getSessionAsArray($request)
+                    );
                 }
 
                 $this->checkPlans($request, $packPlan);
 
-                $line_id = $packPlan->slot->line_id;
+                $line_id = $slot->line_id;
 
                 $order[$line_id] = ProductsPlan::whereHas('slot', function ($query) use ($line_id) {
                     $query->where('line_id', $line_id);
-                })->orderBy('started_at', 'ASC')->get()->toArray();
+                })->withSession($request)->orderBy('started_at', 'ASC')->get()->toArray();
+
+                if ($slot->type_id == 2) {
+                    $packsCheck[] = $packPlan;
+                    // Если упаковка, запоминаем ИД и потом будем по другим позициям чекать
+                }
+
+            }
+
+            // Проверка, что упаковываем не раньше глазировки
+            $glaz = ProductsPlan::where('parent', $plan->plan_product_id)->whereHas('slot', function ($query) {
+                $query->whereIn('type_id', [3, 4]);
+            })->max('ended_at');
+            if ($glaz) {
+                // var_dump($glaz);
+                $glaz_end = Carbon::parse($glaz)->unix();
+                foreach ($packsCheck as $p) {
+                    if (Carbon::parse($p->ended_at)->unix() < $glaz_end) {
+                        $p->update([
+                            'ended_at' => $glaz
+                        ]);
+
+                        $this->checkPlans($request, $p);
+                        $line_id = $p->slot->line_id;
+
+                        $order[$line_id] = ProductsPlan::whereHas('slot', function ($query) use ($line_id) {
+                            $query->where('line_id', $line_id);
+                        })->orderBy('started_at', 'ASC')->get()->toArray();
+                    }
+                }
             }
         }
 
@@ -216,7 +255,7 @@ class ProductsPlanController extends Controller
         return Util::successMsg($plan->toArray() + [
             'packs' => ProductsPlan::withSession($request)->where('parent', $plan->plan_product_id)->get(),
             'plansOrder' => $order
-        ], 201);
+        ], 200);
     }
 
     public function delete(Request $request)

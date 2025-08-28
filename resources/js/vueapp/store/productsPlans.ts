@@ -69,7 +69,6 @@ export const usePlansStore = defineStore("productsPlans", () => {
                 }
                 if (r.data.plansOrder) {
                     for (let i in r.data.plansOrder) {
-                        console.log(i);
                         line = useLinesStore().getByID(Number(i));
                         line.has_plans = true;
                         updateTimes(r.data.plansOrder[i]);
@@ -83,27 +82,12 @@ export const usePlansStore = defineStore("productsPlans", () => {
     async function _update(data: ProductPlan, packs: Array<number>) {
         await putRequest('/api/plans/update', unserialize(data, packs),
             (r: AxiosResponse) => {
-                if (r.data.packs) {
-                    plans.value.filter(el => el.parent == r.data.plan_product_id).forEach(el => {
-                        splice(el.plan_product_id);
-                    });
-
-                    r.data.packs.forEach(i => {
-                        plans.value.push(i);
-                    });
-                    // TODO ищем по паренту упаковки и сверяем со старыми
-                    // r.data.packs.forEach((pack: any) => {
-                    //     plans.value.push(serialize(pack));
-                    // });
-                }
                 if (r.data.plansOrder) {
                     for (let i in r.data.plansOrder) {
-                        console.log(i);
-                        let line = useLinesStore().getByID(
-                            useProductsSlotsStore().getById(Number(i)).line_id
-                        );
+                        let line = useLinesStore().getByID(Number(i));
                         line.has_plans = true;
                         updateTimes(r.data.plansOrder[i]);
+                        useLinesStore().updateVersion(line.line_id);                        
                     }
                 }
             });
@@ -145,7 +129,11 @@ export const usePlansStore = defineStore("productsPlans", () => {
         data.forEach(el => {
             let pl = getById(el.plan_product_id);
             let index = plans.value.indexOf(pl);
+            if (index) {
             plans.value[index] = serialize(el);
+            } else {
+                plans.value.push(serialize(el));
+            }
             // pl = serialize(el);÷
             // TODO обновлять линию походу надо
         });
