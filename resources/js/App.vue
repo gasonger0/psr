@@ -27,7 +27,6 @@ import Logs from '@modals/logs.vue';
 // }
 
 const boardType: Ref<boolean> = ref(false);
-const boils: Ref<number> = ref(0);
 const isReady: Ref<boolean> = ref(false);
 
 function changeBoard() {
@@ -79,7 +78,7 @@ const processData = async () => {
 };
 </script>
 <template>
-    <Toolbar :boils="boils" :boardMode="boardType" @change-board="changeBoard" />
+    <Toolbar :boardMode="boardType" @change-board="changeBoard" />
     <!-- <Result :data="data" :open="openResult" @close-modal="closeModal" @notify="notify" /> -->
     <!-- <Stats :data="data" :open="openStats" @close-modal="closeModal" @notify="notify" /> -->
     <!-- <Logs :open="openLogs" :lines="data ? data.lines : null" @close-modal="closeModal" @notify="notify" /> -->

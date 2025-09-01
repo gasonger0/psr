@@ -5,6 +5,7 @@ import { Ref, ref } from "vue";
 /**
  * Менеджер окон
  */
+
 export const useModalsStore = defineStore('modals', () => {
     const visibility: Object = {
         workers: ref(false),
@@ -14,7 +15,7 @@ export const useModalsStore = defineStore('modals', () => {
         graph: ref(false),
         plan: ref(false)
     };
-    const boils: Ref<number> = ref(0);
+    const boils= ref({});
     const linesRef: Ref<Array<number>> = ref([]);
     
     /**
@@ -37,12 +38,22 @@ export const useModalsStore = defineStore('modals', () => {
         linesRef.value[lineId] = 1;
     };
 
+    const getBoils = () => {
+        let ammount = 0;
+        for (let i in boils.value) {
+            console.log(i);
+            ammount += boils.value[i];
+        }
+        return ammount;
+    }
+
     return {
         open, 
         close, 
         visibility,
         boils,
         linesRef, 
-        setLineRef
+        setLineRef,
+        getBoils
     }
 })

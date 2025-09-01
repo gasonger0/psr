@@ -32,13 +32,15 @@ const activePlan: Ref<ProductPlan | null> = ref();
 const prodLine: Ref<PropertyKey> = ref(1);
 
 const handleCardChange = (success: boolean) => {
-    activePlan.value = null;
-    if (success) {
+    if (!success) {
         if (isNewPlan) {
             plansStore.removeLast();
         }
         prodLine.value = prodLine.value as number + 1;
     }
+    let line_id = slotsStore.getById(activePlan.value.slot_id).line_id;
+    linesStore.getByID(line_id).version += 1;
+    activePlan.value = null;
 }
 
 const hideProducts = () => {
@@ -287,7 +289,6 @@ onUpdated(async () => {
         <Divider type="vertical" v-show="showList" style="height: unset; width: 5px;" />
         <div class="line" v-for="line in linesStore.lines" :data-id="line.line_id" v-show="!hideEmpty || line.has_plans"
             :key="`line-${line.line_id}-${line.version}`">
-            {{ line.version }}
             <LineForm :data="line" />
             <div class="line_items products">
                 <PlanCard v-for="plan in plansStore.getByLine(line.line_id)" :data="plan" @edit="editPlan" />

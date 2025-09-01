@@ -74,6 +74,7 @@ const changeTime = () => {
     props.data.ended_at = props.data.started_at
         .add(time.value, 'hour')
         .add(slot.value.type_id == 1 ? 10 : 15, 'minute');
+    console.log('Bug:', props.data);
     // props.data.ended_at = props.data.started_at.add(time.value, 'hour');
     // props.data.ended_at = props.data.ended_at.add(slot.value.type_id == 1 ? 10 : 15, 'minute');
 
@@ -92,7 +93,7 @@ const handleHardware = () => {
             n.hardware == null
         );
     }
-    console.log(newSlot);
+    console.log(newSlot, hardware, slot, slots);
     if (newSlot.length == 0) {
         return;
     }
@@ -112,6 +113,8 @@ const handleHardware = () => {
     if (perf && newSlot[0].type_id == 2) {
         perfomance.value += perf;
     }
+
+    console.log(perfomance);
     changeTime();
 };
 
@@ -122,8 +125,8 @@ const time = computed(() => {
         perfomance.value;  // Время в часах
 });
 const boils = computed(() => {
-    return (props.data.amount * 
-        eval(product.value.kg2boil) * 
+    return (props.data.amount *
+        eval(product.value.kg2boil) *
         eval(product.value.amount2parts) *
         eval(product.value.parts2kg)
     ).toFixed(2);
@@ -158,21 +161,30 @@ const addPlan = async () => {
     } else {
         await plansStore._create(props.data, p);
     }
+    prepareClose();
     emit('save');
     modal.close('plan');
 }
 
 const exit = () => {
+    prepareClose();
     emit('cancel');
     modal.close('plan');
 }
 
+const prepareClose = () => {
+    showPack.value = false,
+        packOptions.value = [],
+        packs.value = [],
+        colon.value = null,
+        slot.value = null,
+        slots.value = [],
+        product.value = null,
+        line.value = null;
+}
+
 onUpdated(async () => {
     if (props.data != undefined) {
-        showPack.value = false;
-        packOptions.value = [];
-        packs.value = [];
-        colon.value = null;
         slot.value = slotsStore.getById(props.data.slot_id);
         product.value = productsStore.getByID(slot.value.product_id);
         slots.value = slotsStore.slots.filter((el: ProductSlot) =>

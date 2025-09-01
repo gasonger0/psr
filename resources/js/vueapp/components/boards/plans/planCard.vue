@@ -27,7 +27,7 @@ const boils = computed((): number => {
     );
 });
 if (slot.type_id == 1) {
-    modal.boils += boils.value;
+    modal.boils[props.data.plan_product_id] = boils.value;
 }
 
 

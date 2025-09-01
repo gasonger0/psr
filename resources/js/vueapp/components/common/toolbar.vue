@@ -125,7 +125,7 @@ const emit = defineEmits([
                 Журнал
             </Button>
             <div>
-                <b>Всего варок: {{ useModalsStore().boils.toFixed(2) }}</b>
+                <b>Всего варок: {{ useModalsStore().getBoils() }}</b>
             </div>
         </section>
         <section>

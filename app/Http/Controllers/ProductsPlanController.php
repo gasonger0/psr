@@ -115,18 +115,20 @@ class ProductsPlanController extends Controller
             })->max('ended_at');
             // var_dump($glaz);
             $glaz_end = Carbon::parse($glaz)->unix();
-            foreach ($packsCheck as $p) {
-                if (Carbon::parse($p->ended_at)->unix() < $glaz_end) {
-                    $p->update([
-                        'ended_at' => $glaz
-                    ]);
+            if ($glaz) {
+                foreach ($packsCheck as $p) {
+                    if (Carbon::parse($p->ended_at)->unix() < $glaz_end) {
+                        $p->update([
+                            'ended_at' => $glaz
+                        ]);
 
-                    $this->checkPlans($request, $p);
-                    $line_id = $p->slot->line_id;
+                        $this->checkPlans($request, $p);
+                        $line_id = $p->slot->line_id;
 
-                    $order[$line_id] = ProductsPlan::whereHas('slot', function ($query) use ($line_id) {
-                        $query->where('line_id', $line_id);
-                    })->orderBy('started_at', 'ASC')->get()->toArray();
+                        $order[$line_id] = ProductsPlan::whereHas('slot', function ($query) use ($line_id) {
+                            $query->where('line_id', $line_id);
+                        })->orderBy('started_at', 'ASC')->get()->toArray();
+                    }
                 }
             }
         }
