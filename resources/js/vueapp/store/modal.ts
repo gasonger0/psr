@@ -1,4 +1,3 @@
-import PlanCard from "@/components/boards/plans/planCard.vue";
 import { defineStore } from "pinia";
 import { Ref, ref } from "vue";
 
@@ -44,7 +43,7 @@ export const useModalsStore = defineStore('modals', () => {
             console.log(i);
             ammount += boils.value[i];
         }
-        return ammount;
+        return ammount.toFixed(2);
     }
 
     return {

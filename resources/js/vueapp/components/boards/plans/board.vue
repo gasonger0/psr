@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { FileExcelOutlined } from '@ant-design/icons-vue';
 import { Button, Card, Popconfirm, Switch, Divider } from 'ant-design-vue';
-import { computed, onBeforeMount, onMounted, onUpdated, ref, Ref, TemplateRef, VNodeRef } from 'vue';
+import { computed, onBeforeMount, onMounted, onUpdated, ref, Ref } from 'vue';
 import { ProductInfo, useProductsStore } from '@stores/products';
 import ProductCard from '@/components/boards/plans/productCard.vue'
 import { LineInfo, useLinesStore } from '@/store/lines';
@@ -36,8 +36,8 @@ const handleCardChange = (success: boolean) => {
         if (isNewPlan) {
             plansStore.removeLast();
         }
-        prodLine.value = prodLine.value as number + 1;
     }
+    prodLine.value = prodLine.value as number + 1;
     let line_id = slotsStore.getById(activePlan.value.slot_id).line_id;
     linesStore.getByID(line_id).version += 1;
     activePlan.value = null;
