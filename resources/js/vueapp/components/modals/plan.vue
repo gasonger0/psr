@@ -68,7 +68,7 @@ const slots: Ref<ProductSlot[]> = ref([]);
 const perfomance: Ref<number> = ref(0);
 
 const changeTime = () => {
-    if (!props.data.ended_at) {
+    if (!props.data.started_at) {
         return;
     }
     props.data.ended_at = props.data.started_at
@@ -98,7 +98,7 @@ const handleHardware = () => {
         perfomance.value = slot.value.perfomance;
         // Коррекция производительности для упаковки на ЗМ
         let perf = [4, 5].includes(hardware.value) ? 143.5 : 287;
-        if (perf && newSlot[0].type_id == 2) {
+        if (perf && slot.value.type_id == 2) {
             perfomance.value += perf;
         }
         return;
@@ -156,8 +156,8 @@ const getPackOptions = () => {
     }).filter(el => el.value != slot.value.product_slot_id);
 }
 const addPlan = async () => {
+    let p = [];
     if (showPack) {
-        let p = [];
         for (let i in packs.value) {
             p.push(packs.value[i]);
         }

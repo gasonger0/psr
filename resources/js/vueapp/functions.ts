@@ -1,7 +1,7 @@
 import axios, { AxiosResponse } from "axios";
 import * as dayjs from "dayjs";
 import { notification } from "ant-design-vue";
-import { Ref, TemplateRef } from "vue";
+import { Ref } from "vue";
 
 function handleResponse(r: AxiosResponse) {
     let data = r.data;
