@@ -125,12 +125,11 @@ export const usePlansStore = defineStore("productsPlans", () => {
             });
     }
     function updateTimes(data: Array<any>) {
-        console.log(data);
         data.forEach(el => {
             // Пробуем объём и слот вместо ИД, чтобы избежать задвоения
             let pl = plans.value.find((i: ProductPlan) => i.amount == el.amount && i.slot_id == el.slot_id);
             let index = plans.value.indexOf(pl);
-            if (index) {
+            if (index != -1) {
                 plans.value[index] = serialize(el);
             } else {
                 plans.value.push(serialize(el));
