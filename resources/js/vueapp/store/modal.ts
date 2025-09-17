@@ -14,7 +14,7 @@ export const useModalsStore = defineStore('modals', () => {
         graph: ref(false),
         plan: ref(false)
     };
-    const boils= ref({});
+    const boils = ref({});
     const linesRef: Ref<Array<number>> = ref([]);
     
     /**

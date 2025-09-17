@@ -48,6 +48,7 @@ const hideProducts = () => {
 }
 const clearPlan = () => {
     plansStore._clear();
+    modal.boils = {};
 }
 const editPlan = (plan: ProductPlan) => {
     activePlan.value = plan;

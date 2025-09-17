@@ -80,7 +80,6 @@ const changeTime = () => {
 
 };
 const handleHardware = () => {
-    // TODO чёто не уверен, что даст выбрать производительность при выборе из selection...
     selection.value = [];
 
     // Ищем новый слот с таким оборудованием и линией 
@@ -124,6 +123,12 @@ const handleHardware = () => {
     changeTime();
 };
 
+const handleSelection = () => {
+    let sl = selection.value[selRadioValue.value];
+    perfomance.value = sl.perfomance;
+    changeTime();
+}
+
 const time = computed(() => {
     return props.data.amount *
         eval(product.value.amount2parts) *
@@ -163,7 +168,10 @@ const addPlan = async () => {
         }
     }
     // TODO костыль как будто?
-    props.data.colon = ref(Number(colon.value[0]));
+    if (slot.value.type_id == 1) {
+        props.data.colon = ref(Number(colon.value[0]));
+    }
+
     if (props.data.plan_product_id) {
         await plansStore._update(props.data, p);
     } else {
@@ -188,7 +196,9 @@ const prepareClose = () => {
         slot.value = null,
         slots.value = [],
         product.value = null,
-        line.value = null;
+        line.value = null,
+        perfomance.value = null,
+        hardware.value = null;
 }
 
 onUpdated(async () => {
@@ -252,13 +262,15 @@ const emit = defineEmits(['save', 'cancel']);
                 </RadioButton>
             </RadioGroup>
             <br>
-            <RadioGroup v-if="selection" @change="handleHardware" v-model:value="selRadioValue">
+            <br>
+            <RadioGroup v-if="selection" @change="handleSelection" v-model:value="selRadioValue">
                 <RadioButton v-for="v in selection" :value="v.product_slot_id" :key="v.product_slot_id">
                     {{ v.perfomance }}
                 </RadioButton>
             </RadioGroup>
             <!-- <div>Выбранная производительность: {{ active.perfomance }}</div> -->
         </div>
+
         <div v-if="slot.type_id == 2">
             <RadioGroup v-model:value="hardware" @change="handleHardware">
                 <RadioButton v-for="i in packHardwares" :value="i.value">

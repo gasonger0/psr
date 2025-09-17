@@ -94,17 +94,17 @@ class ProductsPlanController extends Controller
                     ] + Util::getSessionAsArray($request)
                 );
 
-                $this->checkPlans($request, $packPlan);
-
-                $line_id = $packPlan->slot->line_id;
-
-                $order[$line_id] = ProductsPlan::whereHas('slot', function ($query) use ($line_id) {
-                    $query->where('line_id', $line_id);
-                })->withSession($request)->orderBy('started_at', 'ASC')->get()->toArray();
-
                 if ($slot->type_id == 2) {
                     $packsCheck[] = $packPlan;
                     // Если упаковка, запоминаем ИД и потом будем по другим позициям чекать
+                } else {
+                    $this->checkPlans($request, $packPlan);
+
+                    $line_id = $packPlan->slot->line_id;
+
+                    $order[$line_id] = ProductsPlan::whereHas('slot', function ($query) use ($line_id) {
+                        $query->where('line_id', $line_id);
+                    })->withSession($request)->orderBy('started_at', 'ASC')->get()->toArray();
                 }
             }
 
@@ -119,12 +119,12 @@ class ProductsPlanController extends Controller
                 foreach ($packsCheck as $p) {
                     if (Carbon::parse($p->ended_at)->unix() < $glaz_end) {
                         $p->update([
-                            'ended_at' => $glaz
+                            'ended_at' => Carbon::parse($glaz)
                         ]);
-
+                        // var_dump($p->toArray());
                         $this->checkPlans($request, $p);
                         $line_id = $p->slot->line_id;
-
+                        // var_dump($order[$line_id]);
                         $order[$line_id] = ProductsPlan::whereHas('slot', function ($query) use ($line_id) {
                             $query->where('line_id', $line_id);
                         })->orderBy('started_at', 'ASC')->get()->toArray();
@@ -328,33 +328,39 @@ class ProductsPlanController extends Controller
         if ($topPlan || $bottomPlan) {
             // Считаем сдвиги сверху и снизу
             $topShift = $topPlan ?
-                Carbon::parse($plan->started_at)
-                    ->diffInMinutes(Carbon::parse($topPlan->ended_at)) : 0;
+                round(Carbon::parse($plan->started_at)
+                    ->diffInMinutes(Carbon::parse($topPlan->ended_at))) : 0;
             $bottomShift = $bottomPlan ?
-                Carbon::parse($bottomPlan->started_at)
-                    ->diffInMinutes(Carbon::parse($plan->ended_at)) : 0;
+                round(Carbon::parse($bottomPlan->started_at)
+                    ->diffInMinutes(Carbon::parse($plan->ended_at))) : 0;
+
+            // var_dump("shifts for $plan->plan_product_id at line " . $plan->slot->line_id . ": t:$topShift, b:$bottomShift");
 
             if ($topShift + $bottomShift != 0) {
                 // Флажок, выше или ниже плана текущая ГП
                 $passed = false;
-                // Двигаем верхние записи на $topSHift, а нижние - на $topShift + $bottomShift
+                // Двигаем верхние записи на $topSHift, а нижние - на $topShift + $bottomShift ????
                 ProductsPlan::whereHas('slot', function ($query) use ($plan) {
                     $query->where('line_id', $plan->slot->line_id);
                 })
                     ->withSession($request)
                     ->orderBy('started_at', 'ASC')
                     ->each(function ($l) use ($topShift, $bottomShift, &$passed, $plan) {
-                        $l->update([
-                            'started_at' => Carbon::parse($l->started_at)->addMinutes(
-                                $topShift + ($passed ? $bottomShift : 0)
-                            ),
-                            'ended_at' => Carbon::parse($l->ended_at)->addMinutes(
-                                $topShift + ($passed ? $bottomShift : 0)
-                            )
-                        ]);
                         if ($l->plan_product_id == $plan->plan_product_id) {
                             $passed = true;
                         }
+                        if (!$passed) {
+                            return;
+                        }
+                        $l->update([
+                            'started_at' => Carbon::parse($l->started_at)->addMinutes(
+                                $topShift + ($l->plan_product_id != $plan->plan_product_id ? $bottomShift : 0)
+                            ),
+                            'ended_at' => Carbon::parse($l->ended_at)->addMinutes(
+                                $topShift + ($l->plan_product_id != $plan->plan_product_id ? $bottomShift : 0)
+                            )
+                        ]);
+                        $l->save();
                     });
             }
         }
