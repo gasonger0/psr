@@ -55,10 +55,10 @@ const addLineFront = () => {
     linesStore.add();
     let cont = document.querySelector('.lines-container');
     setTimeout(() => {
-        cont.scrollTo({
+        cont ? cont.scrollTo({
             left: cont.scrollWidth,
             behavior: 'smooth'
-        }), 100
+        }) : null, 100
     });
 }
 

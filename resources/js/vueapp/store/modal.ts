@@ -40,7 +40,6 @@ export const useModalsStore = defineStore('modals', () => {
     const getBoils = () => {
         let ammount = 0;
         for (let i in boils.value) {
-            console.log(i);
             ammount += boils.value[i];
         }
         return ammount.toFixed(2);

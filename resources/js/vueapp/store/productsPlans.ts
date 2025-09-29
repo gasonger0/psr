@@ -120,10 +120,11 @@ export const usePlansStore = defineStore("productsPlans", () => {
         let slots = useProductsSlotsStore().getByLineId(line_id).map(
             (el: ProductSlot) => { return el.product_slot_id }
         );
-        return plans.value.filter((plan: ProductPlan) => slots.includes(plan.slot_id)).sort(
+        let ps = plans.value.filter((plan: ProductPlan) => slots.includes(plan.slot_id));
+        return ps.length > 0 ? ps.sort(
             (a, b) => {
                 return a.started_at.unix() - b.started_at.unix()
-            });
+            }) : [];
     }
     function updateTimes(data: Array<any>) {
         data.forEach(el => {
