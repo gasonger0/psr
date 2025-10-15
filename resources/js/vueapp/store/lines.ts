@@ -168,7 +168,6 @@ export const useLinesStore = defineStore('lines', () => {
         if (line) {
             line.version = (line.version || 0) + 1; // Инкрементим версию
         }
-        console.log(line.version);
     };
     return { lines, _load, _create, _update, _delete, _sendStop, getIfDone, add, splice, getByID, updateVersion }
 })

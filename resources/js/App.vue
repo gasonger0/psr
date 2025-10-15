@@ -64,7 +64,6 @@ const processData = async () => {
     return new Promise((resolve, reject) => {
         let ts = getTimeString();
         useWorkerSlotsStore().slots.forEach(slot => {
-            console.log(slot, ts);
             if (slot.started_at <= ts && ts <= slot.ended_at) {
                 let worker = useWorkersStore().getByID(slot.worker_id);
                 worker!.current_line_id = slot.line_id;

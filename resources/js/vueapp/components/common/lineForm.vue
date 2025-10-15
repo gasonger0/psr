@@ -27,7 +27,6 @@ const saveLine = (c: boolean, line: LineInfo) => {
     }
 }
 const sendStop = (line: LineInfo, reason?: DefaultOptionType) => {
-    // console.log(reason);
     linesStore._sendStop(line, reason ? reason.label : undefined);
 }
 const getLineWorkerLimit = (line: LineInfo) => {

@@ -37,7 +37,6 @@ const handleCardChange = (id: number, worker_id: number) => {
     if (workerRefs[worker_id]) {
         workerRefs[worker_id].$forceUpdate();
     }
-    console.log(workerRefs.value[worker_id]);
     if (linesRefs[id]) {
         linesRefs[id] += 1;
     }
@@ -92,7 +91,6 @@ watch(
 
 const monitor = async () => {
     let current = workerSlotsStore.getCurrent();
-    console.log(current);
     workersStore.workers.forEach(worker => {
         let curSlot = current.find(i => i.worker_id == worker.worker_id);
         if (!curSlot) {

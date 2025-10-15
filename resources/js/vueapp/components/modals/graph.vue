@@ -50,8 +50,6 @@ const formatSlotTime = (rec: Record<string, any>, col: ColumnType) => {
 }
 
 const changeTime = (index: DataIndex, record: Record<string, any>) => {
-    console.log(index, record);
-
     if (index == "break") {
         // Обновляем обед сотрудника
         workers._update(record as WorkerInfo);
@@ -85,7 +83,6 @@ const processCells = () => {
         });
         return el;
     });
-    console.log(cells.value);
 }
 
 onUpdated(() => {
@@ -96,7 +93,6 @@ watch(
     () => slots.slots,
     (ev) => {
         processCells();
-        console.log('change', ev)
     },
     { deep: true }
 );

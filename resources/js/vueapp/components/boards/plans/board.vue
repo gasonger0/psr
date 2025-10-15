@@ -73,7 +73,6 @@ onUpdated(async () => {
     let draggable = document.querySelectorAll('.line_items.products');
     draggable.forEach(line => {
         line.addEventListener(`dragstart`, (ev: Event) => {
-            console.log(ev, line);
             if (!ev) {
                 return;
             }
@@ -99,7 +98,6 @@ onUpdated(async () => {
                         1: slotsStore.getByTypeAndProductID(product.product_id, 1),
                         2: slotsStore.getByTypeAndProductID(product.product_id, 2)
                     };
-                    console.log(slots);
                     let activeSlots = plansStore.getActiveSlots(product.product_id);
                     // Если есть слоты варки, но не выставлены в план
                     let check1 = slots[1].filter(el => activeSlots.includes(el.product_slot_id));
@@ -193,7 +191,6 @@ onUpdated(async () => {
                         }
                         cards[i].ended_at = cards[i].started_at.add(timeDiff, 'minutes');
                     }
-                    console.log("Cards:", cards);
                     plansStore._change(cards);
                 }
             } else {
@@ -244,7 +241,6 @@ onUpdated(async () => {
                 if (nextElement.parentElement != line) {
                     line.append(activeElement as HTMLElement);
                 } else {
-                    console.log(line, activeElement, nextElement);
                     line.insertBefore(activeElement as HTMLElement, nextElement);
                 }
             }

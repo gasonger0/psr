@@ -74,7 +74,6 @@ const changeTime = () => {
     props.data.ended_at = props.data.started_at
         .add(time.value, 'hour')
         .add(slot.value.type_id == 1 ? 10 : 15, 'minute');
-    console.log('Bug:', props.data);
     // props.data.ended_at = props.data.started_at.add(time.value, 'hour');
     // props.data.ended_at = props.data.ended_at.add(slot.value.type_id == 1 ? 10 : 15, 'minute');
 
@@ -92,7 +91,6 @@ const handleHardware = () => {
             n.hardware == null
         );
     }
-    console.log(newSlot, hardware, slot, slots);
     if (newSlot.length == 0) {
         perfomance.value = slot.value.perfomance;
         // Коррекция производительности для упаковки на ЗМ
@@ -118,8 +116,6 @@ const handleHardware = () => {
     if (perf && newSlot[0].type_id == 2) {
         perfomance.value += perf;
     }
-
-    console.log(perfomance);
     changeTime();
 };
 
@@ -216,7 +212,6 @@ onUpdated(async () => {
         if (props.data.plan_product_id) {
             // Редактирование, надо упаковки копировать
             packs.value = plansStore.plans.filter(el => el.parent == props.data.plan_product_id).map(i => i.slot_id);
-            // console.log(props.data.colon.value);
             if (props.data.colon) {
                 colon.value = props.data.colon;
             }

@@ -32,7 +32,6 @@ const handleCategorySelect = async (key: Key[]) => {
 }
 const handleProductSelect = async (key: number) => {
     activeProduct.value = products.value.find((el: ProductInfo) => el.product_id == key);
-    console.log('Active product:', activeProduct);
     let sls = await slotsStore._load([key]);
 
     // TODO
@@ -82,8 +81,7 @@ const deleteSlot = (slot: ProductSlot) => slotsStore._delete(slot);
 
 const saveSlots = () => {
     for (let i in slots.value) {
-        // TODO
-        console.log(i);
+        saveSlot(slots.value[i]);
     }
 }
 
@@ -91,13 +89,6 @@ const getClass = (item: ProductInfo) => {
     return activeProduct.value && activeProduct.value.product_id == item.product_id ? 'active' : '';
 }
 const showExtra = computed(() => {
-    console.log(slots.value,
-        Object.values(slots.value).some(
-            (child: ProductSlot[]) => child.filter(
-                (el: ProductSlot) => el.isEditing === true
-            ).length > 0
-        )
-    );
     return Object.values(slots.value).some(
         (child: ProductSlot[]) => child.filter(
             (el: ProductSlot) => el.isEditing === true

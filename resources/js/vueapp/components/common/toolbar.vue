@@ -37,9 +37,7 @@ const processOrder = async (file: FileType) => {
 
     await postRequest('/api/tables/load_order', fd,
         (r: AxiosResponse) => {
-            console.log(r);
             let data = r.data;
-            console.log(data, r);
             if (data.uncategorized.length > 0) {
                 notify('warning', 'Следующие строки не были обработаны: ' + data.uncategorized.join(', '));
             }
@@ -53,12 +51,10 @@ const processOrder = async (file: FileType) => {
     return false;
 };
 const updateSession = () => {
-    console.log(date);
     postRequest('/api/update_session', {
         date: date.value.format('YYYY-MM-DD'),
         isDay: Number(isDay.value)
     }, (r: AxiosResponse) => {
-        console.log(r, date, isDay);
         sessionStorage.setItem('date', date.value.format('YYYY-MM-DD'));
         sessionStorage.setItem('isDay', String(Number(isDay.value)));
         window.location.reload();

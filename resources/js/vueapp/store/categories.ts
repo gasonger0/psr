@@ -39,7 +39,6 @@ export const useCategoriesStore = defineStore('categories', () => {
             branch.children = fillTree(categories.value, categories.value.filter((i: CategoryInfo) => i.parent == branch.category_id));
             tree.push(branch);
         });
-        console.log(tree);
         return tree as DataNode[];
     }
 

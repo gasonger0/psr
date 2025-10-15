@@ -38,7 +38,7 @@ const emit = defineEmits<{
 <template>
     <Card class="draggable-card" :data-id="data.plan_product_id" :key="data.plan_product_id" draggable="true">
         <template #title>
-            <div class="plan_card">
+            <div class="plan_card" v-if="data.started_at">
                 <span>
                     {{ data.started_at.format('HH:mm') }} - {{ data.ended_at.format('HH:mm') }}
                 </span>

@@ -104,11 +104,8 @@ const cancel = (rec: Record<string, any>) => {
  * Начало редактирования
  */
 const edit = (rec: Record<string, any>): void => {
-    console.log('Editing registered');
-
     if ("worker_id" in rec) {
         if (original.value[1][rec.worker_id]) {
-            console.log('already found');
             return;
         }
         original.value[1][rec.worker_id] = Object.assign({}, rec);
@@ -118,7 +115,6 @@ const edit = (rec: Record<string, any>): void => {
         }
         original.value[2][rec.responsible_id] = Object.assign({}, rec);
     }
-    console.log(original);
     rec.isEditing = true;
     return;
 }
