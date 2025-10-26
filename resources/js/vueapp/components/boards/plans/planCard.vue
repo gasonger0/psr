@@ -26,9 +26,13 @@ const boils = computed((): number => {
         eval(product.parts2kg)).toFixed(2)
     );
 });
-if (slot.type_id == 1) {
-    modal.boils[props.data.plan_product_id] = boils.value;
+const beforeEdit = () => {
+    if (slot.type_id == 1) {
+        modal.boils[props.data.plan_product_id] = boils.value;
+    };
+    emit('edit', props.data);
 }
+
 
 
 const emit = defineEmits<{
@@ -46,7 +50,7 @@ const emit = defineEmits<{
                     <DeleteOutlined class="icon delete" @click="usePlansStore()._delete(data)" />
                 </Tooltip>
                 <Tooltip title="Редактировать">
-                    <EditOutlined class="icon edit" @click="emit('edit', data)" />
+                    <EditOutlined class="icon edit" @click="beforeEdit" />
                 </Tooltip>
             </div>
         </template>
