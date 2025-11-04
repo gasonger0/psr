@@ -284,7 +284,7 @@ onUpdated(async () => {
             </div>
         </div>
         <Divider type="vertical" v-show="showList" style="height: unset; width: 5px;" />
-        <div class="line" v-for="line in linesStore.lines" :data-id="line.line_id" v-show="!hideEmpty || line.has_plans"
+        <div class="line" v-for="line in linesStore.lines" :data-id="line.line_id" v-show="!hideEmpty || (hideEmpty && line.has_plans)"
             :key="`line-${line.line_id}-${line.version}`">
             <LineForm :data="line" />
             <div class="line_items products">

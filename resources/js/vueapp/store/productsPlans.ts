@@ -144,8 +144,10 @@ export const usePlansStore = defineStore("productsPlans", () => {
         let ids = [];
         plans.value.forEach((el: ProductPlan) => {
             let product = useProductsSlotsStore().getById(el.slot_id);
-            if (product.product_id == product_id) {
+            if (product && product.product_id == product_id) {
                 ids.push(el.slot_id);
+            } else if (!product) {
+                console.log("not found product for slot " + el.slot_id, Array.from(useProductsSlotsStore().slots))
             }
         });
         return ids;

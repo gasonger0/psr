@@ -2,8 +2,8 @@
 import { useProductsStore } from '@/store/products';
 import { ProductPlan, usePlansStore } from '@/store/productsPlans';
 import { useProductsSlotsStore } from '@/store/productsSlots';
-import { Card } from 'ant-design-vue';
-import { computed, watch } from 'vue';
+import { Card, Tooltip } from 'ant-design-vue';
+import { computed } from 'vue';
 import { DeleteOutlined, EditOutlined } from '@ant-design/icons-vue';
 import { useModalsStore } from '@/store/modal';
 
