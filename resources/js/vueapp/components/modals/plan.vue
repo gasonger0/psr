@@ -198,7 +198,7 @@ const prepareClose = () => {
 }
 
 onUpdated(async () => {
-    if (props.data != undefined) {
+    if (props.data != undefined && slot.value.product_slot_id != props.data.slot_id) {
         slot.value = slotsStore.getById(props.data.slot_id);
         product.value = productsStore.getByID(slot.value.product_id);
         slots.value = slotsStore.slots.filter((el: ProductSlot) =>

@@ -13,7 +13,7 @@ import {
     TableOutlined
 } from '@ant-design/icons-vue';
 import * as dayjs from "dayjs";
-import { Ref, ref } from 'vue';
+import { Ref, ref, watch } from 'vue';
 import { FileType } from 'ant-design-vue/es/upload/interface';
 import { notify, postRequest } from '../../functions';
 import { AxiosResponse } from 'axios';
@@ -63,6 +63,11 @@ const updateSession = () => {
 const openModal = (name: string) => {
     modalStore.open(name);
 }
+const boils: Ref<string> = ref('0');
+
+watch(useModalsStore(), () => {
+    boils.value = useModalsStore().getBoils();
+});
 
 const emit = defineEmits([
     'change-board'
@@ -121,7 +126,7 @@ const emit = defineEmits([
                 Журнал
             </Button>
             <div>
-                <b>Всего варок: {{ useModalsStore().getBoils() }}</b>
+                <b>Всего варок: {{ boils }}</b>
             </div>
         </section>
         <section>

@@ -4,7 +4,7 @@ import { ProductInfo } from '@/store/products';
 import { ProductSlot, SlotsByStages, useProductsSlotsStore } from '@/store/productsSlots';
 import { Card } from 'ant-design-vue';
 import { ExclamationCircleOutlined, InfoCircleOutlined } from '@ant-design/icons-vue';
-import { computed, onUpdated, ref, Ref, watch } from 'vue';
+import { computed, onBeforeMount, onUpdated, ref, Ref, watch } from 'vue';
 import { usePlansStore } from '@/store/productsPlans';
 
 const props = defineProps({
@@ -19,8 +19,8 @@ const slotsStore = useProductsSlotsStore();
  * Слоты данной продукции
  */
 const slots: SlotsByStages = {
-    1: slotsStore.getByTypeAndProductID(props.product.product_id, 1),
-    2: slotsStore.getPack(props.product.product_id)
+    1: [],
+    2: [] 
 };
 
 const activeSlots: Array<number> = usePlansStore().getActiveSlots(props.product.product_id);
@@ -35,6 +35,11 @@ const highlight = (stage_id: number) => {
 const amountFact = (stage_id: number) => {
     return usePlansStore().getAmountFact(activeSlots, stage_id);
 }
+
+onBeforeMount(async () => {
+    slots[1] = await slotsStore.getByTypeAndProductID(props.product.product_id, 1),
+    slots[2] = await slotsStore.getPack(props.product.product_id)
+});
 
 defineExpose(props);
 </script>
