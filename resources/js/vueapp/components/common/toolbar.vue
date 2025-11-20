@@ -65,8 +65,10 @@ const openModal = (name: string) => {
 }
 const boils: Ref<string> = ref('0');
 
-watch(useModalsStore(), () => {
+watch(useModalsStore().boils, () => {
     boils.value = useModalsStore().getBoils();
+}, {
+    deep: true
 });
 
 const emit = defineEmits([
