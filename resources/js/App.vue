@@ -50,7 +50,6 @@ onBeforeMount(async () => {
     await useWorkersStore()._load();
     await useWorkerSlotsStore()._load();
     await processData();
-    isReady.value = true;
     await useResponsiblesStore()._load();
     await useCategoriesStore()._load();
     await useProductsStore()._load(0);
@@ -58,6 +57,7 @@ onBeforeMount(async () => {
     await useProductsSlotsStore()._load(products_ids);
     await usePlansStore()._load();
     await useLogsStore()._load();
+    isReady.value = true;
 });
 
 const processData = async () => {

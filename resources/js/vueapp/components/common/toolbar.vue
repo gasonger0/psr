@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { Switch, Dropdown, Button, MenuItem, Menu, Upload, UploadFile, DatePicker } from 'ant-design-vue';
 import {
-    UploadOutlined,
     FileExcelOutlined,
     BarChartOutlined,
     EditOutlined,
@@ -13,7 +12,7 @@ import {
     TableOutlined
 } from '@ant-design/icons-vue';
 import * as dayjs from "dayjs";
-import { Ref, ref, watch } from 'vue';
+import { computed, Ref, ref, watch } from 'vue';
 import { FileType } from 'ant-design-vue/es/upload/interface';
 import { notify, postRequest } from '../../functions';
 import { AxiosResponse } from 'axios';
@@ -63,12 +62,8 @@ const updateSession = () => {
 const openModal = (name: string) => {
     modalStore.open(name);
 }
-const boils: Ref<string> = ref('0');
-
-watch(useModalsStore().boils, () => {
-    boils.value = useModalsStore().getBoils();
-}, {
-    deep: true
+const boils = computed(() => {
+    return useModalsStore().getBoils();
 });
 
 const emit = defineEmits([
