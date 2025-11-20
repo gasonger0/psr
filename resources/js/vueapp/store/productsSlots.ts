@@ -29,17 +29,22 @@ export const useProductsSlotsStore = defineStore('productsSlots', () => {
     /**
      * Загружает данные в хранилку
      */
-    async function _load(products: Array<number>): Promise<ProductSlot[]|null> {
-        let sls = (await postRequest('/api/products_slots/get', products)).map(el => {
-            el.isEditing = false;
-            return el as ProductSlot;
-        });
-        if (products.length > 1) {
-            slots.value = sls;
-            return null;
-        } else { 
-            return sls;
-        }
+    async function _load(products: Array<number>): Promise<ProductSlot[] | null> {
+        return await postRequest('/api/products_slots/get', products,
+            (r: AxiosResponse) => {
+                let sls = r.data.map(el => {
+                    el.isEditing = false;
+                    return el as ProductSlot;
+                });
+                console.log("slots processed:", sls);
+                if (products.length > 1) {
+                    slots.value = sls;
+                    return null;
+                } else {
+                    return sls;
+                }
+            }
+        );
     }
 
     /**
@@ -106,9 +111,9 @@ export const useProductsSlotsStore = defineStore('productsSlots', () => {
         return;
     };
 
-    return { 
-        slots, 
-        _load, 
+    return {
+        slots,
+        _load,
         _create,
         _update,
         _delete,

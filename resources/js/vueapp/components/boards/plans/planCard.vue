@@ -3,7 +3,7 @@ import { useProductsStore } from '@/store/products';
 import { ProductPlan, usePlansStore } from '@/store/productsPlans';
 import { useProductsSlotsStore } from '@/store/productsSlots';
 import { Card, Tooltip } from 'ant-design-vue';
-import { computed } from 'vue';
+import { computed, onBeforeMount } from 'vue';
 import { DeleteOutlined, EditOutlined } from '@ant-design/icons-vue';
 import { useModalsStore } from '@/store/modal';
 
@@ -33,7 +33,9 @@ const beforeEdit = () => {
     emit('edit', props.data);
 }
 
-
+onBeforeMount(() => {
+    modal.boils[props.data.plan_product_id] = boils.value;
+});
 
 const emit = defineEmits<{
     (e: 'edit', payload: ProductPlan): void;

@@ -55,7 +55,7 @@ export const usePlansStore = defineStore("productsPlans", () => {
     }
 
     async function _create(data: ProductPlan, packs: Array<number>) {
-        await postRequest('/api/plans/create', unserialize(data, packs),
+        return await postRequest('/api/plans/create', unserialize(data, packs),
             (r: AxiosResponse) => {
                 data.plan_product_id = r.data.plan_product_id;
                 

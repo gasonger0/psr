@@ -47,7 +47,6 @@ const newListText = computed(() => {
 });
 const getLineClass = (line: LineInfo) => {
     return linesStore.getIfDone(line) ? 'done-line ' : ''
-    //+ (line.has_plans ? '' : 'hidden-hard');
 }
 
 const addLineFront = () => {

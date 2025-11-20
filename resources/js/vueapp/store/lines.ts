@@ -164,6 +164,9 @@ export const useLinesStore = defineStore('lines', () => {
     }
 
     const updateVersion = (lineId: number) => {
+        if (lineId == -1) {
+            return;
+        }
         const line = lines.value.find(l => l.line_id === lineId);
         if (line) {
             line.version = (line.version || 0) + 1; // Инкрементим версию

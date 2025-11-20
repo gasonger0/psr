@@ -198,28 +198,32 @@ const prepareClose = () => {
 }
 
 onUpdated(async () => {
-    if (props.data != undefined && slot.value.product_slot_id != props.data.slot_id) {
-        slot.value = slotsStore.getById(props.data.slot_id);
-        product.value = productsStore.getByID(slot.value.product_id);
-        slots.value = slotsStore.slots.filter((el: ProductSlot) =>
-            el.product_id == product.value.product_id &&
-            el.line_id == slot.value.line_id &&
-            el.type_id == slot.value.type_id
-        );
-        getPackOptions();
-        line.value = linesStore.getByID(slot.value.line_id);
-        handleHardware();
-        if (props.data.plan_product_id) {
-            // Редактирование, надо упаковки копировать
-            packs.value = plansStore.plans.filter(el => el.parent == props.data.plan_product_id).map(i => i.slot_id);
-            if (props.data.colon) {
-                colon.value = props.data.colon;
-            }
-        }
-        if (packs.value) {
-            showPack.value = true;
+    if (!props.data || (slot.value && slot.value.product_slot_id == props.data.slot_id)) {
+        return;
+    }
+    console.log(props.data, slot)
+    // Если в пропсах есть данные и существующий слот не равен тому, что есть в пропсах
+    slot.value = slotsStore.getById(props.data.slot_id);
+    product.value = productsStore.getByID(slot.value.product_id);
+    slots.value = slotsStore.slots.filter((el: ProductSlot) =>
+        el.product_id == product.value.product_id &&
+        el.line_id == slot.value.line_id &&
+        el.type_id == slot.value.type_id
+    );
+    getPackOptions();
+    line.value = linesStore.getByID(slot.value.line_id);
+    handleHardware();
+    if (props.data.plan_product_id) {
+        // Редактирование, надо упаковки копировать
+        packs.value = plansStore.plans.filter(el => el.parent == props.data.plan_product_id).map(i => i.slot_id);
+        if (props.data.colon) {
+            colon.value = props.data.colon;
         }
     }
+    if (packs.value) {
+        showPack.value = true;
+    }
+
 });
 const emit = defineEmits(['save', 'cancel']);
 // TODO стили

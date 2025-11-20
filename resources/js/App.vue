@@ -58,6 +58,7 @@ onBeforeMount(async () => {
     await usePlansStore()._load();
     await useLogsStore()._load();
     isReady.value = true;
+    console.log("application ready.");
 });
 
 const processData = async () => {
