@@ -62,7 +62,7 @@ export const usePlansStore = defineStore("productsPlans", () => {
                 let line = useLinesStore().getByID(
                     useProductsSlotsStore().getById(Number(data.slot_id)).line_id
                 );
-                line.has_plans = true;
+                line.has_plans = ref(true);
                 if (r.data.packs) {
                     r.data.packs.forEach((pack: any) => {
                         plans.value.push(serialize(pack));
@@ -71,7 +71,7 @@ export const usePlansStore = defineStore("productsPlans", () => {
                 if (r.data.plansOrder) {
                     for (let i in r.data.plansOrder) {
                         line = useLinesStore().getByID(Number(i));
-                        line.has_plans = true;
+                        line.has_plans = ref(true);
                         updateTimes(r.data.plansOrder[i]);
                         useLinesStore().updateVersion(line.line_id);                        
                     }
@@ -86,7 +86,7 @@ export const usePlansStore = defineStore("productsPlans", () => {
                 if (r.data.plansOrder) {
                     for (let i in r.data.plansOrder) {
                         let line = useLinesStore().getByID(Number(i));
-                        line.has_plans = true;
+                        line.has_plans = ref(true);
                         updateTimes(r.data.plansOrder[i]);
                         useLinesStore().updateVersion(line.line_id);                        
                     }
@@ -99,7 +99,7 @@ export const usePlansStore = defineStore("productsPlans", () => {
             (r: AxiosResponse) => {
                 plans.value = [];
                 useLinesStore().lines.forEach((el: LineInfo) => {
-                    el.has_plans = false;
+                    el.has_plans.value = false;
                 });
             }
         )
@@ -169,6 +169,10 @@ export const usePlansStore = defineStore("productsPlans", () => {
         plan.started_at = dayjs.default(plan.started_at),
             plan.ended_at = dayjs.default(plan.ended_at),
             plan.colon = ref(plan.colon);
+        let slot = useProductsSlotsStore().getById(plan.slot_id);
+        console.log(slot, plan.slot_id, useProductsSlotsStore().slots);
+        let line = useLinesStore().getByID(slot.line_id);
+        line.has_plans = ref(true);
         return plan as ProductPlan;
     }
     function unserialize(plan: ProductPlan, packs: Array<number>) {

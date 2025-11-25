@@ -27,14 +27,17 @@ const boils = computed((): number => {
     );
 });
 const beforeEdit = () => {
-    if (slot.type_id == 1) {
+    if (slot.type_id == 1 && props.data && props.data.plan_product_id) {
         modal.boils[props.data.plan_product_id] = boils.value;
     };
     emit('edit', props.data);
 }
 
 onBeforeMount(() => {
-    modal.boils[props.data.plan_product_id] = boils.value;
+    if (slot && slot.type_id == 1 && props.data && props.data.plan_product_id && boils.value){
+        console.log(props.data.plan_product_id, boils.value);
+        modal.boils[props.data.plan_product_id] = boils.value;
+    }
 });
 
 const emit = defineEmits<{

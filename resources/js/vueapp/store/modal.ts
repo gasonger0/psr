@@ -17,7 +17,7 @@ export const useModalsStore = defineStore('modals', () => {
         graph: ref(false),
         plan: ref(false)
     };
-    const boils = ref({});
+    const boils: Ref<any> = ref({});
     const linesRef: Ref<Array<number>> = ref([]);
     
     /**
@@ -45,6 +45,7 @@ export const useModalsStore = defineStore('modals', () => {
         for (let i in boils.value) {
             ammount += boils.value[i];
         }
+        console.log(boils);
         return ammount.toFixed(2);
     }
 

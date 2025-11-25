@@ -230,21 +230,33 @@ class ProductsPlanController extends Controller
             }
 
             // Проверка, что упаковываем не раньше глазировки
-            $glaz = ProductsPlan::where('parent', $plan->plan_product_id)->whereHas('slot', function ($query) {
-                $query->whereIn('type_id', [3, 4]);
-            })->max('ended_at');
-            if ($glaz) {
+            $glazPlans = ProductsPlan::where('parent', $plan->plan_product_id)
+                ->whereHas('slot', function ($query) {
+                    $query->whereIn('type_id', [3, 4]);
+                })->get();
+
+            if ($glazPlans->isNotEmpty()) {
+                // Находим самое позднее окончание глазировки
+                $latestGlazEnd = $glazPlans->max(function ($plan) {
+                    return Carbon::parse($plan->ended_at);
+                });
                 // var_dump($glaz);
-                $glaz_end = Carbon::parse($glaz)->unix();
+                $glaz_end = Carbon::parse($latestGlazEnd);
                 foreach ($packsCheck as $p) {
-                    if (Carbon::parse($p->ended_at)->unix() < $glaz_end) {
+                    $packStart = Carbon::parse($p->started_at);
+                    if ($packStart < $glaz_end) {
+                        // Сдвигаем упаковку так, чтобы она начиналась после глазировки
+                        $newStart = $glaz_end->copy();
+                        $duration = Carbon::parse($p->ended_at)->diffInMinutes($packStart);
+                        $newEnd = $newStart->copy()->addMinutes($duration);
+
                         $p->update([
-                            'ended_at' => $glaz
+                            'started_at' => $newStart,
+                            'ended_at' => $newEnd
                         ]);
 
                         $this->checkPlans($request, $p);
                         $line_id = $p->slot->line_id;
-
                         $order[$line_id] = ProductsPlan::whereHas('slot', function ($query) use ($line_id) {
                             $query->where('line_id', $line_id);
                         })->orderBy('started_at', 'ASC')->get()->toArray();
@@ -318,7 +330,7 @@ class ProductsPlanController extends Controller
         // Проверка - залезаем ли мы концом новой ГП на начало следующей
         $bottomPlan = ProductsPlan::whereHas('slot', function ($query) use ($plan) {
             $query->where('line_id', $plan->slot->line_id);
-        })->where('started_at', '<=', $plan->ended_at)
+        })->where('started_at', '<', $plan->ended_at)
             ->where('ended_at', '>=', $plan->ended_at)
             ->where('plan_product_id', '!=', $plan->plan_product_id)
             ->withSession($request)

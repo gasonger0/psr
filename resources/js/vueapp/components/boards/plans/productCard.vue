@@ -4,7 +4,7 @@ import { ProductInfo } from '@/store/products';
 import { ProductSlot, SlotsByStages, useProductsSlotsStore } from '@/store/productsSlots';
 import { Card } from 'ant-design-vue';
 import { ExclamationCircleOutlined, InfoCircleOutlined } from '@ant-design/icons-vue';
-import { computed, onBeforeMount, onBeforeUpdate, onUpdated, ref, Ref, watch } from 'vue';
+import { computed, onBeforeMount, onBeforeUpdate, onMounted, onUpdated, ref, Ref, watch } from 'vue';
 import { usePlansStore } from '@/store/productsPlans';
 
 const props = defineProps({
@@ -45,6 +45,9 @@ onBeforeMount(async () => {
         slotsReceieved.value = true
     } 
 });
+onMounted(() => {
+    console.log("Mounted card " + props.product)
+})
 
 defineExpose(props);
 </script>

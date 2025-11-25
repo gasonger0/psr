@@ -7,13 +7,9 @@ import { DefaultOptionType } from 'ant-design-vue/es/select';
 import { Card, Input, Switch, Tooltip, Popconfirm, Select, SelectOption, TimePicker, RadioGroup, RadioButton, Checkbox } from 'ant-design-vue';
 import { InfoCircleOutlined, ForwardOutlined, StopOutlined, ExperimentOutlined, InboxOutlined } from '@ant-design/icons-vue';
 import { ColorPicker } from 'vue-color-kit';
-const props = defineProps({
-    data: {
-        type: Object as () => LineInfo,
-        required: true
-    }
-});
-
+const props = defineProps<{
+    data: LineInfo
+}>();
 const linesStore = useLinesStore();
 const responsiblesStore = useResponsiblesStore();
 const saveLine = (c: boolean, line: LineInfo) => {

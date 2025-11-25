@@ -35,7 +35,7 @@ export type LineInfo = {
     date: dayjs.Dayjs,
     isDay: boolean,
     edit: boolean,
-    has_plans?: boolean,
+    has_plans: Ref<boolean>,
     version: number
 };
 
@@ -112,7 +112,7 @@ export const useLinesStore = defineStore('lines', () => {
     }
 
     function add() {
-        let l = {
+        const newLine: LineInfo = {
             edit: true,
             work_time: {
                 started_at: dayjs.default(),
@@ -128,12 +128,13 @@ export const useLinesStore = defineStore('lines', () => {
             } as Detector,
             version: 1,
             date: dayjs.default(sessionStorage.getItem('date'), 'y-m-d'),
-            isDay: Boolean(Number(sessionStorage.getItem('isDay')))
-        } as LineInfo;
-        lines.value.push(l);
+            isDay: Boolean(Number(sessionStorage.getItem('isDay'))),
+            has_plans: ref(false)
+        }
+        lines.value.push(newLine);
     }
 
-    function serialize(line): LineInfo {
+    function serialize(line: any): LineInfo {
         line.edit = false;
         line.color = ref(line.color);
         line.showDelete = ref(false);
@@ -147,6 +148,7 @@ export const useLinesStore = defineStore('lines', () => {
             detector_start: line.detector_start,
             detector_end: line.detector_end
         });
+        line.has_plans = ref(false);
         line.version = 1;
         delete line.started_at, line.ended_at, line.has_detector, line.detector_start, line.detector_end;
         return line as LineInfo;

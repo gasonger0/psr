@@ -201,17 +201,27 @@ onUpdated(async () => {
     if (!props.data || (slot.value && slot.value.product_slot_id == props.data.slot_id)) {
         return;
     }
-    console.log(props.data, slot)
+
+    if (props.data) {
+        const storeSlot = slotsStore.getById(props.data.slot_id);
+        slot.value = storeSlot ? { ...storeSlot } : null;
+
+        if (slot.value) {
+            const storeProduct = productsStore.getByID(slot.value.product_id);
+            product.value = storeProduct ? { ...storeProduct } : null;
+        }
+    }
+    console.log(props.data)
     // Если в пропсах есть данные и существующий слот не равен тому, что есть в пропсах
-    slot.value = slotsStore.getById(props.data.slot_id);
-    product.value = productsStore.getByID(slot.value.product_id);
+    // slot.value = { ...slotsStore.getById(props.data.slot_id) };
+    // product.value = { ...productsStore.getByID(slot.value.product_id) };
     slots.value = slotsStore.slots.filter((el: ProductSlot) =>
         el.product_id == product.value.product_id &&
         el.line_id == slot.value.line_id &&
         el.type_id == slot.value.type_id
     );
     getPackOptions();
-    line.value = linesStore.getByID(slot.value.line_id);
+    line.value = { ...linesStore.getByID(slot.value.line_id) };
     handleHardware();
     if (props.data.plan_product_id) {
         // Редактирование, надо упаковки копировать
@@ -230,7 +240,7 @@ const emit = defineEmits(['save', 'cancel']);
 </script>
 <template>
     <Modal v-model:open="modal.visibility['plan']" @ok="addPlan" @cancel="exit" okText="Да" cancelText="Нет"
-        v-if="data && product && line && slot">
+        v-if="data && product && line && slot" :closable="false">
         <span>Это действие поставит работу <b>{{ product.title }}</b> на линии <b>{{ line.title }}</b>.</span>
         <br>
         <div style="display: flex;justify-content: space-between;margin: 14px 0px;">

@@ -70,7 +70,7 @@ const exit = () => {
 const processCells = () => {
     if (columns.length == 2) {
         columns.push(
-            ...lines.lines.filter((el: LineInfo) => el.has_plans == true).map((i: LineInfo) => {
+            ...lines.lines.filter((el: LineInfo) => el.has_plans.value == true).map((i: LineInfo) => {
                 let f = i as any;
                 f.dataIndex = i.line_id;
                 return f;

@@ -33,9 +33,10 @@ const prodLine: Ref<PropertyKey> = ref(1);
 
 const handleCardChange = (success: boolean) => {
     if (!success) {
-        if (isNewPlan) {
+        if (isNewPlan.value) {
             plansStore.removeLast();
         }
+        return;
     }
     prodLine.value = prodLine.value as number + 1;
     let line_id = slotsStore.getById(activePlan.value.slot_id).line_id;
@@ -48,7 +49,10 @@ const hideProducts = () => {
 }
 const clearPlan = () => {
     plansStore._clear();
-    modal.boils = {};
+    modal.boils.value = {};
+    // for (let i in modal.boils.value){
+        
+    // };
 }
 const editPlan = (plan: ProductPlan) => {
     activePlan.value = plan;
