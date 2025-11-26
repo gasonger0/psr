@@ -69,10 +69,13 @@ export const usePlansStore = defineStore("productsPlans", () => {
                     });
                 }
                 if (r.data.plansOrder) {
+                    let date = sessionStorage.getItem('date'),
+                        isDay = sessionStorage.getItem('isDay');
                     for (let i in r.data.plansOrder) {
+                        let plans = r.data.plansOrder[i].filter(el => el.date == date && el.isDay == isDay);
                         line = useLinesStore().getByID(Number(i));
                         line.has_plans = ref(true);
-                        updateTimes(r.data.plansOrder[i]);
+                        updateTimes(plans);
                         useLinesStore().updateVersion(line.line_id);                        
                     }
                 }
@@ -84,7 +87,10 @@ export const usePlansStore = defineStore("productsPlans", () => {
         await putRequest('/api/plans/update', unserialize(data, packs),
             (r: AxiosResponse) => {
                 if (r.data.plansOrder) {
+                    let date = sessionStorage.getItem('date'),
+                        isDay = sessionStorage.getItem('isDay');
                     for (let i in r.data.plansOrder) {
+                        let plans = r.data.plansOrder[i].filter(el => el.date == date && el.isDay == isDay);
                         let line = useLinesStore().getByID(Number(i));
                         line.has_plans = ref(true);
                         updateTimes(r.data.plansOrder[i]);
@@ -99,7 +105,7 @@ export const usePlansStore = defineStore("productsPlans", () => {
             (r: AxiosResponse) => {
                 plans.value = [];
                 useLinesStore().lines.forEach((el: LineInfo) => {
-                    el.has_plans.value = false;
+                    el.has_plans = false;
                 });
             }
         )
@@ -129,7 +135,7 @@ export const usePlansStore = defineStore("productsPlans", () => {
     function updateTimes(data: Array<any>) {
         data.forEach(el => {
             // Пробуем объём и слот вместо ИД, чтобы избежать задвоения
-            let pl = plans.value.find((i: ProductPlan) => i.amount == el.amount && i.slot_id == el.slot_id);
+            let pl = plans.value.find((i: ProductPlan) => i.amount == el.amount && i.slot_id == el.slot_id && el.plan_product_id == i.plan_product_id);
             let index = plans.value.indexOf(pl);
             if (index != -1) {
                 plans.value[index] = serialize(el);

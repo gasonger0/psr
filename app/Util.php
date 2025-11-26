@@ -116,6 +116,14 @@ class Util
      */
     public static function calcDuration(ProductsDictionary $product, int $amount, ProductsSlots $slot): float
     {
+        if ($slot->line_id == 37) {     // сборка ящиков
+            // если  фас.телевизоры, то по штукам в ящике, иначе по ящикам
+            $title = $slot->line->title;
+            if (mb_strpos($title, "телевизор") === false) {
+                $amount = eval("return $amount * $product->amount2parts;");
+            }
+            return $slot->perfomance * $amount;
+        } 
         return 
             eval ("return $product->parts2kg*$amount*$product->amount2parts;") /
             $slot->perfomance;

@@ -41,11 +41,13 @@ export const useModalsStore = defineStore('modals', () => {
     };
 
     const getBoils = () => {
-        let ammount = 0;
+        let ammount: number = 0;
         for (let i in boils.value) {
-            ammount += boils.value[i];
+            ammount += Number(boils.value[i]);
         }
-        console.log(boils);
+        if (!ammount || Number(ammount) == 0) {
+            return 0;
+        } 
         return ammount.toFixed(2);
     }
 

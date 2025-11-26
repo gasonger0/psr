@@ -110,24 +110,37 @@ class ProductsPlanController extends Controller
 
             // Проверка, что упаковываем не раньше глазировки
 
-            $glaz = ProductsPlan::where('parent', $plan->plan_product_id)->whereHas('slot', function ($query) {
-                $query->whereIn('type_id', [3, 4]);
-            })->max('ended_at');
-            // var_dump($glaz);
-            $glaz_end = Carbon::parse($glaz)->unix();
-            if ($glaz) {
+            // Проверка, что упаковываем не раньше глазировки
+            $glazPlans = ProductsPlan::where('parent', $plan->plan_product_id)
+                ->whereHas('slot', function ($query) {
+                    $query->whereIn('type_id', [3, 4]);
+                })->withSession($request)->get();
+
+            if ($glazPlans->isNotEmpty()) {
+                // Находим самое позднее окончание глазировки
+                $latestGlazEnd = $glazPlans->max(function ($plan) {
+                    return Carbon::parse($plan->ended_at);
+                });
+                // var_dump($glaz);
+                $glaz_end = Carbon::parse($latestGlazEnd);
                 foreach ($packsCheck as $p) {
-                    if (Carbon::parse($p->ended_at)->unix() < $glaz_end) {
+                    $packStart = Carbon::parse($p->started_at);
+                    if ($packStart < $glaz_end) {
+                        // Сдвигаем упаковку так, чтобы она начиналась после глазировки
+                        $newStart = $glaz_end->copy();
+                        $duration = Carbon::parse($p->ended_at)->diffInMinutes($packStart);
+                        $newEnd = $newStart->copy()->addMinutes(-$duration);
+
                         $p->update([
-                            'ended_at' => Carbon::parse($glaz)
+                            'started_at' => $newStart,
+                            'ended_at' => $newEnd
                         ]);
-                        // var_dump($p->toArray());
+
                         $this->checkPlans($request, $p);
                         $line_id = $p->slot->line_id;
-                        // var_dump($order[$line_id]);
                         $order[$line_id] = ProductsPlan::whereHas('slot', function ($query) use ($line_id) {
                             $query->where('line_id', $line_id);
-                        })->orderBy('started_at', 'ASC')->get()->toArray();
+                        })->withSession($request)->orderBy('started_at', 'ASC')->get()->toArray();
                     }
                 }
             }
@@ -194,7 +207,7 @@ class ProductsPlanController extends Controller
                     $ended_at = $d->addMinutes($delay);
                 }
 
-                $packPlan = ProductsPlan::where('slot_id', $slot->product_slot_id)
+                $packPlan = ProductsPlan::where('slot_id', $p)
                     ->withSession($request)
                     ->first();
                 $attrs = [
@@ -233,7 +246,7 @@ class ProductsPlanController extends Controller
             $glazPlans = ProductsPlan::where('parent', $plan->plan_product_id)
                 ->whereHas('slot', function ($query) {
                     $query->whereIn('type_id', [3, 4]);
-                })->get();
+                })->withSession($request)->get();
 
             if ($glazPlans->isNotEmpty()) {
                 // Находим самое позднее окончание глазировки
@@ -248,7 +261,7 @@ class ProductsPlanController extends Controller
                         // Сдвигаем упаковку так, чтобы она начиналась после глазировки
                         $newStart = $glaz_end->copy();
                         $duration = Carbon::parse($p->ended_at)->diffInMinutes($packStart);
-                        $newEnd = $newStart->copy()->addMinutes($duration);
+                        $newEnd = $newStart->copy()->addMinutes(-$duration);
 
                         $p->update([
                             'started_at' => $newStart,
@@ -259,7 +272,7 @@ class ProductsPlanController extends Controller
                         $line_id = $p->slot->line_id;
                         $order[$line_id] = ProductsPlan::whereHas('slot', function ($query) use ($line_id) {
                             $query->where('line_id', $line_id);
-                        })->orderBy('started_at', 'ASC')->get()->toArray();
+                        })->withSession($request)->orderBy('started_at', 'ASC')->get()->toArray();
                     }
                 }
             }
@@ -301,83 +314,155 @@ class ProductsPlanController extends Controller
      * @param int $position позиция плана, по которой его надо проверить
      * @return bool
      */
+    // public static function checkPlans(Request $request, ProductsPlan $plan): bool
+    // {
+    //     // Проверка, не ставим ли мы план первым
+    //     $check = ProductsPlan::whereHas('slot', function ($query) use ($plan) {
+    //         // var_dump($plan->slot);
+    //         $query->where('line_id', $plan->slot->line_id);
+    //     })
+    //         ->withSession($request)
+    //         ->where('plan_product_id', '!=', $plan->plan_product_id)
+    //         ->count();
+
+    //     if ($check == 0) {
+    //         return true;
+    //     }
+
+    //     // Проверка - залезаем ли мы началом новой ГП на окончание предыдущей
+    //     $topPlan = ProductsPlan::whereHas('slot', function ($query) use ($plan) {
+    //         $query->where('line_id', $plan->slot->line_id);
+    //     })
+    //         ->where('ended_at', '>=', $plan->started_at)
+    //         ->where('started_at', '<=', $plan->started_at)
+    //         ->where('plan_product_id', '!=', $plan->plan_product_id)
+    //         ->withSession($request)
+    //         ->orderBy('ended_at', 'DESC')
+    //         ->first();
+
+    //     // Проверка - залезаем ли мы концом новой ГП на начало следующей
+    //     $bottomPlan = ProductsPlan::whereHas('slot', function ($query) use ($plan) {
+    //         $query->where('line_id', $plan->slot->line_id);
+    //     })->where('started_at', '<', $plan->ended_at)
+    //         ->where('ended_at', '>=', $plan->ended_at)
+    //         ->where('plan_product_id', '!=', $plan->plan_product_id)
+    //         ->withSession($request)
+    //         ->orderBy('started_at', 'ASC')
+    //         ->first();
+
+    //     if ($topPlan || $bottomPlan) {
+    //         // Считаем сдвиги сверху и снизу
+    //         $topShift = $topPlan ?
+    //             round(Carbon::parse($plan->started_at)
+    //                 ->diffInMinutes(Carbon::parse($topPlan->ended_at))) : 0;
+    //         $bottomShift = $bottomPlan ?
+    //             round(Carbon::parse($bottomPlan->started_at)
+    //                 ->diffInMinutes(Carbon::parse($plan->ended_at))) : 0;
+
+    //         // var_dump("shifts for $plan->plan_product_id at line " . $plan->slot->line_id . ": t:$topShift, b:$bottomShift");
+
+    //         if ($topShift + $bottomShift != 0) {
+    //             // Флажок, выше или ниже плана текущая ГП
+    //             $passed = false;
+    //             // Двигаем верхние записи на $topSHift, а нижние - на $topShift + $bottomShift ????
+    //             ProductsPlan::whereHas('slot', function ($query) use ($plan) {
+    //                 $query->where('line_id', $plan->slot->line_id);
+    //             })
+    //                 ->withSession($request)
+    //                 ->orderBy('started_at', 'ASC')
+    //                 ->each(function ($l) use ($topShift, $bottomShift, &$passed, $plan) {
+    //                     if ($l->plan_product_id == $plan->plan_product_id) {
+    //                         $passed = true;
+    //                     }
+    //                     if (!$passed) {
+    //                         return;
+    //                     }
+    //                     $l->update([
+    //                         'started_at' => Carbon::parse($l->started_at)->addMinutes(
+    //                             $topShift + ($l->plan_product_id != $plan->plan_product_id ? $bottomShift : 0)
+    //                         ),
+    //                         'ended_at' => Carbon::parse($l->ended_at)->addMinutes(
+    //                             $topShift + ($l->plan_product_id != $plan->plan_product_id ? $bottomShift : 0)
+    //                         )
+    //                     ]);
+    //                     $l->save();
+    //                 });
+    //         }
+    //     }
+    //     // self::composePlans($plan);
+    //     return true;
+    // }
+
     public static function checkPlans(Request $request, ProductsPlan $plan): bool
     {
-        // Проверка, не ставим ли мы план первым
-        $check = ProductsPlan::whereHas('slot', function ($query) use ($plan) {
-            // var_dump($plan->slot);
-            $query->where('line_id', $plan->slot->line_id);
+        $lineId = $plan->slot->line_id;
+
+        // Получаем ВСЕ планы на этой линии (с учетом сессии)
+        $allPlans = ProductsPlan::whereHas('slot', function ($query) use ($lineId) {
+            $query->where('line_id', $lineId);
         })
             ->withSession($request)
             ->where('plan_product_id', '!=', $plan->plan_product_id)
-            ->count();
+            ->orderBy('started_at', 'ASC')
+            ->get();
 
-        if ($check == 0) {
+        // Находим пересекающиеся планы
+        $conflictingPlans = $allPlans->filter(function ($existingPlan) use ($plan) {
+            return self::plansOverlap($existingPlan, $plan);
+        });
+
+        if ($conflictingPlans->isEmpty()) {
             return true;
         }
 
-        // Проверка - залезаем ли мы началом новой ГП на окончание предыдущей
-        $topPlan = ProductsPlan::whereHas('slot', function ($query) use ($plan) {
-            $query->where('line_id', $plan->slot->line_id);
-        })
-            ->where('ended_at', '>=', $plan->started_at)
-            ->where('started_at', '<=', $plan->started_at)
-            ->where('plan_product_id', '!=', $plan->plan_product_id)
-            ->withSession($request)
-            ->orderBy('ended_at', 'DESC')
-            ->first();
+        // Вычисляем необходимый сдвиг
+        $maxShift = 0;
+        foreach ($conflictingPlans as $conflict) {
+            $shift = Carbon::parse($conflict->ended_at)
+                ->diffInMinutes(Carbon::parse($plan->started_at));
 
-        // Проверка - залезаем ли мы концом новой ГП на начало следующей
-        $bottomPlan = ProductsPlan::whereHas('slot', function ($query) use ($plan) {
-            $query->where('line_id', $plan->slot->line_id);
-        })->where('started_at', '<', $plan->ended_at)
-            ->where('ended_at', '>=', $plan->ended_at)
-            ->where('plan_product_id', '!=', $plan->plan_product_id)
-            ->withSession($request)
-            ->orderBy('started_at', 'ASC')
-            ->first();
-
-        if ($topPlan || $bottomPlan) {
-            // Считаем сдвиги сверху и снизу
-            $topShift = $topPlan ?
-                round(Carbon::parse($plan->started_at)
-                    ->diffInMinutes(Carbon::parse($topPlan->ended_at))) : 0;
-            $bottomShift = $bottomPlan ?
-                round(Carbon::parse($bottomPlan->started_at)
-                    ->diffInMinutes(Carbon::parse($plan->ended_at))) : 0;
-
-            // var_dump("shifts for $plan->plan_product_id at line " . $plan->slot->line_id . ": t:$topShift, b:$bottomShift");
-
-            if ($topShift + $bottomShift != 0) {
-                // Флажок, выше или ниже плана текущая ГП
-                $passed = false;
-                // Двигаем верхние записи на $topSHift, а нижние - на $topShift + $bottomShift ????
-                ProductsPlan::whereHas('slot', function ($query) use ($plan) {
-                    $query->where('line_id', $plan->slot->line_id);
-                })
-                    ->withSession($request)
-                    ->orderBy('started_at', 'ASC')
-                    ->each(function ($l) use ($topShift, $bottomShift, &$passed, $plan) {
-                        if ($l->plan_product_id == $plan->plan_product_id) {
-                            $passed = true;
-                        }
-                        if (!$passed) {
-                            return;
-                        }
-                        $l->update([
-                            'started_at' => Carbon::parse($l->started_at)->addMinutes(
-                                $topShift + ($l->plan_product_id != $plan->plan_product_id ? $bottomShift : 0)
-                            ),
-                            'ended_at' => Carbon::parse($l->ended_at)->addMinutes(
-                                $topShift + ($l->plan_product_id != $plan->plan_product_id ? $bottomShift : 0)
-                            )
-                        ]);
-                        $l->save();
-                    });
+            // Если сдвиг отрицательный - значит план начинается ДО окончания конфликтного
+            if ($shift < 0) {
+                $shift = abs($shift) + 1; // +1 минута зазор
+                $maxShift = max($maxShift, $shift);
             }
         }
-        // self::composePlans($plan);
+
+        if ($maxShift > 0) {
+            self::shiftPlans($request, $lineId, $plan, $maxShift);
+        }
+
         return true;
+    }
+
+    // Проверка пересечения двух планов
+    private static function plansOverlap(ProductsPlan $plan1, ProductsPlan $plan2): bool
+    {
+        $start1 = Carbon::parse($plan1->started_at);
+        $end1 = Carbon::parse($plan1->ended_at);
+        $start2 = Carbon::parse($plan2->started_at);
+        $end2 = Carbon::parse($plan2->ended_at);
+
+        return $start1 < $end2 && $end1 > $start2;
+    }
+
+    // Сдвиг планов
+    private static function shiftPlans(Request $request, int $lineId, ProductsPlan $currentPlan, int $shiftMinutes): void
+    {
+        $plansToShift = ProductsPlan::whereHas('slot', function ($query) use ($lineId) {
+            $query->where('line_id', $lineId);
+        })
+            ->withSession($request)
+            ->where('started_at', '>=', $currentPlan->started_at)
+            ->orderBy('started_at', 'ASC')
+            ->get();
+
+        foreach ($plansToShift as $plan) {
+            $plan->update([
+                'started_at' => Carbon::parse($plan->started_at)->addMinutes($shiftMinutes),
+                'ended_at' => Carbon::parse($plan->ended_at)->addMinutes($shiftMinutes)
+            ]);
+        }
     }
 
     /**
