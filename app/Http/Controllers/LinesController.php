@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Lines;
 use App\Models\LinesExtra;
+use App\Models\ProductsPlan;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use App\Util;
@@ -88,7 +89,7 @@ class LinesController extends Controller
                 'line_id' => $line->line_id,
                 'action' => 'Перенос начала работы линии по причине: ' . $request->post('cancel_reason'),
                 'started_at' => $old['started_at'],
-                'ended_at'  => Carbon::now()->format('Y-m-d H:i:s')
+                'ended_at' => Carbon::now()->format('Y-m-d H:i:s')
             ] + Util::getSessionAsArray($request));
         }
         SlotsController::afterLineUpdate($request, $old);
@@ -125,12 +126,31 @@ class LinesController extends Controller
         }
 
         $logData = [
-            'line_id'   => $line->line_id,
-            'action'    => "Остановка работы линии по причине: " . $request->post('reason')
+            'line_id' => $line->line_id,
+            'action' => "Остановка работы линии по причине: " . $request->post('reason')
         ] + Util::getSessionAsArray($request);
 
-        $log = $downFrom ? LogsController::update($logData) : LogsController::create($logData); 
+        $log = $downFrom ? LogsController::update($logData) : LogsController::create($logData);
 
         return Util::successMsg($log, 200);
+    }
+
+    public static function updateLinesTime(array $plansOrder)
+    {
+        foreach ($plansOrder as $line_id => $plans) {
+            $firstPlan = reset($plans);
+            $start = Carbon::parse($firstPlan['started_at']);
+            $end = Carbon::parse(end($plans)['ended_at']);
+
+            LinesExtra::where('line_id', $line_id)
+                ->where('isDay', $firstPlan['isDay'])
+                ->where('date', $firstPlan['date'])
+                ->get()->each(function ($line) use ($start, $end) {
+                    $line->update([
+                        'started_at' => $start->addMinutes(-$line->prep_time),
+                        'ended_at' => $end->addMinutes($line->after_time)
+                    ]);
+                });
+        }
     }
 }

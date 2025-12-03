@@ -68,12 +68,15 @@ const slots: Ref<ProductSlot[]> = ref([]);
 const perfomance: Ref<number> = ref(0);
 
 const changeTime = () => {
+    console.log("before edit:", props.data.started_at);
     if (!props.data.started_at) {
         return;
     }
     props.data.ended_at = props.data.started_at
         .add(time.value, 'hour')
         .add(slot.value.type_id == 1 ? 10 : 15, 'minute');
+    console.log("after edit:", props.data.started_at);
+    
     // props.data.ended_at = props.data.started_at.add(time.value, 'hour');
     // props.data.ended_at = props.data.ended_at.add(slot.value.type_id == 1 ? 10 : 15, 'minute');
 

@@ -57,7 +57,7 @@ class LinesExtra extends Model
         }
 
         $default = Util::getDefaults($line->line_id);
-        $default ? $default = Util::createDate($default, $request) : '';
+        $default ? $default = Util::createDate($default, $request, $line) : '';
 
         return LinesExtra::create(
             ['line_id' => $line->line_id] +

@@ -32,16 +32,20 @@ const activePlan: Ref<ProductPlan | null> = ref();
 const prodLine: Ref<PropertyKey> = ref(1);
 
 const handleCardChange = (success: boolean) => {
+    console.log(success, isNewPlan.value);
     if (!success) {
         if (isNewPlan.value) {
+            console.log('removed last');
             plansStore.removeLast();
+            isNewPlan.value = false;
         }
         return;
     }
     prodLine.value = prodLine.value as number + 1;
     let line_id = slotsStore.getById(activePlan.value.slot_id).line_id;
-    linesStore.getByID(line_id).version += 1;
+    linesStore.updateVersion(linesStore.getByID(line_id).line_id);
     activePlan.value = null;
+    isNewPlan.value = false;
 }
 
 const hideProducts = () => {
@@ -153,6 +157,7 @@ onUpdated(async () => {
                         plans = plansStore.getByLine(curLine.line_id),
                         lastProd = null,
                         started_at = dayjs.default();
+                    console.log(position);
 
                     if (plans.length > 0 && position > 0) {
                         lastProd = plans.reduce((latest, current) => {
@@ -173,6 +178,7 @@ onUpdated(async () => {
                         started_at,
                         product.order ? product.order.amount : 0
                     )
+                    console.log("started_at:", started_at);
                     modal.open("plan");
                     if (line.contains(target)) {
                         line.removeChild(target);
@@ -201,35 +207,38 @@ onUpdated(async () => {
                 return;
             }
 
-            isNewPlan.value = false;
             active.value = null;
             document.querySelectorAll('.selected').forEach(el => el.classList.remove('selected'));
         });
 
         line.addEventListener('dragover', (ev) => {
+
+            /**
+             * Принцип работы:
+             * 1) Если выше середины карточки, ставим вместо неё, если ниже, то после неё
+             */
             if (!active.value) {
                 return;
             }
             ev.preventDefault();
             const activeElement = document.querySelector('.selected');
-            const currentElement = ev.target;
-            const isMoveable = activeElement !== currentElement;
-
-            if (!isMoveable) {
-                return;
-            }
-
+            const currentElement = (ev.target as Element).closest('.ant-card');
+            // const isMoveable = activeElement !== currentElement;
+            // if (!isMoveable) {
+            //     return;
+            // }
+            // console.log(ev);
             const nextElement = getNextElement(
                 Number(
-                    (ev.target as Element).getAttribute('clientY')
+                    ev.clientY
                 ),
-                currentElement as Element
+                currentElement
             );
             // Проверяем, нужно ли менять элементы местами
             if (
                 nextElement &&
-                activeElement === nextElement.previousElementSibling ||
-                activeElement === nextElement || !activeElement || !nextElement || !line
+                activeElement === nextElement 
+                // !activeElement || !nextElement || !line
             ) {
                 // Если нет, выходим из функции, чтобы избежать лишних изменений в DOM
                 return;
@@ -239,14 +248,14 @@ onUpdated(async () => {
             if (nextElement == null) {
                 line.append(activeElement as HTMLElement);
             } else {
-                if (!line) {
-                    return;
-                }
-                if (nextElement.parentElement != line) {
-                    line.append(activeElement as HTMLElement);
-                } else {
+                // if (!line) {
+                //     return;
+                // }
+                // if (nextElement.parentElement != line) {
+                //     line.append(activeElement as HTMLElement);
+                // } else {
                     line.insertBefore(activeElement as HTMLElement, nextElement);
-                }
+                // }
             }
         })
     });

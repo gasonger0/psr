@@ -9,6 +9,7 @@ import { AxiosResponse } from "axios";
 import { SelectValue } from "ant-design-vue/es/select/index";
 import { now } from "moment";
 import { useLogsStore } from "./logs";
+import { usePlansStore } from "./productsPlans";
 
 // Интерфейсы
 
@@ -20,12 +21,12 @@ export type LineInfo = {
     title: string,
     color?: string,
     type_id: number,
-    count_current?: number, 
+    count_current?: number,
     line_extra_id?: number,
     workers_count: number,
     work_time: Slot,
     down_from?: dayjs.Dayjs,
-    cancel_reason?: number, 
+    cancel_reason?: number,
     master?: number,
     engineer?: number,
     prep_time: number,
@@ -171,7 +172,13 @@ export const useLinesStore = defineStore('lines', () => {
         }
         const line = lines.value.find(l => l.line_id === lineId);
         if (line) {
+            // Получаем отсортированные планы и обновляем время работы линий
+            let plans = usePlansStore().getByLine(lineId);
+            line.work_time.started_at = plans[0].started_at;
+            line.work_time.ended_at = plans[plans.length-1].ended_at;
+
             line.version = (line.version || 0) + 1; // Инкрементим версию
+
         }
     };
     return { lines, _load, _create, _update, _delete, _sendStop, getIfDone, add, splice, getByID, updateVersion }

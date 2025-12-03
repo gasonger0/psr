@@ -116,6 +116,9 @@ export function notify(type: string, message: string) {
 }
 
 export function getNextElement(cursorPosition: number, currentElement: Element) {
+    if (!currentElement) {
+        return null;
+    }
     // Получаем объект с размерами и координатами
     const currentElementCoord = currentElement.getBoundingClientRect();
     // Находим вертикальную координату центра текущего элемента

@@ -69,6 +69,7 @@ class ProductsPlanController extends Controller
                 // 1. Не раньше конца варки 
                 // 2. Если раньше конца варки, то не раньше конца варки + delay
                 // 3. Упаковка не позже обсыпки
+                // 4. Флоу паки должны без задержки начинаться
                 $slot = ProductsSlots::find($p);
                 $duration = Util::calcDuration(
                     $product,
@@ -87,7 +88,7 @@ class ProductsPlanController extends Controller
                     [
                         'product_id' => $product->product_id,
                         'slot_id' => $p,
-                        'started_at' => $start,
+                        'started_at' => str_contains($slot->line->title, 'FLOY') ? $start->addMinutes(-$delay) : $start,
                         'ended_at' => $ended_at,
                         'parent' => $plan->plan_product_id,
                         'amount' => $amount
@@ -147,6 +148,7 @@ class ProductsPlanController extends Controller
         }
 
         // TODO? меняем время работы линии по началу первого и концу последнего плана
+        LinesController::updateLinesTime($order);
         return Util::successMsg($plan->toArray() + [
             'packs' => ProductsPlan::withSession($request)->where('parent', $plan->plan_product_id)->get(),
             'plansOrder' => $order
@@ -213,7 +215,7 @@ class ProductsPlanController extends Controller
                 $attrs = [
                     'product_id' => $product->product_id,
                     'slot_id' => $p,
-                    'started_at' => $start,
+                    'started_at' => str_contains($slot->line->title, 'FLOY') ? $start->addMinutes(-$delay) : $start,
                     'ended_at' => $ended_at,
                     'parent' => $plan->plan_product_id,
                     'amount' => $amount
@@ -279,6 +281,8 @@ class ProductsPlanController extends Controller
         }
 
         // TODO? меняем время работы линии по началу первого и концу последнего плана
+
+        LinesController::updateLinesTime($order);
         return Util::successMsg($plan->toArray() + [
             'packs' => ProductsPlan::withSession($request)->where('parent', $plan->plan_product_id)->get(),
             'plansOrder' => $order
@@ -311,87 +315,8 @@ class ProductsPlanController extends Controller
      * Проверка планов на коллизию
      * @param \Illuminate\Http\Request $request запрос с куками смены
      * @param \App\Models\ProductsPlan $plan план по изготовлению
-     * @param int $position позиция плана, по которой его надо проверить
      * @return bool
      */
-    // public static function checkPlans(Request $request, ProductsPlan $plan): bool
-    // {
-    //     // Проверка, не ставим ли мы план первым
-    //     $check = ProductsPlan::whereHas('slot', function ($query) use ($plan) {
-    //         // var_dump($plan->slot);
-    //         $query->where('line_id', $plan->slot->line_id);
-    //     })
-    //         ->withSession($request)
-    //         ->where('plan_product_id', '!=', $plan->plan_product_id)
-    //         ->count();
-
-    //     if ($check == 0) {
-    //         return true;
-    //     }
-
-    //     // Проверка - залезаем ли мы началом новой ГП на окончание предыдущей
-    //     $topPlan = ProductsPlan::whereHas('slot', function ($query) use ($plan) {
-    //         $query->where('line_id', $plan->slot->line_id);
-    //     })
-    //         ->where('ended_at', '>=', $plan->started_at)
-    //         ->where('started_at', '<=', $plan->started_at)
-    //         ->where('plan_product_id', '!=', $plan->plan_product_id)
-    //         ->withSession($request)
-    //         ->orderBy('ended_at', 'DESC')
-    //         ->first();
-
-    //     // Проверка - залезаем ли мы концом новой ГП на начало следующей
-    //     $bottomPlan = ProductsPlan::whereHas('slot', function ($query) use ($plan) {
-    //         $query->where('line_id', $plan->slot->line_id);
-    //     })->where('started_at', '<', $plan->ended_at)
-    //         ->where('ended_at', '>=', $plan->ended_at)
-    //         ->where('plan_product_id', '!=', $plan->plan_product_id)
-    //         ->withSession($request)
-    //         ->orderBy('started_at', 'ASC')
-    //         ->first();
-
-    //     if ($topPlan || $bottomPlan) {
-    //         // Считаем сдвиги сверху и снизу
-    //         $topShift = $topPlan ?
-    //             round(Carbon::parse($plan->started_at)
-    //                 ->diffInMinutes(Carbon::parse($topPlan->ended_at))) : 0;
-    //         $bottomShift = $bottomPlan ?
-    //             round(Carbon::parse($bottomPlan->started_at)
-    //                 ->diffInMinutes(Carbon::parse($plan->ended_at))) : 0;
-
-    //         // var_dump("shifts for $plan->plan_product_id at line " . $plan->slot->line_id . ": t:$topShift, b:$bottomShift");
-
-    //         if ($topShift + $bottomShift != 0) {
-    //             // Флажок, выше или ниже плана текущая ГП
-    //             $passed = false;
-    //             // Двигаем верхние записи на $topSHift, а нижние - на $topShift + $bottomShift ????
-    //             ProductsPlan::whereHas('slot', function ($query) use ($plan) {
-    //                 $query->where('line_id', $plan->slot->line_id);
-    //             })
-    //                 ->withSession($request)
-    //                 ->orderBy('started_at', 'ASC')
-    //                 ->each(function ($l) use ($topShift, $bottomShift, &$passed, $plan) {
-    //                     if ($l->plan_product_id == $plan->plan_product_id) {
-    //                         $passed = true;
-    //                     }
-    //                     if (!$passed) {
-    //                         return;
-    //                     }
-    //                     $l->update([
-    //                         'started_at' => Carbon::parse($l->started_at)->addMinutes(
-    //                             $topShift + ($l->plan_product_id != $plan->plan_product_id ? $bottomShift : 0)
-    //                         ),
-    //                         'ended_at' => Carbon::parse($l->ended_at)->addMinutes(
-    //                             $topShift + ($l->plan_product_id != $plan->plan_product_id ? $bottomShift : 0)
-    //                         )
-    //                     ]);
-    //                     $l->save();
-    //                 });
-    //         }
-    //     }
-    //     // self::composePlans($plan);
-    //     return true;
-    // }
 
     public static function checkPlans(Request $request, ProductsPlan $plan): bool
     {
@@ -574,7 +499,6 @@ class ProductsPlanController extends Controller
     
             });
     }
-
     public function clear(Request $request)
     {
         ProductsPlan::withSession($request)->each(function ($plan) {

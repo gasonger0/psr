@@ -51,7 +51,14 @@ export const usePlansStore = defineStore("productsPlans", () => {
                 started_at: el.started_at.format(format),
                 ended_at: el.ended_at.format(format),
             }
-        }));
+        }), 
+    (r: AxiosResponse) => {
+        data.forEach((el: ProductPlan) => {
+            let slot = useProductsSlotsStore().getById(el.slot_id);
+            let line = useLinesStore().getByID(slot.line_id);
+            useLinesStore().updateVersion(line.line_id);
+        });      
+    });
     }
 
     async function _create(data: ProductPlan, packs: Array<number>) {
@@ -169,7 +176,7 @@ export const usePlansStore = defineStore("productsPlans", () => {
         return;
     }
     function removeLast(): void {
-        plans.value.splice(-1, 1);
+        plans.value.splice(plans.value.length-1, 1);
     }
     function serialize(plan: any) {
         plan.started_at = dayjs.default(plan.started_at),

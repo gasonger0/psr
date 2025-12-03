@@ -1,6 +1,7 @@
 <?php
 
 namespace App;
+use App\Models\Lines;
 use App\Models\ProductsDictionary;
 use App\Models\ProductsSlots;
 use Carbon\Carbon;
@@ -120,24 +121,37 @@ class Util
             // если  фас.телевизоры, то по штукам в ящике, иначе по ящикам
             $title = $slot->line->title;
             if (mb_strpos($title, "телевизор") === false) {
-                $amount = eval("return $amount * $product->amount2parts;");
+                $amount = eval ("return $amount * $product->amount2parts;");
             }
             return $slot->perfomance * $amount;
-        } 
-        return 
+        }
+        return
             eval ("return $product->parts2kg*$amount*$product->amount2parts;") /
             $slot->perfomance;
     }
 
-    public static function createDate(array $data, Request $request)
+    public static function createDate(array $data, Request $request, Lines $line)
     {
         $isDay = $request->attributes->get("isDay");
         $date = Carbon::createFromFormat('Y-m-d', $request->attributes->get('date'));
-        $stime = Carbon::createFromFormat('H:i', $data['started_at']);
-        $etime = Carbon::createFromFormat('H:i', $data['ended_at']);
+        switch ($line->type_id) {
+            case 1:
+                $stime = $isDay ? [7, 45, 0] : [18, 30, 0];
+                $etime = $isDay ? [18, 30, 0] : [5,30,0];
+                $data['started_at'] = $date->setTime(...$stime)->format('Y-m-d H:i:s');
+                $data['ended_at'] = $date->setTime(...$etime)->format('Y-m-d H:i:s');
+                break;
+            case 2:
+                $data['started_at'] = $date->setTime(8, 0, 0)->addHours($isDay ? 0 : 12)->format('Y-m-d H:i:s');
+                $data['ended_at'] = $date->setTime(20, 0, 0)->addHours($isDay ? 0 : 12)->format('Y-m-d H:i:s');
+                break;
+        }
 
-        $data['started_at'] = $date->setTime($stime->hour, $stime->minute, 0)->addHours($isDay ? 0 : 12)->format('Y-m-d H:i:s');
-        $data['ended_at'] = $date->setTime($etime->hour, $etime->minute, 0)->addHours($isDay ? 0 : 12)->format('Y-m-d H:i:s');
+        // $stime = Carbon::createFromFormat('H:i', $data['started_at']);
+        // $etime = Carbon::createFromFormat('H:i', $data['ended_at']);
+
+        // $data['started_at'] = $date->setTime($stime->hour, $stime->minute, 0)->addHours($isDay ? 0 : 12)->format('Y-m-d H:i:s');
+        // $data['ended_at'] = $date->setTime($etime->hour, $etime->minute, 0)->addHours($isDay ? 0 : 12)->format('Y-m-d H:i:s');
 
         return $data;
     }
