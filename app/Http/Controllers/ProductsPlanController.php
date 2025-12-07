@@ -58,8 +58,6 @@ class ProductsPlanController extends Controller
             $delay = $request->post('delay');
             // Продукция
             $product = ProductsDictionary::find($plan->slot->product_id);
-            // Сразу посчитаем, во сколько начнём упаковывать
-            $start = Carbon::parse($plan->started_at)->addMinutes($delay);
             // И объём
             $amount = $request->post('amount');
             $packsCheck = [];
@@ -70,6 +68,7 @@ class ProductsPlanController extends Controller
                 // 2. Если раньше конца варки, то не раньше конца варки + delay
                 // 3. Упаковка не позже обсыпки
                 // 4. Флоу паки должны без задержки начинаться
+                // 5. Обсыпка и упаковка через $delay минут, а глазировка и варка - юез задержки
                 $slot = ProductsSlots::find($p);
                 $duration = Util::calcDuration(
                     $product,
@@ -77,6 +76,11 @@ class ProductsPlanController extends Controller
                     $slot
                 );
 
+                $start = Carbon::parse($plan->started_at);
+                // Если варка или глазировка, добавляем задержку
+                if ($slot->type_id == 2 || $slot->type_id == 4) {
+                    $start->addMinutes($delay);
+                }
                 $ended_at = $start->copy();
                 $ended_at->addHours($duration)->addMinutes(15);
 
@@ -114,7 +118,7 @@ class ProductsPlanController extends Controller
             // Проверка, что упаковываем не раньше глазировки
             $glazPlans = ProductsPlan::where('parent', $plan->plan_product_id)
                 ->whereHas('slot', function ($query) {
-                    $query->whereIn('type_id', [3, 4]);
+                    $query->where('type_id', 3);
                 })->withSession($request)->get();
 
             if ($glazPlans->isNotEmpty()) {
@@ -178,8 +182,6 @@ class ProductsPlanController extends Controller
             $delay = $request->post('delay');
             // Продукция
             $product = ProductsDictionary::find($plan->slot->product_id);
-            // Сразу посчитаем, во сколько начнём упаковывать
-            $start = Carbon::parse($plan->started_at)->addMinutes($delay);
             // И объём
             $amount = $request->post('amount');
             $packsCheck = [];
@@ -202,6 +204,11 @@ class ProductsPlanController extends Controller
                     $slot
                 );
 
+                $start = Carbon::parse($plan->started_at);
+                // Если варка или глазировка, добавляем задержку
+                if ($slot->type_id == 2 || $slot->type_id == 4) {
+                    $start->addMinutes($delay);
+                }
                 $ended_at = $start->copy();
                 $ended_at->addHours($duration)->addMinutes(15);
 
@@ -247,7 +254,7 @@ class ProductsPlanController extends Controller
             // Проверка, что упаковываем не раньше глазировки
             $glazPlans = ProductsPlan::where('parent', $plan->plan_product_id)
                 ->whereHas('slot', function ($query) {
-                    $query->whereIn('type_id', [3, 4]);
+                    $query->where('type_id', 3);
                 })->withSession($request)->get();
 
             if ($glazPlans->isNotEmpty()) {
