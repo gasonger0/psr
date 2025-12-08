@@ -79,7 +79,7 @@ export const useProductsSlotsStore = defineStore('productsSlots', () => {
     }
     function getPack(product_id: number): ProductSlot[] {
         return slots.value.filter((el: ProductSlot) => el.product_id == product_id && (
-            el.type_id == 2 || el.type_id == 3 || el.type_id == 4
+            [2,3,4,5].indexOf(el.type_id) != -1 
         ))!;
 
     }

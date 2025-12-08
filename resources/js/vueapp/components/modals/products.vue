@@ -142,7 +142,7 @@ const exit = () => {
             <section style="width: 60%;" :key="slotsKey">
                 <Tabs v-model:activeKey="activeTab">
                     <TabPane v-for="(v, k) in productsTabs" :key="k" :tab="v">
-                        <template v-if="k == 5">
+                        <template v-if="k == 6">
                             <div style="display:flex; flex-direction: column; gap: 10px;">
                                 <div v-for="(v) in productsTableColumns[k]" style="display: flex;">
                                     <span style="width:20%;padding-right:5%;">{{ v.title }}</span>

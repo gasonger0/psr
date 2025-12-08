@@ -77,8 +77,8 @@ class ProductsPlanController extends Controller
                 );
 
                 $start = Carbon::parse($plan->started_at);
-                // Если варка или глазировка, добавляем задержку
-                if ($slot->type_id == 2 || $slot->type_id == 4) {
+                // Если варка или глазировка или опудривание, добавляем задержку
+                if ($slot->type_id == 2 || $slot->type_id == 4 || $slot->type_id == 5) {
                     $start->addMinutes($delay);
                 }
                 $ended_at = $start->copy();
@@ -206,7 +206,7 @@ class ProductsPlanController extends Controller
 
                 $start = Carbon::parse($plan->started_at);
                 // Если варка или глазировка, добавляем задержку
-                if ($slot->type_id == 2 || $slot->type_id == 4) {
+                if ($slot->type_id == 2 || $slot->type_id == 4 || $slot->type_id == 5) {
                     $start->addMinutes($delay);
                 }
                 $ended_at = $start->copy();
