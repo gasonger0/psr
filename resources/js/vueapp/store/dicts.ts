@@ -200,7 +200,24 @@ export const productsTableColumns = {
         dataIndex: 'perfomance',
         width: '10%'
     }],
-    5: [
+    5: [{
+        title: 'Действия',
+        dataIndex: 'actions',
+        width: '5%'
+    }, {
+        title: 'Линия',
+        dataIndex: 'line_id',
+        // width: '80%'
+    }, {
+        title: 'Кол-во сотрудников',
+        dataIndex: 'people_count',
+        width: '5%'
+    }, {
+        title: 'Кг в час',
+        dataIndex: 'perfomance',
+        width: '10%'
+    }],
+    6: [
         { title: 'Штук в Ящике:', dataIndex: 'amount2parts', addon: '' },
         { title: 'Штуки в Кг:', dataIndex: 'parts2kg', addon: 'Шт ×' },
         { title: 'Кг в Варки:', dataIndex: 'kg2boil', addon: 'Кг ×' },
