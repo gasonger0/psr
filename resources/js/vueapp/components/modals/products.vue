@@ -39,11 +39,13 @@ const handleProductSelect = async (key: number) => {
         1: [],
         2: [],
         3: [],
-        4: []
+        4: [],
+        5: []
     };
 
     if (sls != null) {
         sls.forEach((el: ProductSlot) => {
+            // console.log(el);
             slots.value[el.type_id].push(el);
         });
     }
