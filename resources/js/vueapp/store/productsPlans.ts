@@ -134,8 +134,10 @@ export const usePlansStore = defineStore("productsPlans", () => {
             (el: ProductSlot) => { return el.product_slot_id }
         );
         let ps = plans.value.filter((plan: ProductPlan) => slots.includes(plan.slot_id));
+        console.log("getByLines:", ps);
         return ps.length > 0 ? ps.sort(
             (a, b) => {
+                console.log("dates:", a, a.started_at, b, b.started_at)
                 return a.started_at.unix() - b.started_at.unix()
             }) : [];
     }
