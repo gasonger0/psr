@@ -78,7 +78,7 @@ class ProductsPlanController extends Controller
 
                 $start = Carbon::parse($plan->started_at);
                 // Если варка или глазировка или опудривание, добавляем задержку
-                if ($slot->type_id == 2 || $slot->type_id == 4 || $slot->type_id == 5) {
+                if ($slot->type_id == 2 || $slot->type_id == 5 || $slot->type_id == 3) {
                     $start->addMinutes($delay);
                 }
                 $ended_at = $start->copy();
@@ -206,7 +206,7 @@ class ProductsPlanController extends Controller
 
                 $start = Carbon::parse($plan->started_at);
                 // Если варка или глазировка, добавляем задержку
-                if ($slot->type_id == 2 || $slot->type_id == 4 || $slot->type_id == 5) {
+                if ($slot->type_id == 2 || $slot->type_id == 5 || $slot->type_id == 3) {
                     $start->addMinutes($delay);
                 }
                 $ended_at = $start->copy();
@@ -343,6 +343,8 @@ class ProductsPlanController extends Controller
             return self::plansOverlap($existingPlan, $plan);
         });
 
+        // var_dump(count($allPlans), count($conflictingPlans));
+
         if ($conflictingPlans->isEmpty()) {
             return true;
         }
@@ -355,7 +357,7 @@ class ProductsPlanController extends Controller
 
             // Если сдвиг отрицательный - значит план начинается ДО окончания конфликтного
             if ($shift < 0) {
-                $shift = abs($shift) + 1; // +1 минута зазор
+                $shift = abs($shift); // TODO ?? +1 минута зазор
                 $maxShift = max($maxShift, $shift);
             }
         }
@@ -375,7 +377,7 @@ class ProductsPlanController extends Controller
         $start2 = Carbon::parse($plan2->started_at);
         $end2 = Carbon::parse($plan2->ended_at);
 
-        return $start1 < $end2 && $end1 > $start2;
+        return $start1 <= $end2 && $end1 >= $start2;
     }
 
     // Сдвиг планов
@@ -384,6 +386,7 @@ class ProductsPlanController extends Controller
         $plansToShift = ProductsPlan::whereHas('slot', function ($query) use ($lineId) {
             $query->where('line_id', $lineId);
         })
+            ->where('plan_product_id', '!=', $currentPlan->plan_product_id)
             ->withSession($request)
             ->where('started_at', '>=', $currentPlan->started_at)
             ->orderBy('started_at', 'ASC')
