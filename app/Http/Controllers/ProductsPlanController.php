@@ -324,12 +324,14 @@ class ProductsPlanController extends Controller
      * @param \App\Models\ProductsPlan $plan план по изготовлению
      * @return bool
      */
-
+    /**
+     * Проверка планов на коллизию и автоматический сдвиг
+     */
     public static function checkPlans(Request $request, ProductsPlan $plan): bool
     {
         $lineId = $plan->slot->line_id;
 
-        // Получаем ВСЕ планы на этой линии (с учетом сессии)
+        // Все планы на линии (кроме текущего)
         $allPlans = ProductsPlan::whereHas('slot', function ($query) use ($lineId) {
             $query->where('line_id', $lineId);
         })
@@ -338,49 +340,93 @@ class ProductsPlanController extends Controller
             ->orderBy('started_at', 'ASC')
             ->get();
 
-        // Находим пересекающиеся планы
+        // Планы, пересекающиеся с текущим
         $conflictingPlans = $allPlans->filter(function ($existingPlan) use ($plan) {
             return self::plansOverlap($existingPlan, $plan);
         });
-
-        // var_dump(count($allPlans), count($conflictingPlans));
 
         if ($conflictingPlans->isEmpty()) {
             return true;
         }
 
-        // Вычисляем необходимый сдвиг
-        $maxShift = 0;
-        foreach ($conflictingPlans as $conflict) {
-            $shift = Carbon::parse($conflict->ended_at)
-                ->diffInMinutes(Carbon::parse($plan->started_at));
+        // Разделяем конфликтующие планы на те, что начинаются ДО и ПОСЛЕ начала нового плана
+        $planStart = Carbon::parse($plan->started_at);
+        $earlyPlans = $conflictingPlans->filter(function ($conflict) use ($planStart) {
+            return Carbon::parse($conflict->started_at) < $planStart;
+        });
+        $latePlans = $conflictingPlans->filter(function ($conflict) use ($planStart) {
+            return Carbon::parse($conflict->started_at) >= $planStart;
+        });
 
-            // Если сдвиг отрицательный - значит план начинается ДО окончания конфликтного
-            if ($shift < 0) {
-                $shift = abs($shift); // TODO ?? +1 минута зазор
-                $maxShift = max($maxShift, $shift);
+        // 1. Обработка ранних планов: сдвигаем НОВЫЙ план вперёд
+        if ($earlyPlans->isNotEmpty()) {
+            // Максимальное окончание среди ранних планов
+            $maxEarlyEnd = $earlyPlans->max(function ($conflict) {
+                return Carbon::parse($conflict->ended_at);
+            });
+
+            // Если новый план начинается раньше этого окончания – сдвигаем его
+            if ($planStart < $maxEarlyEnd) {
+                // Необходимый сдвиг (добавляем 1 минуту зазора)
+                $shiftMinutes = $maxEarlyEnd->diffInMinutes($planStart, false) * (-1) + 1;
+
+                $newStartedAt = $maxEarlyEnd->copy()->addMinute();
+                $newEndedAt = Carbon::parse($plan->ended_at)->addMinutes($shiftMinutes);
+
+                $plan->update([
+                    'started_at' => $newStartedAt,
+                    'ended_at' => $newEndedAt,
+                ]);
+
+                // После сдвига нового плана нужно повторно проверить пересечения
+                // (теперь они могут быть только с поздними планами)
+                return self::checkPlans($request, $plan);
             }
         }
 
-        if ($maxShift > 0) {
-            self::shiftPlans($request, $lineId, $plan, $maxShift);
+        // 2. Обработка поздних планов: сдвигаем ИХ вперёд
+        if ($latePlans->isNotEmpty()) {
+            // Вычисляем максимальное пересечение с любым из поздних планов
+            $maxOverlap = 0;
+            foreach ($latePlans as $latePlan) {
+                $overlap = self::calculateOverlap($plan, $latePlan);
+                $maxOverlap = max($maxOverlap, $overlap);
+            }
+
+            if ($maxOverlap > 0) {
+                // Добавляем зазор
+                $shiftMinutes = $maxOverlap + 1;
+                self::shiftPlans($request, $lineId, $plan, $shiftMinutes);
+            }
         }
 
         return true;
     }
 
-    // Проверка пересечения двух планов
-    private static function plansOverlap(ProductsPlan $plan1, ProductsPlan $plan2): bool
+    /**
+     * Вычисление длительности пересечения двух планов (в минутах)
+     */
+    private static function calculateOverlap(ProductsPlan $plan1, ProductsPlan $plan2): int
     {
         $start1 = Carbon::parse($plan1->started_at);
         $end1 = Carbon::parse($plan1->ended_at);
         $start2 = Carbon::parse($plan2->started_at);
         $end2 = Carbon::parse($plan2->ended_at);
 
-        return $start1 <= $end2 && $end1 >= $start2;
+        $overlapStart = max($start1, $start2);
+        $overlapEnd = min($end1, $end2);
+
+        if ($overlapStart < $overlapEnd) {
+            return $overlapEnd->diffInMinutes($overlapStart);
+        }
+
+        return 0;
     }
 
-    // Сдвиг планов
+    /**
+     * Сдвиг всех планов, которые начинаются НЕ РАНЬЕ текущего плана,
+     * на указанное количество минут.
+     */
     private static function shiftPlans(Request $request, int $lineId, ProductsPlan $currentPlan, int $shiftMinutes): void
     {
         $plansToShift = ProductsPlan::whereHas('slot', function ($query) use ($lineId) {
@@ -395,9 +441,22 @@ class ProductsPlanController extends Controller
         foreach ($plansToShift as $plan) {
             $plan->update([
                 'started_at' => Carbon::parse($plan->started_at)->addMinutes($shiftMinutes),
-                'ended_at' => Carbon::parse($plan->ended_at)->addMinutes($shiftMinutes)
+                'ended_at' => Carbon::parse($plan->ended_at)->addMinutes($shiftMinutes),
             ]);
         }
+    }
+
+    /**
+     * Проверка пересечения двух планов (старая версия остаётся без изменений)
+     */
+    private static function plansOverlap(ProductsPlan $plan1, ProductsPlan $plan2): bool
+    {
+        $start1 = Carbon::parse($plan1->started_at);
+        $end1 = Carbon::parse($plan1->ended_at);
+        $start2 = Carbon::parse($plan2->started_at);
+        $end2 = Carbon::parse($plan2->ended_at);
+
+        return $start1 <= $end2 && $end1 >= $start2;
     }
 
     /**
