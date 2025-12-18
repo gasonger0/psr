@@ -329,53 +329,143 @@ class ProductsPlanController extends Controller
     {
         $lineId = $plan->slot->line_id;
 
-        // Получаем ВСЕ планы на этой линии (с учетом сессии)
+        // Получаем ВСЕ планы на линии в порядке начала
         $allPlans = ProductsPlan::whereHas('slot', function ($query) use ($lineId) {
             $query->where('line_id', $lineId);
         })
             ->withSession($request)
-            ->where('plan_product_id', '!=', $plan->plan_product_id)
             ->orderBy('started_at', 'ASC')
             ->get();
 
-        // Находим пересекающиеся планы
-        $conflictingPlans = $allPlans->filter(function ($existingPlan) use ($plan) {
-            return self::plansOverlap($existingPlan, $plan);
-        });
+        // Определяем, где должен стоять наш план
+        $planStart = Carbon::parse($plan->started_at);
+        $planDuration = Carbon::parse($plan->ended_at)->diffInMinutes($planStart);
 
-        if ($conflictingPlans->isEmpty()) {
-            return true;
+        // Находим подходящее место для плана
+        $currentTime = null;
+        $gapFound = false;
+
+        // Проходим по всем планам и ищем свободное место
+        foreach ($allPlans as $existingPlan) {
+            if ($existingPlan->plan_product_id == $plan->plan_product_id) {
+                continue; // Пропускаем сам план (если он уже есть)
+            }
+
+            $existingStart = Carbon::parse($existingPlan->started_at);
+            $existingEnd = Carbon::parse($existingPlan->ended_at);
+
+            // Если это первый план, ищем начало рабочего дня
+            if ($currentTime === null) {
+                // Получаем время начала работы линии
+                $lineExtra = LinesExtra::where('line_id', $lineId)
+                    ->withSession($request)
+                    ->first();
+                $currentTime = Carbon::parse($lineExtra->started_at ?? '00:00');
+            }
+
+            // Проверяем, поместится ли план ДО текущего существующего плана
+            if (!$gapFound && $planStart <= $existingStart) {
+                // План должен быть вставлен ДО этого существующего плана
+                $requiredEnd = $currentTime->copy()->addMinutes($planDuration);
+
+                // Если помещается до существующего плана
+                if ($requiredEnd <= $existingStart) {
+                    // Устанавливаем план на найденное место
+                    $plan->update([
+                        'started_at' => $currentTime,
+                        'ended_at' => $requiredEnd,
+                    ]);
+                    $gapFound = true;
+                    break;
+                }
+            }
+
+            // Перемещаем текущее время после этого плана
+            $currentTime = max($currentTime, $existingEnd);
         }
 
-        // Вычисляем необходимый сдвиг
-        $maxShift = 0;
-        foreach ($conflictingPlans as $conflict) {
-            $shift = Carbon::parse($conflict->ended_at)
-                ->diffInMinutes(Carbon::parse($plan->started_at));
+        // Если не нашли места до какого-либо плана, ставим в конец
+        if (!$gapFound) {
+            if ($currentTime === null) {
+                // Первый план на линии
+                $lineExtra = LinesExtra::where('line_id', $lineId)
+                    ->withSession($request)
+                    ->first();
+                $currentTime = Carbon::parse($lineExtra->started_at ?? '00:00');
+            }
 
-            // Если сдвиг отрицательный - значит план начинается ДО окончания конфликтного
-            if ($shift < 0) {
-                $shift = abs($shift) + 1; // +1 минута зазор
-                $maxShift = max($maxShift, $shift);
+            $newStartedAt = $currentTime;
+            $newEndedAt = $currentTime->copy()->addMinutes($planDuration);
+
+            $plan->update([
+                'started_at' => $newStartedAt,
+                'ended_at' => $newEndedAt,
+            ]);
+
+            // Теперь нужно сдвинуть все последующие планы
+            $shiftDuration = $planDuration;
+            self::shiftPlans($request, $lineId, $plan, 0); // Сдвиг не нужен, план уже на своем месте
+        }
+
+        // После размещения плана проверяем и устраняем пересечения
+        return self::resolveAllOverlaps($request, $lineId);
+    }
+
+    private static function resolveAllOverlaps(Request $request, int $lineId): bool
+    {
+        // Получаем все планы на линии
+        $allPlans = ProductsPlan::whereHas('slot', function ($query) use ($lineId) {
+            $query->where('line_id', $lineId);
+        })
+            ->withSession($request)
+            ->orderBy('started_at', 'ASC')
+            ->get();
+
+        $hasOverlaps = true;
+        $maxIterations = 10; // Защита от бесконечного цикла
+
+        while ($hasOverlaps && $maxIterations-- > 0) {
+            $hasOverlaps = false;
+
+            for ($i = 0; $i < count($allPlans) - 1; $i++) {
+                $current = $allPlans[$i];
+                $next = $allPlans[$i + 1];
+
+                $currentEnd = Carbon::parse($current->ended_at);
+                $nextStart = Carbon::parse($next->started_at);
+
+                // Если есть пересечение или планы впритык
+                if ($currentEnd > $nextStart) {
+                    $hasOverlaps = true;
+                    $overlapMinutes = $currentEnd->diffInMinutes($nextStart, false);
+
+                    if ($overlapMinutes > 0) {
+                        // Сдвигаем все последующие планы
+                        $shiftMinutes = $overlapMinutes + 1; // +1 минута зазора
+
+                        for ($j = $i + 1; $j < count($allPlans); $j++) {
+                            $planToShift = $allPlans[$j];
+                            $planToShift->update([
+                                'started_at' => Carbon::parse($planToShift->started_at)->addMinutes($shiftMinutes),
+                                'ended_at' => Carbon::parse($planToShift->ended_at)->addMinutes($shiftMinutes),
+                            ]);
+                        }
+
+                        // Обновляем коллекцию после сдвига
+                        $allPlans = ProductsPlan::whereHas('slot', function ($query) use ($lineId) {
+                            $query->where('line_id', $lineId);
+                        })
+                            ->withSession($request)
+                            ->orderBy('started_at', 'ASC')
+                            ->get();
+
+                        break; // Выходим из цикла и начинаем заново
+                    }
+                }
             }
         }
 
-        if ($maxShift > 0) {
-            self::shiftPlans($request, $lineId, $plan, $maxShift);
-        }
-
         return true;
-    }
-
-    // Проверка пересечения двух планов
-    private static function plansOverlap(ProductsPlan $plan1, ProductsPlan $plan2): bool
-    {
-        $start1 = Carbon::parse($plan1->started_at);
-        $end1 = Carbon::parse($plan1->ended_at);
-        $start2 = Carbon::parse($plan2->started_at);
-        $end2 = Carbon::parse($plan2->ended_at);
-
-        return $start1 < $end2 && $end1 > $start2;
     }
 
     // Сдвиг планов
