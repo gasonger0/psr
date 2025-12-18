@@ -78,7 +78,7 @@ class ProductsPlanController extends Controller
 
                 $start = Carbon::parse($plan->started_at);
                 // Если варка или глазировка или опудривание, добавляем задержку
-                if ($slot->type_id == 2 || $slot->type_id == 4 || $slot->type_id == 5) {
+                if ($slot->type_id == 2 || $slot->type_id == 5 || $slot->type_id == 3) {
                     $start->addMinutes($delay);
                 }
                 $ended_at = $start->copy();
@@ -206,7 +206,7 @@ class ProductsPlanController extends Controller
 
                 $start = Carbon::parse($plan->started_at);
                 // Если варка или глазировка, добавляем задержку
-                if ($slot->type_id == 2 || $slot->type_id == 4 || $slot->type_id == 5) {
+                if ($slot->type_id == 2 || $slot->type_id == 5 || $slot->type_id == 3) {
                     $start->addMinutes($delay);
                 }
                 $ended_at = $start->copy();
@@ -324,7 +324,9 @@ class ProductsPlanController extends Controller
      * @param \App\Models\ProductsPlan $plan план по изготовлению
      * @return bool
      */
-
+    /**
+     * Проверка планов на коллизию и автоматический сдвиг
+     */
     public static function checkPlans(Request $request, ProductsPlan $plan): bool
     {
         $lineId = $plan->slot->line_id;
@@ -468,12 +470,16 @@ class ProductsPlanController extends Controller
         return true;
     }
 
-    // Сдвиг планов
+    /**
+     * Сдвиг всех планов, которые начинаются НЕ РАНЬЕ текущего плана,
+     * на указанное количество минут.
+     */
     private static function shiftPlans(Request $request, int $lineId, ProductsPlan $currentPlan, int $shiftMinutes): void
     {
         $plansToShift = ProductsPlan::whereHas('slot', function ($query) use ($lineId) {
             $query->where('line_id', $lineId);
         })
+            ->where('plan_product_id', '!=', $currentPlan->plan_product_id)
             ->withSession($request)
             ->where('started_at', '>=', $currentPlan->started_at)
             ->orderBy('started_at', 'ASC')
@@ -482,9 +488,22 @@ class ProductsPlanController extends Controller
         foreach ($plansToShift as $plan) {
             $plan->update([
                 'started_at' => Carbon::parse($plan->started_at)->addMinutes($shiftMinutes),
-                'ended_at' => Carbon::parse($plan->ended_at)->addMinutes($shiftMinutes)
+                'ended_at' => Carbon::parse($plan->ended_at)->addMinutes($shiftMinutes),
             ]);
         }
+    }
+
+    /**
+     * Проверка пересечения двух планов (старая версия остаётся без изменений)
+     */
+    private static function plansOverlap(ProductsPlan $plan1, ProductsPlan $plan2): bool
+    {
+        $start1 = Carbon::parse($plan1->started_at);
+        $end1 = Carbon::parse($plan1->ended_at);
+        $start2 = Carbon::parse($plan2->started_at);
+        $end2 = Carbon::parse($plan2->ended_at);
+
+        return $start1 <= $end2 && $end1 >= $start2;
     }
 
     /**
