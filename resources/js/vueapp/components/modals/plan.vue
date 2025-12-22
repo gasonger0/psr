@@ -225,7 +225,11 @@ onUpdated(async () => {
     );
     getPackOptions();
     line.value = { ...linesStore.getByID(slot.value.line_id) };
-    handleHardware();
+    if (slot.value.hardware > 0) {
+        hardware.value = slot.value.hardware;
+        handleHardware();
+    }
+    // handleHardware();
     if (props.data.plan_product_id) {
         // Редактирование, надо упаковки копировать
         packs.value = plansStore.plans.filter(el => el.parent == props.data.plan_product_id).map(i => i.slot_id);
