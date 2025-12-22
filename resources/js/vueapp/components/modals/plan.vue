@@ -82,6 +82,9 @@ const changeTime = () => {
 
 };
 const handleHardware = () => {
+    if (!slot.value) {
+        return;
+    }
     selection.value = [];
 
     // Ищем новый слот с таким оборудованием и линией 
@@ -112,6 +115,7 @@ const handleHardware = () => {
     } else {
         slot.value = newSlot[0];
     }
+    console.log(slot.value);
     perfomance.value = newSlot[0].perfomance;
 
     // Коррекция производительности для упаковки на ЗМ
@@ -129,6 +133,10 @@ const handleSelection = () => {
 }
 
 const time = computed(() => {
+    console.log(props.data.amount,
+        eval(product.value.amount2parts),
+        eval(product.value.parts2kg),
+        perfomance.value)
     return props.data.amount *
         eval(product.value.amount2parts) *
         eval(product.value.parts2kg) /
@@ -200,6 +208,11 @@ const prepareClose = () => {
         hardware.value = null;
 }
 
+watch(hardware,
+    () =>  handleHardware(),
+    {deep: true}
+)
+
 onUpdated(async () => {
     if (!props.data || (slot.value && slot.value.product_slot_id == props.data.slot_id)) {
         return;
@@ -225,7 +238,7 @@ onUpdated(async () => {
     );
     getPackOptions();
     line.value = { ...linesStore.getByID(slot.value.line_id) };
-    handleHardware();
+    hardware.value = slot.value.hardware;
     if (props.data.plan_product_id) {
         // Редактирование, надо упаковки копировать
         packs.value = plansStore.plans.filter(el => el.parent == props.data.plan_product_id).map(i => i.slot_id);
@@ -235,6 +248,9 @@ onUpdated(async () => {
     }
     if (packs.value) {
         showPack.value = true;
+    }
+    if (!perfomance) {
+        handleHardware();
     }
 
 });

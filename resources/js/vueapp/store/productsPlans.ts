@@ -111,8 +111,15 @@ export const usePlansStore = defineStore("productsPlans", () => {
         await deleteRequest('/api/plans/clear', {},
             (r: AxiosResponse) => {
                 plans.value = [];
+                const updates: any[] = r.data;
                 useLinesStore().lines.forEach((el: LineInfo) => {
                     el.has_plans = false;
+                    let index = updates.find(l => l.line_id == el.line_id);
+                    if (index >= 0) {
+                        let d = updates[index];
+                        el.work_time.started_at = dayjs.default(d.started_at);
+                        el.work_time.ended_at = dayjs.default(d.ended_at);
+                    }
                 });
             }
         )

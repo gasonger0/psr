@@ -339,6 +339,10 @@ class ProductsPlanController extends Controller
             ->orderBy('started_at', 'ASC')
             ->get();
 
+        if (count($allPlans) == 1) {
+            return true;
+        }
+
         // Определяем, где должен стоять наш план
         $planStart = Carbon::parse($plan->started_at);
         $planDuration = Carbon::parse($plan->ended_at)->diffInMinutes($planStart);
@@ -620,5 +624,20 @@ class ProductsPlanController extends Controller
         ProductsPlan::withSession($request)->each(function ($plan) {
             $plan->delete();
         });
+        $lines = [];
+        LinesExtra::withSession($request)->each(function($line) use ($request, &$lines) {
+            $default = Util::getDefaults($line->line_id);
+            $default ? $default = Util::createDate($default, $request, $line->lines) : '';
+            if ($default) {
+                $line->update([
+                    'started_at' => $default['started_at'],
+                    'ended_at' => $default['ended_at']
+                ]);
+            }
+            $default['line_id'] = $line->line_id;
+            $lines[] = $default;
+        });
+        
+        return Response($lines, 200);
     }
 }
