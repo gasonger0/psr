@@ -5,334 +5,722 @@ import { useModalsStore } from '@/store/modal';
 import { ProductInfo, useProductsStore } from '@/store/products';
 import { ProductPlan, usePlansStore } from '@/store/productsPlans';
 import { ProductSlot, useProductsSlotsStore } from '@/store/productsSlots';
-import { CheckboxGroup, Checkbox, Modal, RadioGroup, RadioButton, InputNumber, TimePicker, Tooltip, Radio, RadioChangeEvent } from 'ant-design-vue';
+import {
+    Button,
+    CheckboxGroup,
+    Checkbox,
+    Modal,
+    RadioGroup,
+    RadioButton,
+    InputNumber,
+    TimePicker,
+    Tooltip,
+    Alert,
+    Spin
+} from 'ant-design-vue';
 import { CheckboxOptionType, CheckboxValueType } from 'ant-design-vue/es/checkbox/interface';
-import { computed, onBeforeMount, onUpdated, ref, Ref, watch } from 'vue';
+import { computed, ref, watch, onUnmounted, nextTick, reactive, toRefs } from 'vue';
+import dayjs from 'dayjs';
 
-const props = defineProps({
-    data: {
-        type: Object as () => ProductPlan
-    }
-})
+interface ModalState {
+    slot: ProductSlot | null;
+    product: ProductInfo | null;
+    line: LineInfo | null;
+    packOptions: CheckboxOptionType[];
+    packs: CheckboxValueType[];
+    // TODO: если по МТ согласуют, то это можно нахер убирать
+    selection: ProductSlot[];
+    selRadioValue: number | null;
+    showPack: boolean;
+    colon: any;
+    hardware: number | null;
+    slots: ProductSlot[];
+    perfomance: number;
+    isLoading: boolean;
+    error: string | null;
+    isInitialized: boolean;
+}
+
+const props = defineProps<{
+    data: ProductPlan | null;
+}>();
+
+const emit = defineEmits<{
+    save: [];
+    cancel: [];
+}>();
+
+// Stores
 const modal = useModalsStore();
 const slotsStore = useProductsSlotsStore();
 const productsStore = useProductsStore();
 const plansStore = usePlansStore();
 const linesStore = useLinesStore();
 
-/** 
- * Активный слот 
- * */
-const slot: Ref<ProductSlot> = ref();
-/**
- * Активный продукт
- */
-const product: Ref<ProductInfo> = ref();
-/**
- * Активная линия
- */
-const line: Ref<LineInfo> = ref();
-/**
- * Опции упаквки
- */
-const packOptions: Ref<CheckboxOptionType[]> = ref([]);
-/**
- * Выбранные слоты упаковки ГП
- */
-const packs: Ref<CheckboxValueType[]> = ref([]);
-/**
- * Вариации с одним оборудованием, но разной производительностью
- */
-const selection: Ref<ProductSlot[]> = ref([]);
-/**
- * Выбранная производительность из вариаций
- */
-const selRadioValue: Ref<number | null> = ref();
-/**
- * Показывать/скрывать упаковку
- */
-const showPack: Ref<boolean> = ref(false);
-/**
- * Выбранная колонка варки
- */
-const colon = ref();
-/**
- * Выбранное оборудование
- */
-const hardware: Ref<number | null> = ref(null);
-/**
- * Все слоты по данной линии и типу
- */
-const slots: Ref<ProductSlot[]> = ref([]);
+// State
+const state = reactive<ModalState>({
+    slot: null,
+    product: null,
+    line: null,
+    packOptions: [],
+    packs: [],
+    selection: [],
+    selRadioValue: null,
+    showPack: false,
+    colon: 1,
+    hardware: null,
+    slots: [],
+    perfomance: 0,
+    isLoading: false,
+    error: null,
+    isInitialized: false
+});
 
-const perfomance: Ref<number> = ref(0);
+// Local refs for form
+const localPlanData = ref<ProductPlan | null>(null);
+const abortController = ref<AbortController | null>(null);
 
+// Computed properties
+const time = computed(() => {
+    if (!localPlanData.value?.amount || !state.product || !state.perfomance) return 0;
+
+    return localPlanData.value.amount *
+        eval(state.product.amount2parts) *
+        eval(state.product.parts2kg) /
+        state.perfomance;
+});
+
+const boils = computed(() => {
+    if (!localPlanData.value?.amount || !state.product) return '0.00';
+
+    return (localPlanData.value.amount *
+        eval(state.product.kg2boil) *
+        eval(state.product.amount2parts) *
+        eval(state.product.parts2kg)
+    ).toFixed(2);
+});
+
+const showError = computed(() => {
+    if (!localPlanData.value || !state.line) return null;
+
+    const show = localPlanData.value.ended_at > state.line.work_time.ended_at;
+    if (show) {
+        return {
+            type: 'warning' as const,
+            message: 'ВНИМАНИЕ! Продукция будет изготавливаться дольше, чем работает линия!',
+            description: 'Скорректируйте объём изготовления продукции или время работы линии'
+        };
+    }
+    return null;
+});
+
+const timeWarning = computed(() => {
+    if (!time.value) return null;
+
+    if (time.value >= 24) {
+        return {
+            type: 'warning' as const,
+            message: 'ВНИМАНИЕ! Данная продукция будет изготавливаться больше суток!'
+        };
+    }
+    return null;
+});
+
+// Methods
 const changeTime = () => {
-    console.log("before edit:", props.data.started_at);
-    if (!props.data.started_at) {
-        return;
-    }
-    props.data.ended_at = props.data.started_at
-        .add(time.value, 'hour')
-        .add(slot.value.type_id == 1 ? 10 : 15, 'minute');
-    console.log("after edit:", props.data.started_at);
-    
-    // props.data.ended_at = props.data.started_at.add(time.value, 'hour');
-    // props.data.ended_at = props.data.ended_at.add(slot.value.type_id == 1 ? 10 : 15, 'minute');
+    if (!localPlanData.value?.started_at || !state.slot) return;
 
+    const startTime = dayjs(localPlanData.value.started_at);
+    if (!startTime.isValid()) return;
+
+    // Вычисляем время окончания
+    const hoursToAdd = time.value || 0;
+    const minutesToAdd = state.slot.type_id === 1 ? 10 : 15;
+
+    const newEndTime = startTime
+        .add(hoursToAdd, 'hour')
+        .add(minutesToAdd, 'minute');
+
+    if (localPlanData.value) {
+        localPlanData.value.ended_at = newEndTime;
+    }
 };
-const handleHardware = () => {
-    if (!slot.value) {
-        return;
-    }
-    selection.value = [];
 
-    // Ищем новый слот с таким оборудованием и линией 
-    let newSlot = slots.value.filter((n: ProductSlot) =>
-        n.hardware == hardware.value
+const handleHardware = () => {
+    // if (!state.slots.length || state.hardware === null) return;
+
+    state.selection = [];
+
+    // Ищем слоты с указанным оборудованием
+    let newSlots = state.slots.filter((slot: ProductSlot) =>
+        slot.hardware === state.hardware
     );
-    // Если такого нет, берём тот, что без оборудования
-    if (!newSlot) {
-        newSlot = slots.value.filter((n: ProductSlot) =>
-            n.hardware == null
+
+    // Если не нашли, берем без оборудования
+    if (newSlots.length === 0) {
+        newSlots = state.slots.filter((slot: ProductSlot) =>
+            slot.hardware === null
         );
     }
-    if (newSlot.length == 0) {
-        perfomance.value = slot.value.perfomance;
-        // Коррекция производительности для упаковки на ЗМ
-        let perf = [4, 5].includes(hardware.value) ? 143.5 : 287;
-        if (perf && slot.value.type_id == 2) {
-            perfomance.value += perf;
+
+    console.log('New slot for hardware', newSlots)
+
+    if (newSlots.length === 0) {
+        if (state.slot) {
+            state.perfomance = state.slot.perfomance;
         }
+
+        // Коррекция производительности для упаковки на ЗМ
+        if (state.slot?.type_id === 2) {
+                   // Без Завёрток должно быть как у слота по умолчанию
+            console.log("no new slots. Default slot is:", state.slot);
+
+            if ([4, 5, 6].includes(state.hardware!)) {
+                const perf = state.hardware === 4 || state.hardware === 5 ? 143.5 : 287;
+                state.perfomance += perf;
+            }
+        }
+
+        changeTime();
         return;
     }
 
-    // Если подходящих слотов несколько, даём пользователю выбрать производительность
-    if (newSlot.length > 1) {
-        selection.value = newSlot;
-        selRadioValue.value = newSlot[0].product_slot_id;
-        slot.value = newSlot[0];
+    // Если несколько слотов, предлагаем выбрать
+    if (newSlots.length > 1) {
+        state.selection = newSlots;
+        state.selRadioValue = newSlots[0].product_slot_id;
+        state.slot = { ...newSlots[0] };
     } else {
-        slot.value = newSlot[0];
+        state.slot = { ...newSlots[0] };
     }
-    console.log(slot.value);
-    perfomance.value = newSlot[0].perfomance;
+
+    state.perfomance = newSlots[0].perfomance;
 
     // Коррекция производительности для упаковки на ЗМ
-    let perf = [4, 5].includes(hardware.value) ? 143.5 : 287;
-    if (perf && newSlot[0].type_id == 2) {
-        perfomance.value += perf;
+    if ([4, 5, 6].includes(state.hardware!) && newSlots[0].type_id === 2) {
+        const perf = state.hardware === 4 || state.hardware === 5 ? 143.5 : 287;
+        state.perfomance += perf;
     }
+    console.log(state.perfomance);
+
     changeTime();
 };
 
 const handleSelection = () => {
-    let sl = selection.value[selRadioValue.value];
-    perfomance.value = sl.perfomance;
-    changeTime();
-}
+    if (!state.selection.length || state.selRadioValue === null) return;
 
-const time = computed(() => {
-    console.log(props.data.amount,
-        eval(product.value.amount2parts),
-        eval(product.value.parts2kg),
-        perfomance.value)
-    return props.data.amount *
-        eval(product.value.amount2parts) *
-        eval(product.value.parts2kg) /
-        perfomance.value;  // Время в часах
-});
-const boils = computed(() => {
-    return (props.data.amount *
-        eval(product.value.kg2boil) *
-        eval(product.value.amount2parts) *
-        eval(product.value.parts2kg)
-    ).toFixed(2);
-});
-const showError = computed(() => {
-    let show = props.data.ended_at > line.value.work_time.ended_at;
-    if (show) {
-        return `
-            ВНИМАНИЕ! Продукция будет изготавливаться дольше, чем работает линия!
-            \n
-            Скорректируте объём изготовления продукции или время работы линии`;
+    const selectedSlot = state.selection.find(
+        slot => slot.product_slot_id === state.selRadioValue
+    );
+
+    if (selectedSlot) {
+        state.slot = { ...selectedSlot };
+        state.perfomance = selectedSlot.perfomance;
+        changeTime();
     }
-})
-const getPackOptions = () => {
-    packOptions.value = slotsStore.getPack(product.value.product_id).map((el: ProductSlot) => {
-        let slot = slotsStore.getById(el.product_slot_id);
-        return {
-            label: `<${productsTabs[slot.type_id]}> ${linesStore.getByID(el.line_id).title} (${el.perfomance} кг/ч)`,
-            value: el.product_slot_id
-        } as CheckboxOptionType;
-    }).filter(el => el.value != slot.value.product_slot_id);
-}
-const addPlan = async () => {
-    let p = [];
-    if (showPack) {
-        for (let i in packs.value) {
-            p.push(packs.value[i]);
+};
+
+const getPackOptions = async () => {
+    if (!state.product) return;
+
+    try {
+        const packSlots = slotsStore.getPack(state.product.product_id);
+        state.packOptions = packSlots
+            .map((el: ProductSlot) => {
+                const slot = slotsStore.getById(el.product_slot_id);
+                const line = linesStore.getByID(el.line_id);
+                return {
+                    label: `<${productsTabs[slot.type_id]}> ${line?.title || ''} (${el.perfomance} кг/ч)`,
+                    value: el.product_slot_id
+                } as CheckboxOptionType;
+            })
+            .filter(el => state.slot && el.value !== state.slot.product_slot_id);
+    } catch (error) {
+        console.error('Error getting pack options:', error);
+    }
+};
+
+const loadSlotData = async (slotId: number) => {
+    try {
+        const storeSlot = slotsStore.getById(slotId);
+        if (!storeSlot) {
+            throw new Error('Слот не найден');
         }
-    }
-    // TODO костыль как будто?
-    if (slot.value.type_id == 1) {
-        props.data.colon = ref(Number(colon.value[0]));
-    }
 
-    if (props.data.plan_product_id) {
-        await plansStore._update(props.data, p);
-    } else {
-        await plansStore._create(props.data, p);
+        state.slot = { ...storeSlot };
+        state.slots = slotsStore.slots.filter((el: ProductSlot) =>
+            el.product_id === storeSlot.product_id &&
+            el.line_id === storeSlot.line_id &&
+            el.type_id === storeSlot.type_id
+        );
+
+        return storeSlot;
+    } catch (error) {
+        console.error('Error loading slot:', error);
+        throw error;
     }
-    prepareClose();
-    emit('save');
-    modal.close('plan');
-}
+};
+
+const loadProductData = async (productId: number) => {
+    try {
+        const storeProduct = productsStore.getByID(productId);
+        if (!storeProduct) {
+            throw new Error('Продукт не найден');
+        }
+
+        state.product = { ...storeProduct };
+        return storeProduct;
+    } catch (error) {
+        console.error('Error loading product:', error);
+        throw error;
+    }
+};
+
+const loadLineData = async (lineId: number) => {
+    try {
+        const storeLine = linesStore.getByID(lineId);
+        if (!storeLine) {
+            throw new Error('Линия не найдена');
+        }
+
+        state.line = { ...storeLine };
+        return storeLine;
+    } catch (error) {
+        console.error('Error loading line:', error);
+        throw error;
+    }
+};
+
+const initializeData = async () => {
+    if (!props.data || state.isInitialized) return;
+
+    state.isLoading = true;
+    state.error = null;
+
+    try {
+        // Отменяем предыдущие запросы
+        abortController.value?.abort();
+        abortController.value = new AbortController();
+
+        // Копируем данные для локальной работы
+        localPlanData.value = {
+            ...props.data,
+            started_at: dayjs(props.data.started_at),
+            ended_at: dayjs(props.data.ended_at)
+        };
+
+        // Загружаем основные данные
+        const slot = await loadSlotData(props.data.slot_id);
+
+        await Promise.all([
+            loadProductData(slot.product_id),
+            loadLineData(slot.line_id),
+            getPackOptions()
+        ]);
+
+        state.perfomance = slot.perfomance;
+
+
+        // Устанавливаем оборудование если есть
+        if (slot.hardware && slot.hardware > 0) {
+            state.hardware = slot.hardware;
+            handleHardware();
+        } else {
+            // Базовый расчет времени
+            changeTime();
+        }
+
+        // Загружаем данные для редактирования
+        if (props.data.plan_product_id) {
+            state.packs = plansStore.plans
+                .filter(el => el.parent === props.data!.plan_product_id)
+                .map(i => i.slot_id);
+
+            if (props.data.colon) {
+                state.colon = props.data.colon;
+            } else {
+                state.colon = 1;
+            }
+        }
+
+        state.showPack = state.packs.length > 0;
+        state.isInitialized = true;
+
+    } catch (error: any) {
+        if (error.name !== 'AbortError') {
+            state.error = error.message || 'Ошибка загрузки данных';
+            console.error('Initialize error:', error);
+        }
+    } finally {
+        state.isLoading = false;
+    }
+};
+
+const reloadData = async () => {
+    state.isInitialized = false;
+    await initializeData();
+};
+
+const addPlan = async () => {
+    if (!localPlanData.value || !state.slot) return;
+
+    state.isLoading = true;
+
+    try {
+        // const planData: ProductPlan = 
+        // localPlanData.value
+        //   colon: ref(state.slot.type_id === 1 ? Number(state.colon?.[0]) : 1)
+
+
+        const packIds = state.showPack ? [...state.packs] as number[] : [];
+
+        if (localPlanData.value.plan_product_id) {
+            await plansStore._update(localPlanData.value, packIds);
+        } else {
+            await plansStore._create(localPlanData.value, packIds);
+        }
+
+        emit('save');
+        closeModal();
+
+    } catch (error) {
+        state.error = 'Ошибка сохранения плана';
+        console.error('Save error:', error);
+    } finally {
+        state.isLoading = false;
+    }
+};
 
 const exit = () => {
-    prepareClose();
     emit('cancel');
+    closeModal();
+};
+
+const resetState = () => {
+    Object.assign(state, {
+        slot: null,
+        product: null,
+        line: null,
+        packOptions: [],
+        packs: [],
+        selection: [],
+        selRadioValue: null,
+        showPack: false,
+        colon: null,
+        hardware: null,
+        slots: [],
+        perfomance: 0,
+        isLoading: false,
+        error: null,
+        isInitialized: false
+    });
+
+    delete localPlanData.value;
+};
+
+const closeModal = () => {
+    resetState();
     modal.close('plan');
-}
+};
 
-const prepareClose = () => {
-    showPack.value = false,
-        packOptions.value = [],
-        packs.value = [],
-        colon.value = null,
-        slot.value = null,
-        slots.value = [],
-        product.value = null,
-        line.value = null,
-        perfomance.value = null,
-        hardware.value = null;
-}
-
-watch(hardware,
-    () =>  handleHardware(),
-    {deep: true}
-)
-
-onUpdated(async () => {
-    if (!props.data || (slot.value && slot.value.product_slot_id == props.data.slot_id)) {
-        return;
+// Watchers
+watch(() => props.data, (newData) => {
+    if (newData) {
+        initializeData();
+    } else {
+        resetState();
     }
+}, { immediate: true });
 
-    if (props.data) {
-        const storeSlot = slotsStore.getById(props.data.slot_id);
-        slot.value = storeSlot ? { ...storeSlot } : null;
-
-        if (slot.value) {
-            const storeProduct = productsStore.getByID(slot.value.product_id);
-            product.value = storeProduct ? { ...storeProduct } : null;
-        }
+watch(() => modal.visibility['plan'], (isVisible) => {
+    if (!isVisible) {
+        abortController.value?.abort();
+        resetState();
     }
-    console.log(props.data)
-    // Если в пропсах есть данные и существующий слот не равен тому, что есть в пропсах
-    // slot.value = { ...slotsStore.getById(props.data.slot_id) };
-    // product.value = { ...productsStore.getByID(slot.value.product_id) };
-    slots.value = slotsStore.slots.filter((el: ProductSlot) =>
-        el.product_id == product.value.product_id &&
-        el.line_id == slot.value.line_id &&
-        el.type_id == slot.value.type_id
-    );
-    getPackOptions();
-    line.value = { ...linesStore.getByID(slot.value.line_id) };
-    hardware.value = slot.value.hardware;
-    if (props.data.plan_product_id) {
-        // Редактирование, надо упаковки копировать
-        packs.value = plansStore.plans.filter(el => el.parent == props.data.plan_product_id).map(i => i.slot_id);
-        if (props.data.colon) {
-            colon.value = props.data.colon;
-        }
-    }
-    if (packs.value) {
-        showPack.value = true;
-    }
-    if (!perfomance) {
-        handleHardware();
-    }
-
 });
-const emit = defineEmits(['save', 'cancel']);
-// TODO стили
-</script>
-<template>
-    <Modal v-model:open="modal.visibility['plan']" @ok="addPlan" @cancel="exit" okText="Да" cancelText="Нет"
-        v-if="data && product && line && slot" :closable="false">
-        <span>Это действие поставит работу <b>{{ product.title }}</b> на линии <b>{{ line.title }}</b>.</span>
-        <br>
-        <div style="display: flex;justify-content: space-between;margin: 14px 0px;">
-            <b style="font-size: 16px">Объём изготовления:</b>
-            <InputNumber v-model:value="data.amount" @change="changeTime" />
-        </div>
-        <div style="display:flex;justify-content: space-between;margin: 14px 0px;">
-            <div><b style="font-size: 16px">Подготовительное время:</b> {{ line.prep_time }} мин.</div>
-            <div><b style="font-size: 16px">Заключительное время:</b> {{ line.after_time }} мин.</div>
-        </div>
-        <div style="display: flex;justify-content: space-between;margin: 14px 0px;">
-            <b style="font-size: 16px">Время начала:</b>
-            <TimePicker v-model:value="data.started_at" @change="changeTime" format="HH:mm" />
-        </div>
-        <div v-if="slot.type_id == 1">
-            <span>Количество варок: {{ boils }}</span>
-            <h3>Варочная колонка: </h3>
-            <RadioGroup v-model:value="colon">
-                <RadioButton v-for="(v, k) in colons" :value="k">
-                    {{ v }}
-                </RadioButton>
-            </RadioGroup>
-            <br>
-            <h3>Оборудование:</h3>
-            <RadioGroup v-model:value="hardware" @change="handleHardware">
-                <RadioButton v-for="i in hardwares" :value="i.value">
-                    {{ i.label }}
-                </RadioButton>
-            </RadioGroup>
-            <br>
-            <br>
-            <RadioGroup v-if="selection" @change="handleSelection" v-model:value="selRadioValue">
-                <RadioButton v-for="v in selection" :value="v.product_slot_id" :key="v.product_slot_id">
-                    {{ v.perfomance }}
-                </RadioButton>
-            </RadioGroup>
-            <!-- <div>Выбранная производительность: {{ active.perfomance }}</div> -->
-        </div>
 
-        <div v-if="slot.type_id == 2">
-            <RadioGroup v-model:value="hardware" @change="handleHardware">
-                <RadioButton v-for="i in packHardwares" :value="i.value">
-                    <Tooltip :title="i.title">{{ i.label }}</Tooltip>
-                </RadioButton>
-            </RadioGroup>
-        </div>
-        <Checkbox v-model:checked="showPack" v-if="slot.type_id != 2 && packOptions">
-            Сгененрировать план упаковки
-        </Checkbox>
-        <br>
-        <div v-if="showPack">
-            <div>
-                <span>Упаковать через </span>
-                <InputNumber v-model:value="data.delay" placeholder="30" />
-                <span> мин.</span>
-                <br />
-                <CheckboxGroup v-model:value="packs" :options="packOptions" class="pack-options">
-                </CheckboxGroup>
+watch(() => localPlanData.value?.amount, () => {
+    console.log('changed amount');
+    console.log(localPlanData, state);
+    changeTime();
+}, { deep: true });
+
+watch(() => localPlanData.value?.started_at, () => {
+    changeTime();
+}, { deep: true });
+
+// Lifecycle
+onUnmounted(() => {
+    abortController.value?.abort();
+    resetState();
+});
+</script>
+
+<template>
+    <Modal v-model:open="modal.visibility['plan']" @ok="addPlan" @cancel="exit"
+        :ok-button-props="{ loading: state.isLoading }" :cancel-button-props="{ disabled: state.isLoading }"
+        okText="Сохранить" cancelText="Отмена" :closable="!state.isLoading" :maskClosable="!state.isLoading"
+        width="650px">
+        <template #title>
+            <span v-if="state.product && state.line">
+                {{ props.data?.plan_product_id ? 'Редактирование' : 'Создание' }} плана
+            </span>
+        </template>
+
+        <Spin :spinning="state.isLoading">
+            <div class="modal-content"
+                v-if="!state.error && localPlanData && state.product && state.line && state.slot">
+                <!-- Основная информация -->
+                <div class="info-section">
+                    <p>
+                        Это действие поставит работу <b>{{ state.product.title }}</b>
+                        на линии <b>{{ state.line.title }}</b>.
+                    </p>
+                </div>
+
+                <!-- Объем изготовления -->
+                <div class="form-section">
+                    <div class="form-row">
+                        <span class="label">Объём изготовления:</span>
+                        <InputNumber v-model:value="localPlanData.amount" :min="0.1" :step="0.1" :precision="2"
+                            :disabled="state.isLoading" style="width: 120px" />
+                    </div>
+
+                    <!-- Время начала -->
+                    <div class="form-row">
+                        <span class="label">Время начала:</span>
+                        <TimePicker v-model:value="localPlanData.started_at" format="HH:mm" :disabled="state.isLoading"
+                            style="width: 120px" />
+                    </div>
+
+                    <!-- Время работы линии -->
+                    <div class="form-row time-info">
+                        <div>
+                            <b>Подготовительное время: {{ state.line.prep_time }} мин.</b>
+                        </div>
+                        <div>
+                            <b>Заключительное время: {{ state.line.after_time }} мин.</b>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Специфичные настройки для варки -->
+                <div v-if="state.slot.type_id === 1" class="form-section">
+                    <div class="form-row">
+                        <span>Количество варок: <b>{{ boils }}</b></span>
+                    </div>
+
+                    <div class="form-group">
+                        <h4>Варочная колонка:</h4>
+                        <RadioGroup v-model:value="state.colon" :disabled="state.isLoading">
+                            <RadioButton v-for="(v, k) in colons" :value="k" :key="k">
+                                {{ v }}
+                            </RadioButton>
+                        </RadioGroup>
+                    </div>
+
+                    <div class="form-group">
+                        <h4>Оборудование:</h4>
+                        <RadioGroup v-model:value="state.hardware" @change="handleHardware" :disabled="state.isLoading">
+                            <RadioButton v-for="i in hardwares" :value="i.value" :key="i.value">
+                                {{ i.label }}
+                            </RadioButton>
+                        </RadioGroup>
+                    </div>
+
+                    <!-- Выбор производительности -->
+                    <div v-if="state.selection.length" class="form-group">
+                        <h4>Выберите производительность:</h4>
+                        <RadioGroup v-model:value="state.selRadioValue" @change="handleSelection"
+                            :disabled="state.isLoading">
+                            <RadioButton v-for="v in state.selection" :value="v.product_slot_id"
+                                :key="v.product_slot_id">
+                                {{ v.perfomance }} кг/ч
+                            </RadioButton>
+                        </RadioGroup>
+                    </div>
+                </div>
+
+                <!-- Специфичные настройки для упаковки -->
+                <div v-if="state.slot.type_id === 2 && state.line.title.toLowerCase().includes('one shot')" class="form-section">
+                    <div class="form-group">
+                        <h4>Оборудование упаковки:</h4>
+                        <RadioGroup v-model:value="state.hardware" @change="handleHardware" :disabled="state.isLoading">
+                            <RadioButton v-for="i in packHardwares" :value="i.value" :key="i.value">
+                                <Tooltip :title="i.title">{{ i.label }}</Tooltip>
+                            </RadioButton>
+                        </RadioGroup>
+                    </div>
+                </div>
+
+                <!-- Настройки упаковки -->
+                <div v-if="state.slot.type_id !== 2 && state.packOptions.length" class="form-section">
+                    <Checkbox v-model:checked="state.showPack" :disabled="state.isLoading">
+                        Сгенерировать план упаковки
+                    </Checkbox>
+
+                    <div v-if="state.showPack" class="pack-section">
+                        <div class="form-row">
+                            <span>Упаковать через</span>
+                            <div>
+                                <InputNumber v-model:value="localPlanData.delay" :min="0" :step="5"
+                                    :disabled="state.isLoading" style="width: 80px; margin: 0 8px" />
+                                <span>мин.</span>
+                            </div>
+                        </div>
+
+                        <div class="pack-options">
+                            <CheckboxGroup v-model:value="state.packs" :options="state.packOptions"
+                                :disabled="state.isLoading" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Расчет времени -->
+                <div class="calculation-section">
+                    <p>
+                        С учётом производительности линии для данного продукта,
+                        время изготовления составит <b>{{ time.toFixed(2) }}</b> ч.
+                    </p>
+
+                    <p>
+                        Работа по данной продукции закончится в
+                        <b>{{ localPlanData.ended_at?.format('HH:mm') || '--:--' }}</b>
+                    </p>
+                </div>
+
+                <!-- Предупреждения -->
+                <div class="warnings-section">
+                    <Alert v-if="timeWarning" :type="timeWarning.type" :message="timeWarning.message" show-icon
+                        banner />
+
+                    <Alert v-if="showError" :type="showError.type" :message="showError.message"
+                        :description="showError.description" show-icon banner />
+                </div>
             </div>
-        </div>
-        <br>
-        <span>С учётом производительности линии для данного продукта, время изготовления составит
-            <b>{{ time.toFixed(2) }}</b>ч.
-        </span>
-        <br>
-        <span v-if="time >= 24" style="color:#ff4d4f">
-            ВНИМАНИЕ! Данная продукция будет изготавливаться больше суток!
-        </span>
-        <br>
-        <span>Работа по данной продукции закончится в <b>{{ data.ended_at.format('HH:mm') }}</b></span>
-        <br>
-        <span style="color:#ff4d4f">
-            {{ showError }}
-        </span>
+
+            <!-- Состояние ошибки -->
+            <div v-else-if="state.error" class="error-state">
+                <Alert type="error" :message="state.error" show-icon />
+                <Button @click="reloadData" style="margin-top: 16px">
+                    Повторить попытку
+                </Button>
+            </div>
+        </Spin>
     </Modal>
 </template>
+
+<style scoped>
+.modal-content {
+    max-height: 70vh;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.info-section {
+    margin-bottom: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.form-section {
+    margin: 16px 0;
+    padding: 16px;
+    border: 1px solid #f0f0f0;
+    border-radius: 4px;
+    background-color: #fafafa;
+}
+
+.form-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 12px 0;
+}
+
+.form-row.time-info {
+    justify-content: space-between;
+}
+
+.form-row.time-info>div {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.label {
+    font-weight: 500;
+    font-size: 14px;
+    color: #333;
+}
+
+.form-group {
+    margin: 16px 0;
+}
+
+.form-group h4 {
+    margin: 0 0 12px 0;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.pack-section {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px dashed #e8e8e8;
+}
+
+.pack-options {
+    margin-top: 12px;
+}
+
+.pack-options :deep(.ant-checkbox-group) {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.calculation-section {
+    margin: 20px 0;
+    padding: 16px;
+    background-color: #f6ffed;
+    border: 1px solid #b7eb8f;
+    border-radius: 4px;
+}
+
+.calculation-section p {
+    margin: 8px 0;
+}
+
+.warnings-section {
+    margin-top: 16px;
+}
+
+.warnings-section :deep(.ant-alert) {
+    margin-bottom: 8px;
+}
+
+.error-state {
+    text-align: center;
+    padding: 40px 20px;
+}
+
+/* Scrollbar styling */
+.modal-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.modal-content::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+.modal-content::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 3px;
+}
+
+.modal-content::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+</style>

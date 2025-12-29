@@ -77,8 +77,11 @@ class ProductsPlanController extends Controller
                 );
 
                 $start = Carbon::parse($plan->started_at);
-                // Если варка или глазировка или опудривание, добавляем задержfку
-                if ($slot->type_id == 2 || $slot->type_id == 5 || $slot->type_id == 3) {
+                // Если опудривани, обсыпка или упаковка - добавляем задержку
+                if (
+                    ($slot->type_id == 2 || $slot->type_id == 5 || $slot->type_id == 3) &&
+                    !str_contains($slot->line->title, 'FLOY')
+                ) {
                     $start->addMinutes($delay);
                 }
                 $ended_at = $start->copy();
@@ -92,7 +95,7 @@ class ProductsPlanController extends Controller
                     [
                         'product_id' => $product->product_id,
                         'slot_id' => $p,
-                        'started_at' => str_contains($slot->line->title, 'FLOY') ? $start->addMinutes(-$delay) : $start,
+                        'started_at' => $start,
                         'ended_at' => $ended_at,
                         'parent' => $plan->plan_product_id,
                         'amount' => $amount
@@ -205,8 +208,11 @@ class ProductsPlanController extends Controller
                 );
 
                 $start = Carbon::parse($plan->started_at);
-                // Если варка или глазировка, добавляем задержку
-                if ($slot->type_id == 2 || $slot->type_id == 5 || $slot->type_id == 3) {
+                // Если опудривани, обсыпка или упаковка - добавляем задержку
+                if (
+                    ($slot->type_id == 2 || $slot->type_id == 5 || $slot->type_id == 3) &&
+                    !str_contains($slot->line->title, 'FLOY')
+                ) {
                     $start->addMinutes($delay);
                 }
                 $ended_at = $start->copy();
@@ -222,7 +228,7 @@ class ProductsPlanController extends Controller
                 $attrs = [
                     'product_id' => $product->product_id,
                     'slot_id' => $p,
-                    'started_at' => str_contains($slot->line->title, 'FLOY') ? $start->addMinutes(-$delay) : $start,
+                    'started_at' => $start,
                     'ended_at' => $ended_at,
                     'parent' => $plan->plan_product_id,
                     'amount' => $amount
@@ -625,7 +631,7 @@ class ProductsPlanController extends Controller
             $plan->delete();
         });
         $lines = [];
-        LinesExtra::withSession($request)->each(function($line) use ($request, &$lines) {
+        LinesExtra::withSession($request)->each(function ($line) use ($request, &$lines) {
             $default = Util::getDefaults($line->line_id);
             $default ? $default = Util::createDate($default, $request, $line->lines) : '';
             if ($default) {
@@ -637,7 +643,7 @@ class ProductsPlanController extends Controller
             $default['line_id'] = $line->line_id;
             $lines[] = $default;
         });
-        
+
         return Response($lines, 200);
     }
 }

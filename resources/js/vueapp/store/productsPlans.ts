@@ -79,10 +79,11 @@ export const usePlansStore = defineStore("productsPlans", () => {
                     let date = sessionStorage.getItem('date'),
                         isDay = sessionStorage.getItem('isDay');
                     for (let i in r.data.plansOrder) {
-                        let plans = r.data.plansOrder[i].filter(el => el.date == date && el.isDay == isDay);
+                        let pls = r.data.plansOrder[i].filter(el => el.date == date && el.isDay == isDay);
                         line = useLinesStore().getByID(Number(i));
                         line.has_plans = ref(true);
-                        updateTimes(plans);
+                        plans.value = plans.value.filter(el => useProductsSlotsStore().getById(el.slot_id).line_id != line.line_id);
+                        updateTimes(pls);
                         useLinesStore().updateVersion(line.line_id);                        
                     }
                 }
