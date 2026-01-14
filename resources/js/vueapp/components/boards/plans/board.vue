@@ -55,7 +55,7 @@ const clearPlan = () => {
     plansStore._clear();
     modal.boils.value = {};
     // for (let i in modal.boils.value){
-        
+
     // };
 }
 const editPlan = (plan: ProductPlan) => {
@@ -160,10 +160,14 @@ onUpdated(async () => {
                     console.log(position);
 
                     if (plans.length > 0 && position > 0) {
-                        lastProd = plans.reduce((latest, current) => {
-                            return current.ended_at.isAfter(latest.ended_at) ? current : latest;
-                        }, plans[0]);
-                        started_at = dayjs.default(lastProd.ended_at, format);
+                        if (position < plans.length) {
+                            started_at = plans[position-1].ended_at;
+                        } else {
+                            lastProd = plans.reduce((latest, current) => {
+                                return current.ended_at.isAfter(latest.ended_at) ? current : latest;
+                            }, plans[0]);
+                            started_at = dayjs.default(lastProd.ended_at, format);
+                        }
                     } else if (curLine.work_time.started_at != null) {
                         started_at = curLine.work_time.started_at;
                         if (curLine.prep_time) {
@@ -178,7 +182,6 @@ onUpdated(async () => {
                         started_at,
                         product.order ? product.order.amount : 0
                     )
-                    console.log("started_at:", started_at);
                     modal.open("plan");
                     if (line.contains(target)) {
                         line.removeChild(target);
@@ -237,7 +240,7 @@ onUpdated(async () => {
             // Проверяем, нужно ли менять элементы местами
             if (
                 nextElement &&
-                activeElement === nextElement 
+                activeElement === nextElement
                 // !activeElement || !nextElement || !line
             ) {
                 // Если нет, выходим из функции, чтобы избежать лишних изменений в DOM
@@ -254,7 +257,7 @@ onUpdated(async () => {
                 // if (nextElement.parentElement != line) {
                 //     line.append(activeElement as HTMLElement);
                 // } else {
-                    line.insertBefore(activeElement as HTMLElement, nextElement);
+                line.insertBefore(activeElement as HTMLElement, nextElement);
                 // }
             }
         })
@@ -297,8 +300,8 @@ onUpdated(async () => {
             </div>
         </div>
         <Divider type="vertical" v-show="showList" style="height: unset; width: 5px;" />
-        <div class="line" v-for="line in linesStore.lines" :data-id="line.line_id" v-show="!hideEmpty || (hideEmpty && line.has_plans)"
-            :key="`line-${line.line_id}-${line.version}`">
+        <div class="line" v-for="line in linesStore.lines" :data-id="line.line_id"
+            v-show="!hideEmpty || (hideEmpty && line.has_plans)" :key="`line-${line.line_id}-${line.version}`">
             <LineForm :data="line" />
             <div class="line_items products">
                 <PlanCard v-for="plan in plansStore.getByLine(line.line_id)" :data="plan" @edit="editPlan" />

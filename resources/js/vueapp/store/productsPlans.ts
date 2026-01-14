@@ -61,8 +61,8 @@ export const usePlansStore = defineStore("productsPlans", () => {
     });
     }
 
-    async function _create(data: ProductPlan, packs: Array<number>) {
-        return await postRequest('/api/plans/create', unserialize(data, packs),
+    async function _create(data: ProductPlan, packs: Array<number>, zm_id?: number) {
+        return await postRequest('/api/plans/create', unserialize(data, packs, zm_id),
             (r: AxiosResponse) => {
                 data.plan_product_id = r.data.plan_product_id;
                 
@@ -91,18 +91,19 @@ export const usePlansStore = defineStore("productsPlans", () => {
         );
     }
 
-    async function _update(data: ProductPlan, packs: Array<number>) {
-        await putRequest('/api/plans/update', unserialize(data, packs),
+    async function _update(data: ProductPlan, packs: Array<number>, zm_id?: number) {
+        await putRequest('/api/plans/update', unserialize(data, packs, zm_id),
             (r: AxiosResponse) => {
                 if (r.data.plansOrder) {
                     let date = sessionStorage.getItem('date'),
                         isDay = sessionStorage.getItem('isDay');
                     for (let i in r.data.plansOrder) {
-                        let plans = r.data.plansOrder[i].filter(el => el.date == date && el.isDay == isDay);
+                        let pls = r.data.plansOrder[i].filter(el => el.date == date && el.isDay == isDay);
                         let line = useLinesStore().getByID(Number(i));
                         line.has_plans = ref(true);
-                        updateTimes(r.data.plansOrder[i]);
-                        useLinesStore().updateVersion(line.line_id);                        
+                        plans.value = plans.value.filter(el => useProductsSlotsStore().getById(el.slot_id).line_id != line.line_id);
+                        updateTimes(pls);
+                        useLinesStore().updateVersion(line.line_id);                      
                     }
                 }
             });
@@ -116,10 +117,10 @@ export const usePlansStore = defineStore("productsPlans", () => {
                 useLinesStore().lines.forEach((el: LineInfo) => {
                     el.has_plans = false;
                     let index = updates.find(l => l.line_id == el.line_id);
-                    if (index >= 0) {
-                        let d = updates[index];
-                        el.work_time.started_at = dayjs.default(d.started_at);
-                        el.work_time.ended_at = dayjs.default(d.ended_at);
+                    if (index) {
+                        el.work_time.started_at = dayjs.default(index.started_at);
+                        el.work_time.ended_at = dayjs.default(index.ended_at);
+                        useLinesStore().updateVersion(el.line_id);
                     }
                 });
             }
@@ -142,10 +143,8 @@ export const usePlansStore = defineStore("productsPlans", () => {
             (el: ProductSlot) => { return el.product_slot_id }
         );
         let ps = plans.value.filter((plan: ProductPlan) => slots.includes(plan.slot_id));
-        console.log("getByLines:", ps);
         return ps.length > 0 ? ps.sort(
             (a, b) => {
-                console.log("dates:", a, a.started_at, b, b.started_at)
                 return a.started_at.unix() - b.started_at.unix()
             }) : [];
     }
@@ -193,16 +192,16 @@ export const usePlansStore = defineStore("productsPlans", () => {
             plan.ended_at = dayjs.default(plan.ended_at),
             plan.colon = ref(plan.colon);
         let slot = useProductsSlotsStore().getById(plan.slot_id);
-        console.log(slot, plan.slot_id, useProductsSlotsStore().slots);
         let line = useLinesStore().getByID(slot.line_id);
         line.has_plans = ref(true);
         return plan as ProductPlan;
     }
-    function unserialize(plan: ProductPlan, packs: Array<number>) {
+    function unserialize(plan: ProductPlan, packs: Array<number>, zm_id?: number) {
         let payload = Object.assign({}, plan as any);
         payload.packs = packs;
         payload.started_at = plan.started_at.format(format);
         payload.ended_at = plan.ended_at.format(format);
+        payload.zm_id = zm_id;
 
         return payload;
     }

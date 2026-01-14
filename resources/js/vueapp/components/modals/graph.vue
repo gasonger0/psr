@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { LineInfo, useLinesStore } from '@/store/lines';
 import { useModalsStore } from '@/store/modal';
+import { usePlansStore } from '@/store/productsPlans';
 import { ProductSlot } from '@/store/productsSlots';
 import { useWorkersStore, WorkerInfo } from '@/store/workers';
 import { useWorkerSlotsStore, WorkerSlot } from '@/store/workerSlots';
@@ -11,6 +12,7 @@ import { computed, onMounted, onUpdated, Ref, ref, watch } from 'vue';
 
 const modal = useModalsStore();
 const slots = useWorkerSlotsStore();
+const plans = usePlansStore();
 const workers = useWorkersStore();
 const lines = useLinesStore();
 
@@ -69,13 +71,13 @@ const exit = () => {
 
 const processCells = () => {
     if (columns.length == 2) {
-        columns.push(
-            ...lines.lines.filter((el: LineInfo) => el.has_plans.value == true).map((i: LineInfo) => {
-                let f = i as any;
-                f.dataIndex = i.line_id;
-                return f;
-            }) as ColumnType[]
-        );
+        const ls = lines.lines.value;
+        lines.lines.filter((el: LineInfo) => el.has_plans == true).forEach((i: LineInfo) => {
+            let f = i as any;
+            f.dataIndex = i.line_id;
+            columns.push(f as ColumnType);
+        });
+
     }
     cells.value = workers.workers.map((el: WorkerInfo) => {
         slots.getByWorker(el.worker_id).forEach((sl: WorkerSlot) => {
@@ -91,6 +93,14 @@ onUpdated(() => {
 
 watch(
     () => slots.slots,
+    (ev) => {
+        processCells();
+    },
+    { deep: true }
+);
+
+watch(
+    () => plans.plans,
     (ev) => {
         processCells();
     },

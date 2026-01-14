@@ -19,6 +19,7 @@ import Graph from '@modals/graph.vue';
 import { useCompaniesStore } from '@/store/companies';
 import { useLogsStore } from '@/store/logs';
 import Logs from '@modals/logs.vue';
+import Result from '@/components/modals/result.vue';
 
 
 // const modals = useModalsStore();
@@ -79,8 +80,7 @@ const processData = async () => {
 </script>
 <template>
     <Toolbar :boardMode="boardType" @change-board="changeBoard" />
-    <!-- <Result :data="data" :open="openResult" @close-modal="closeModal" @notify="notify" /> -->
-    <!-- <Stats :data="data" :open="openStats" @close-modal="closeModal" @notify="notify" /> -->
+    <Result />
     <!-- <Logs :open="openLogs" :lines="data ? data.lines : null" @close-modal="closeModal" @notify="notify" /> -->
     <!-- <ProductsDict :open="openProductsDict" :data="data" @close-modal="closeModal" @notify="notify" /> -->
     <ProductsDict />

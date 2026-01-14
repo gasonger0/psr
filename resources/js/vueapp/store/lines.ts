@@ -174,9 +174,10 @@ export const useLinesStore = defineStore('lines', () => {
         if (line) {
             // Получаем отсортированные планы и обновляем время работы линий
             let plans = usePlansStore().getByLine(lineId);
-            line.work_time.started_at = plans[0].started_at;
-            line.work_time.ended_at = plans[plans.length-1].ended_at;
-
+            if (plans.length > 0) {
+                line.work_time.started_at = plans[0].started_at.subtract(line.prep_time, 'minute');
+                line.work_time.ended_at = plans[plans.length - 1].ended_at.subtract(line.after_time, 'minute');
+            }
             line.version = (line.version || 0) + 1; // Инкрементим версию
 
         }

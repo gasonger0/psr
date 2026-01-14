@@ -109,7 +109,7 @@ class Util
     }
 
     /**
-     * Рассчитывает длительность 
+     * Рассчитывает длительность по слоту
      * @param \App\Models\ProductsDictionary $product ГП
      * @param int $amount Объём изготовления
      * @param \App\Models\ProductsSlots $slot Слот изготовления
@@ -121,13 +121,28 @@ class Util
             // если  фас.телевизоры, то по штукам в ящике + ящикам, иначе по ящикам
             $title = $slot->line->title;
             if (mb_strpos($title, "телевизор") === false) {
-                $amount = eval ("return $amount * $product->amount2parts + $amount;");
+                $amount = eval("return $amount * $product->amount2parts + $amount;");
             }
             return $slot->perfomance * $amount;
         }
         return
-            eval ("return $product->parts2kg*$amount*$product->amount2parts;") /
+            eval("return $product->parts2kg*$amount*$product->amount2parts;") /
             $slot->perfomance;
+    }
+
+    /**
+     * Расчёт длительности для завёрточных машин
+     * @param \App\Models\ProductsDictionary $product ГП
+     * @param int $amount Объём изготовления
+     * @param int $hardware ЗМ
+     * @return float|int
+     */
+    public static function calcDurationForZM(ProductsDictionary $product, int $amount, int $hardware): float {
+        $duration = eval("return $product->parts2kg*$amount*$product->amount2parts;") / 143.5;
+        if ($hardware == 3) {
+            $duration *= 2;
+        }
+        return $duration;
     }
 
     public static function createDate(array $data, Request $request, Lines $line)

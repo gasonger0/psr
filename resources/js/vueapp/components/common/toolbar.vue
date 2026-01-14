@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Switch, Dropdown, Button, MenuItem, Menu, Upload, UploadFile, DatePicker } from 'ant-design-vue';
+import { Switch, Dropdown, Button, MenuItem, Menu, Upload, UploadFile, DatePicker, ConfigProvider } from 'ant-design-vue';
 import {
     FileExcelOutlined,
     BarChartOutlined,
@@ -12,13 +12,16 @@ import {
     TableOutlined
 } from '@ant-design/icons-vue';
 import * as dayjs from "dayjs";
-import { computed, Ref, ref, watch } from 'vue';
+import 'dayjs/locale/ru.js';
+import { computed, Ref, ref } from 'vue';
 import { FileType } from 'ant-design-vue/es/upload/interface';
 import { notify, postRequest } from '../../functions';
 import { AxiosResponse } from 'axios';
 import locale from 'ant-design-vue/es/date-picker/locale/ru_RU';
 import { useModalsStore } from '@stores/modal';
 import { useProductsStore } from '@/store/products';
+
+dayjs.locale('ru-ru')
 
 const boardMode: Ref<boolean> = ref(false);
 const uploadedFile: Ref<UploadFile[] | undefined> = ref();
@@ -127,8 +130,10 @@ const emit = defineEmits([
             </div>
         </section>
         <section>
-            <DatePicker v-model:value="date" format="DD.MM.YYYY" mode="date" @open-change="showAccept = true;"
-                :locale="locale" />
+            <!-- <ConfigProvider locale="ru_RU"> -->
+                <DatePicker v-model:value="date" format="DD.MM.YYYY" mode="date" @open-change="showAccept = true;"
+                    :locale="locale" />
+            <!-- </ConfigProvider> -->
             <Switch v-model:checked="isDay" @change="showAccept = true" checkedChildren="День"
                 unCheckedChildren="Ночь" />
             <img src="./../../logo.png" class="logo" v-if="!showAccept">

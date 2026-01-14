@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Lines;
 use App\Models\LinesExtra;
 use App\Models\ProductsPlan;
 use App\Models\ProductsSlots;
@@ -52,106 +53,10 @@ class ProductsPlanController extends Controller
         $order[$line_id] = ProductsPlan::whereHas('slot', function ($query) use ($line_id) {
             $query->where('line_id', $line_id);
         })->withSession($request)->orderBy('started_at', 'ASC')->get()->toArray();
-        // Если задана упаковка... (slot_id)
-        if ($pack = $request->post('packs')) {
-            // Задержка от начала варки
-            $delay = $request->post('delay');
-            // Продукция
-            $product = ProductsDictionary::find($plan->slot->product_id);
-            // И объём
-            $amount = $request->post('amount');
-            $packsCheck = [];
 
-            foreach ($pack as $p) {
-                // Конец упаковки должен быть:
-                // 1. Не раньше конца варки 
-                // 2. Если раньше конца варки, то не раньше конца варки + delay
-                // 3. Упаковка не позже обсыпки
-                // 4. Флоу паки должны без задержки начинаться
-                // 5. Обсыпка и упаковка через $delay минут, а глазировка и варка - юез задержки
-                $slot = ProductsSlots::find($p);
-                $duration = Util::calcDuration(
-                    $product,
-                    $amount,
-                    $slot
-                );
-
-                $start = Carbon::parse($plan->started_at);
-                // Если опудривани, обсыпка или упаковка - добавляем задержку
-                if (
-                    ($slot->type_id == 2 || $slot->type_id == 5 || $slot->type_id == 3) &&
-                    !str_contains($slot->line->title, 'FLOY')
-                ) {
-                    $start->addMinutes($delay);
-                }
-                $ended_at = $start->copy();
-                $ended_at->addHours($duration)->addMinutes(15);
-
-                if ($ended_at < ($d = Carbon::parse($plan->ended_at))) {
-                    $ended_at = $d->addMinutes($delay);
-                }
-
-                $packPlan = ProductsPlan::create(
-                    [
-                        'product_id' => $product->product_id,
-                        'slot_id' => $p,
-                        'started_at' => $start,
-                        'ended_at' => $ended_at,
-                        'parent' => $plan->plan_product_id,
-                        'amount' => $amount
-                    ] + Util::getSessionAsArray($request)
-                );
-
-                if ($slot->type_id == 2) {
-                    $packsCheck[] = $packPlan;
-                    // Если упаковка, запоминаем ИД и потом будем по другим позициям чекать
-                } else {
-                    $this->checkPlans($request, $packPlan);
-
-                    $line_id = $packPlan->slot->line_id;
-
-                    $order[$line_id] = ProductsPlan::whereHas('slot', function ($query) use ($line_id) {
-                        $query->where('line_id', $line_id);
-                    })->withSession($request)->orderBy('started_at', 'ASC')->get()->toArray();
-                }
-            }
-
-            // Проверка, что упаковываем не раньше глазировки
-
-            // Проверка, что упаковываем не раньше глазировки
-            $glazPlans = ProductsPlan::where('parent', $plan->plan_product_id)
-                ->whereHas('slot', function ($query) {
-                    $query->where('type_id', 3);
-                })->withSession($request)->get();
-
-            if ($glazPlans->isNotEmpty()) {
-                // Находим самое позднее окончание глазировки
-                $latestGlazEnd = $glazPlans->max(function ($plan) {
-                    return Carbon::parse($plan->ended_at);
-                });
-                // var_dump($glaz);
-                $glaz_end = Carbon::parse($latestGlazEnd);
-                foreach ($packsCheck as $p) {
-                    $packStart = Carbon::parse($p->started_at);
-                    if ($packStart < $glaz_end) {
-                        // Сдвигаем упаковку так, чтобы она начиналась после глазировки
-                        $newStart = $glaz_end->copy();
-                        $duration = Carbon::parse($p->ended_at)->diffInMinutes($packStart);
-                        $newEnd = $newStart->copy()->addMinutes(-$duration);
-
-                        $p->update([
-                            'started_at' => $newStart,
-                            'ended_at' => $newEnd
-                        ]);
-
-                        $this->checkPlans($request, $p);
-                        $line_id = $p->slot->line_id;
-                        $order[$line_id] = ProductsPlan::whereHas('slot', function ($query) use ($line_id) {
-                            $query->where('line_id', $line_id);
-                        })->withSession($request)->orderBy('started_at', 'ASC')->get()->toArray();
-                    }
-                }
-            }
+        // Если задана упаковка... 
+        if (($pack = $request->post('packs')) || $request->post('zm_id')) {
+            $this->processPacks($request, $pack, $plan, $order);
         }
 
         // TODO? меняем время работы линии по началу первого и концу последнего плана
@@ -179,118 +84,14 @@ class ProductsPlanController extends Controller
             $query->where('line_id', $line_id);
         })->withSession($request)->orderBy('started_at', 'ASC')->get()->toArray();
 
-        // Если задана упаковка... (slot_id)
-        if ($pack = $request->post('packs')) {
-            // Задержка от начала варки
-            $delay = $request->post('delay');
-            // Продукция
-            $product = ProductsDictionary::find($plan->slot->product_id);
-            // И объём
-            $amount = $request->post('amount');
-            $packsCheck = [];
+        // Удаляем упаковки по данной продукции
+        ProductsPlan::where('parent', $plan->plan_product_id)
+            ->each(function ($el) {
+                $el->delete();
+            });
 
-            // Удаляем те, что не указаны
-            ProductsPlan::where('parent', $plan->plan_product_id)
-                ->whereNotIn('slot_id', $pack)
-                ->each(function ($el) {
-                    $el->delete();
-                });
-            foreach ($pack as $p) {
-                // Конец упаковки должен быть:
-                // 1. Не раньше конца варки 
-                // 2. Если раньше конца варки, то не раньше конца варки + delay
-                // 3. Упаковка не позже обсыпки
-                $slot = ProductsSlots::find($p);
-                $duration = Util::calcDuration(
-                    $product,
-                    $amount,
-                    $slot
-                );
-
-                $start = Carbon::parse($plan->started_at);
-                // Если опудривани, обсыпка или упаковка - добавляем задержку
-                if (
-                    ($slot->type_id == 2 || $slot->type_id == 5 || $slot->type_id == 3) &&
-                    !str_contains($slot->line->title, 'FLOY')
-                ) {
-                    $start->addMinutes($delay);
-                }
-                $ended_at = $start->copy();
-                $ended_at->addHours($duration)->addMinutes(15);
-
-                if ($ended_at < ($d = Carbon::parse($plan->ended_at))) {
-                    $ended_at = $d->addMinutes($delay);
-                }
-
-                $packPlan = ProductsPlan::where('slot_id', $p)
-                    ->withSession($request)
-                    ->first();
-                $attrs = [
-                    'product_id' => $product->product_id,
-                    'slot_id' => $p,
-                    'started_at' => $start,
-                    'ended_at' => $ended_at,
-                    'parent' => $plan->plan_product_id,
-                    'amount' => $amount
-                ];
-                // var_dump($packPlan);
-                if ($packPlan) {
-                    $packPlan->update($attrs);
-                } else {
-                    $packPlan = ProductsPlan::create(
-                        $attrs + Util::getSessionAsArray($request)
-                    );
-                }
-
-                $this->checkPlans($request, $packPlan);
-
-                $line_id = $slot->line_id;
-
-                $order[$line_id] = ProductsPlan::whereHas('slot', function ($query) use ($line_id) {
-                    $query->where('line_id', $line_id);
-                })->withSession($request)->orderBy('started_at', 'ASC')->get()->toArray();
-
-                if ($slot->type_id == 2) {
-                    $packsCheck[] = $packPlan;
-                    // Если упаковка, запоминаем ИД и потом будем по другим позициям чекать
-                }
-
-            }
-
-            // Проверка, что упаковываем не раньше глазировки
-            $glazPlans = ProductsPlan::where('parent', $plan->plan_product_id)
-                ->whereHas('slot', function ($query) {
-                    $query->where('type_id', 3);
-                })->withSession($request)->get();
-
-            if ($glazPlans->isNotEmpty()) {
-                // Находим самое позднее окончание глазировки
-                $latestGlazEnd = $glazPlans->max(function ($plan) {
-                    return Carbon::parse($plan->ended_at);
-                });
-                // var_dump($glaz);
-                $glaz_end = Carbon::parse($latestGlazEnd);
-                foreach ($packsCheck as $p) {
-                    $packStart = Carbon::parse($p->started_at);
-                    if ($packStart < $glaz_end) {
-                        // Сдвигаем упаковку так, чтобы она начиналась после глазировки
-                        $newStart = $glaz_end->copy();
-                        $duration = Carbon::parse($p->ended_at)->diffInMinutes($packStart);
-                        $newEnd = $newStart->copy()->addMinutes(-$duration);
-
-                        $p->update([
-                            'started_at' => $newStart,
-                            'ended_at' => $newEnd
-                        ]);
-
-                        $this->checkPlans($request, $p);
-                        $line_id = $p->slot->line_id;
-                        $order[$line_id] = ProductsPlan::whereHas('slot', function ($query) use ($line_id) {
-                            $query->where('line_id', $line_id);
-                        })->withSession($request)->orderBy('started_at', 'ASC')->get()->toArray();
-                    }
-                }
-            }
+        if (($pack = $request->post('packs')) || $request->post('zm_id')) {
+            $this->processPacks($request, $pack, $plan, $order);
         }
 
         // TODO? меняем время работы линии по началу первого и концу последнего плана
@@ -333,187 +134,79 @@ class ProductsPlanController extends Controller
     /**
      * Проверка планов на коллизию и автоматический сдвиг
      */
-    public static function checkPlans(Request $request, ProductsPlan $plan): bool
+    public static function checkPlans(Request $request, ProductsPlan $plan)
     {
         $lineId = $plan->slot->line_id;
 
-        // Получаем ВСЕ планы на линии в порядке начала
         $allPlans = ProductsPlan::whereHas('slot', function ($query) use ($lineId) {
             $query->where('line_id', $lineId);
-        })
-            ->withSession($request)
-            ->orderBy('started_at', 'ASC')
-            ->get();
+        })->withSession($request)
+        ->orderBy('started_at', 'ASC')
+        ->orderBy('plan_product_id', 'DESC')
+        ->get();
 
+
+        // function ($query) use ($lineId) {
+        // $query->where('line_id', $plan->slot->line_id);
+        // })->orderBy('started_at', 'ASC');
+
+        // Если на линии всего один план, то на нём не может быть коллизий
         if (count($allPlans) == 1) {
-            return true;
+            return;
         }
 
-        // Определяем, где должен стоять наш план
-        $planStart = Carbon::parse($plan->started_at);
-        $planDuration = Carbon::parse($plan->ended_at)->diffInMinutes($planStart);
+        // Считаем длительности для контроля и ищем налезания
+        // $checksum = [];
 
-        // Находим подходящее место для плана
-        $currentTime = null;
-        $gapFound = false;
+        $prevPlan = null;
+        $nextPlan = null;
 
-        // Проходим по всем планам и ищем свободное место
-        foreach ($allPlans as $existingPlan) {
-            if ($existingPlan->plan_product_id == $plan->plan_product_id) {
-                continue; // Пропускаем сам план (если он уже есть)
+
+        for ($i = 0; $i < count($allPlans); $i++) {
+            $pl = $allPlans[$i];
+
+            $prevPlan = $i > 0 ? $allPlans[$i - 1] : null;
+            $nextPlan = $i != count($allPlans) - 1 ? $allPlans[$i + 1] : null;
+
+            // TODO надо ли?
+            // $checksum[$pl->plan_product_id] = Carbon::parse($pl->started_at)->diffInMinutes($pl->ended_at);
+
+            $topShift = null;
+            $bottomShift = null;
+
+            // Считаем сдвиги
+            if ($prevPlan && $pl->ended_at > $prevPlan->started_at && $prevPlan->started_at > $pl->started_at && !$topShift) {
+                $topShift = Carbon::parse($prevPlan->started_at)->diffInMinutes($pl->ended_at);
+                // var_dump("Calced top: $topShift for $i");
+            // } else if ($nextPlan && $pl->started_at < $nextPlan->ended_at && $nextPlan->ended_at <= $pl->ended_at) {
+            //     $bottomShift = -Carbon::parse($nextPlan->ended_at)->diffInMinutes($pl->started_at);
+                // var_dump("Calced bottom: $bottomShift for $i");
+
+                // Обработка, если выткаем в середину, т.е. совпадает старт с точность до минуты
+            } else if ($prevPlan && Carbon::parse($prevPlan->started_at)->diffInMinutes($pl->started_at) < 1) {
+                $topShift = abs(Carbon::parse($prevPlan->started_at)->diffInMinutes($prevPlan->ended_at));
             }
 
-            $existingStart = Carbon::parse($existingPlan->started_at);
-            $existingEnd = Carbon::parse($existingPlan->ended_at);
 
-            // Если это первый план, ищем начало рабочего дня
-            if ($currentTime === null) {
-                // Получаем время начала работы линии
-                $lineExtra = LinesExtra::where('line_id', $lineId)
-                    ->withSession($request)
-                    ->first();
-                $currentTime = Carbon::parse($lineExtra->started_at ?? '00:00');
+
+            // Применяем сдвиги, если они посчитаны
+            if ($topShift != null || $bottomShift != null) {
+                // Если новый план, то сдвигаем на верхний сдвиг
+                // if ($pl->plan_product_id == $plan->plan_product_id && $currentPlanPosition != 0) {
+                $pl->update([
+                    'started_at' => Carbon::parse($pl->started_at)->addMinutes($topShift),
+                    'ended_at' => Carbon::parse($pl->ended_at)->addMinutes($topShift)
+                ]);
+                // } else if ($pl->plan_product_id != $plan->plan_product_id) {
+                // $pl->update([
+                //     'started_at' => Carbon::parse($pl->started_at)->addMinutes($bottomShift),
+                //     'ended_at' => Carbon::parse($pl->ended_at)->addMinutes($bottomShift)
+                // ]);
+                // }
             }
 
-            // Проверяем, поместится ли план ДО текущего существующего плана
-            if (!$gapFound && $planStart <= $existingStart) {
-                // План должен быть вставлен ДО этого существующего плана
-                $requiredEnd = $currentTime->copy()->addMinutes($planDuration);
-
-                // Если помещается до существующего плана
-                if ($requiredEnd <= $existingStart) {
-                    // Устанавливаем план на найденное место
-                    $plan->update([
-                        'started_at' => $currentTime,
-                        'ended_at' => $requiredEnd,
-                    ]);
-                    $gapFound = true;
-                    break;
-                }
-            }
-
-            // Перемещаем текущее время после этого плана
-            $currentTime = max($currentTime, $existingEnd);
+            $allPlans[$i] = $pl;
         }
-
-        // Если не нашли места до какого-либо плана, ставим в конец
-        if (!$gapFound) {
-            if ($currentTime === null) {
-                // Первый план на линии
-                $lineExtra = LinesExtra::where('line_id', $lineId)
-                    ->withSession($request)
-                    ->first();
-                $currentTime = Carbon::parse($lineExtra->started_at ?? '00:00');
-            }
-
-            $newStartedAt = $currentTime;
-            $newEndedAt = $currentTime->copy()->addMinutes($planDuration);
-
-            $plan->update([
-                'started_at' => $newStartedAt,
-                'ended_at' => $newEndedAt,
-            ]);
-
-            // Теперь нужно сдвинуть все последующие планы
-            $shiftDuration = $planDuration;
-            self::shiftPlans($request, $lineId, $plan, 0); // Сдвиг не нужен, план уже на своем месте
-        }
-
-        // После размещения плана проверяем и устраняем пересечения
-        return self::resolveAllOverlaps($request, $lineId);
-    }
-
-    private static function resolveAllOverlaps(Request $request, int $lineId): bool
-    {
-        // Получаем все планы на линии
-        $allPlans = ProductsPlan::whereHas('slot', function ($query) use ($lineId) {
-            $query->where('line_id', $lineId);
-        })
-            ->withSession($request)
-            ->orderBy('started_at', 'ASC')
-            ->get();
-
-        $hasOverlaps = true;
-        $maxIterations = 10; // Защита от бесконечного цикла
-
-        while ($hasOverlaps && $maxIterations-- > 0) {
-            $hasOverlaps = false;
-
-            for ($i = 0; $i < count($allPlans) - 1; $i++) {
-                $current = $allPlans[$i];
-                $next = $allPlans[$i + 1];
-
-                $currentEnd = Carbon::parse($current->ended_at);
-                $nextStart = Carbon::parse($next->started_at);
-
-                // Если есть пересечение или планы впритык
-                if ($currentEnd > $nextStart) {
-                    $hasOverlaps = true;
-                    $overlapMinutes = $currentEnd->diffInMinutes($nextStart, false);
-
-                    if ($overlapMinutes > 0) {
-                        // Сдвигаем все последующие планы
-                        $shiftMinutes = $overlapMinutes + 1; // +1 минута зазора
-
-                        for ($j = $i + 1; $j < count($allPlans); $j++) {
-                            $planToShift = $allPlans[$j];
-                            $planToShift->update([
-                                'started_at' => Carbon::parse($planToShift->started_at)->addMinutes($shiftMinutes),
-                                'ended_at' => Carbon::parse($planToShift->ended_at)->addMinutes($shiftMinutes),
-                            ]);
-                        }
-
-                        // Обновляем коллекцию после сдвига
-                        $allPlans = ProductsPlan::whereHas('slot', function ($query) use ($lineId) {
-                            $query->where('line_id', $lineId);
-                        })
-                            ->withSession($request)
-                            ->orderBy('started_at', 'ASC')
-                            ->get();
-
-                        break; // Выходим из цикла и начинаем заново
-                    }
-                }
-            }
-        }
-
-        return true;
-    }
-
-    /**
-     * Сдвиг всех планов, которые начинаются НЕ РАНЬЕ текущего плана,
-     * на указанное количество минут.
-     */
-    private static function shiftPlans(Request $request, int $lineId, ProductsPlan $currentPlan, int $shiftMinutes): void
-    {
-        $plansToShift = ProductsPlan::whereHas('slot', function ($query) use ($lineId) {
-            $query->where('line_id', $lineId);
-        })
-            ->where('plan_product_id', '!=', $currentPlan->plan_product_id)
-            ->withSession($request)
-            ->where('started_at', '>=', $currentPlan->started_at)
-            ->orderBy('started_at', 'ASC')
-            ->get();
-
-        foreach ($plansToShift as $plan) {
-            $plan->update([
-                'started_at' => Carbon::parse($plan->started_at)->addMinutes($shiftMinutes),
-                'ended_at' => Carbon::parse($plan->ended_at)->addMinutes($shiftMinutes),
-            ]);
-        }
-    }
-
-    /**
-     * Проверка пересечения двух планов (старая версия остаётся без изменений)
-     */
-    private static function plansOverlap(ProductsPlan $plan1, ProductsPlan $plan2): bool
-    {
-        $start1 = Carbon::parse($plan1->started_at);
-        $end1 = Carbon::parse($plan1->ended_at);
-        $start2 = Carbon::parse($plan2->started_at);
-        $end2 = Carbon::parse($plan2->ended_at);
-
-        return $start1 <= $end2 && $end1 >= $start2;
     }
 
     /**
@@ -565,7 +258,6 @@ class ProductsPlanController extends Controller
             ]
         ], 200);
     }
-
 
     /**
      * 1) Получаем все планы на данной линии, сортируем по возрастанию позиции
@@ -625,6 +317,7 @@ class ProductsPlanController extends Controller
     
             });
     }
+
     public function clear(Request $request)
     {
         ProductsPlan::withSession($request)->each(function ($plan) {
@@ -640,10 +333,143 @@ class ProductsPlanController extends Controller
                     'ended_at' => $default['ended_at']
                 ]);
             }
+            // var_dump($default)
             $default['line_id'] = $line->line_id;
             $lines[] = $default;
         });
 
         return Response($lines, 200);
+    }
+
+    private function processPacks(Request $request, array $pack_ids, ProductsPlan $plan, array &$order)
+    {
+        // Задержка от начала варки
+        $delay = $request->post('delay');
+        // Продукция
+        $product = ProductsDictionary::find($plan->slot->product_id);
+        // И объём
+        $amount = $request->post('amount');
+
+        $packsCheck = [];
+        if (count($pack_ids) > 0) {
+            foreach ($pack_ids as $pack_id) {
+                // Конец упаковки должен быть:
+                // 1. Не раньше конца варки 
+                // 2. Если раньше конца варки, то не раньше конца варки + delay
+                // 3. Упаковка не позже обсыпки
+                // 4. Флоу паки должны без задержки начинаться
+                // 5. Обсыпка и упаковка через $delay минут, а глазировка и варка - юез задержки
+                $slot = ProductsSlots::find($pack_id);
+
+                $duration = Util::calcDuration(
+                    $product,
+                    $amount,
+                    $slot
+                );
+
+                $start = Carbon::parse($plan->started_at);
+                // Если опудривани, обсыпка или упаковка - добавляем задержку
+                if (
+                    ($slot->type_id == 2 || $slot->type_id == 5 || $slot->type_id == 3) &&
+                    !str_contains($slot->line->title, 'FLOY')
+                ) {
+                    $start->addMinutes($delay);
+                }
+                $ended_at = $start->copy();
+                $ended_at->addHours($duration)->addMinutes(15);
+
+                if ($ended_at < ($d = Carbon::parse($plan->ended_at))) {
+                    $ended_at = $d->addMinutes($delay);
+                }
+
+                $packPlan = ProductsPlan::create(
+                    [
+                        'product_id' => $product->product_id,
+                        'slot_id' => $pack_id,
+                        'started_at' => $start,
+                        'ended_at' => $ended_at,
+                        'parent' => $plan->plan_product_id,
+                        'amount' => $amount
+                    ] + Util::getSessionAsArray($request)
+                );
+
+                if ($slot->type_id == 2) {
+                    $packsCheck[] = $packPlan;
+                    // Если упаковка, запоминаем ИД и потом будем по другим позициям чекать
+                } else {
+                    $this->checkPlans($request, $packPlan);
+
+                    $line_id = $packPlan->slot->line_id;
+
+                    $order[$line_id] = ProductsPlan::whereHas('slot', function ($query) use ($line_id) {
+                        $query->where('line_id', $line_id);
+                    })->withSession($request)->orderBy('started_at', 'ASC')->get()->toArray();
+                }
+            }
+        }
+
+        if ($zm_id = $request->post('zm_id')) {
+            $duration = Util::calcDurationForZM(
+                $product,
+                $amount,
+                $zm_id
+            );
+
+            $start = Carbon::parse($plan->started_at)->addMinutes($delay);
+            $ended_at = $start->copy();
+            $ended_at->addHours($duration)->addMinutes(15);
+
+            if ($ended_at < ($d = Carbon::parse($plan->ended_at))) {
+                $ended_at = $d->addMinutes($delay);
+            }
+
+            $packPlan = ProductsPlan::create(
+                [
+                    'product_id' => $product->product_id,
+                    'slot_id' => $pack_id,
+                    'started_at' => $start,
+                    'ended_at' => $ended_at,
+                    'parent' => $plan->plan_product_id,
+                    'amount' => $amount
+                ] + Util::getSessionAsArray($request)
+            );
+
+            $packsCheck[] = $packPlan;
+        }
+
+        // Проверка, что упаковываем не раньше глазировки
+        $glazPlans = ProductsPlan::where('parent', $plan->plan_product_id)
+            ->whereHas('slot', function ($query) {
+                $query->where('type_id', 3);
+            })->withSession($request)->get();
+
+        if ($glazPlans->isNotEmpty()) {
+            // Находим самое позднее окончание глазировки
+            $latestGlazEnd = $glazPlans->max(function ($plan) {
+                return Carbon::parse($plan->ended_at);
+            });
+            // var_dump($glaz);
+            $glaz_end = Carbon::parse($latestGlazEnd);
+        }
+        foreach ($packsCheck as $p) {
+            $packStart = Carbon::parse($p->started_at);
+            if (isset($glaz_end) && $packStart < $glaz_end) {
+                // Сдвигаем упаковку так, чтобы она начиналась после глазировки
+                $newStart = $glaz_end->copy();
+                $duration = Carbon::parse($p->ended_at)->diffInMinutes($packStart);
+                $newEnd = $newStart->copy()->addMinutes(-$duration);
+
+                $p->update([
+                    'started_at' => $newStart,
+                    'ended_at' => $newEnd
+                ]);
+
+                $this->checkPlans($request, $p);
+                $line_id = $p->slot->line_id;
+                $order[$line_id] = ProductsPlan::whereHas('slot', function ($query) use ($line_id) {
+                    $query->where('line_id', $line_id);
+                })->withSession($request)->orderBy('started_at', 'ASC')->get()->toArray();
+            }
+        }
     }
 }

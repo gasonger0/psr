@@ -21,13 +21,17 @@ import {
 import { CheckboxOptionType, CheckboxValueType } from 'ant-design-vue/es/checkbox/interface';
 import { computed, ref, watch, onUnmounted, nextTick, reactive, toRefs } from 'vue';
 import dayjs from 'dayjs';
+import { useZMCategories } from '@/functions';
+import { RadioGroupOptionType } from 'ant-design-vue/es/radio/interface';
 
 interface ModalState {
     slot: ProductSlot | null;
     product: ProductInfo | null;
     line: LineInfo | null;
     packOptions: CheckboxOptionType[];
+    zmOptions: {label: string, value: number}[];
     packs: CheckboxValueType[];
+    zm: number;
     // TODO: если по МТ согласуют, то это можно нахер убирать
     selection: ProductSlot[];
     selRadioValue: number | null;
@@ -63,7 +67,9 @@ const state = reactive<ModalState>({
     product: null,
     line: null,
     packOptions: [],
+    zmOptions: [],
     packs: [],
+    zm: null,
     selection: [],
     selRadioValue: null,
     showPack: false,
@@ -235,6 +241,16 @@ const getPackOptions = async () => {
                 } as CheckboxOptionType;
             })
             .filter(el => state.slot && el.value !== state.slot.product_slot_id);
+
+        // Получение категорий и обработка для one shot
+        if (useZMCategories.includes(state.product.category_id)) {
+            state.zmOptions = [1,2,3].map((el: number) => {
+                return {
+                    label: `<Упаковка> One Shot ЗМ ${el == 3 ? '№1 и №2' : '№' + el} (${el == 3 ? 287 : 143.5} кг/ч)`,
+                    value: el
+                };
+            })
+        }
     } catch (error) {
         console.error('Error getting pack options:', error);
     }
@@ -373,11 +389,10 @@ const addPlan = async () => {
 
 
         const packIds = state.showPack ? [...state.packs] as number[] : [];
-
         if (localPlanData.value.plan_product_id) {
-            await plansStore._update(localPlanData.value, packIds);
+            await plansStore._update(localPlanData.value, packIds, state.zm as number);
         } else {
-            await plansStore._create(localPlanData.value, packIds);
+            await plansStore._create(localPlanData.value, packIds, state.zm as number);
         }
 
         emit('save');
@@ -402,6 +417,7 @@ const resetState = () => {
         product: null,
         line: null,
         packOptions: [],
+        zmOptions: [],
         packs: [],
         selection: [],
         selRadioValue: null,
@@ -482,7 +498,7 @@ onUnmounted(() => {
                 <div class="form-section">
                     <div class="form-row">
                         <span class="label">Объём изготовления:</span>
-                        <InputNumber v-model:value="localPlanData.amount" :min="0.1" :step="0.1" :precision="2"
+                        <InputNumber v-model:value="localPlanData.amount" :min="0" :step="1"
                             :disabled="state.isLoading" style="width: 120px" />
                     </div>
 
@@ -554,7 +570,7 @@ onUnmounted(() => {
                 </div>
 
                 <!-- Настройки упаковки -->
-                <div v-if="state.slot.type_id !== 2 && state.packOptions.length" class="form-section">
+                <div v-if="state.slot.type_id !== 2 && (state.packOptions.length || state.zmOptions.length)" class="form-section">
                     <Checkbox v-model:checked="state.showPack" :disabled="state.isLoading">
                         Сгенерировать план упаковки
                     </Checkbox>
@@ -570,6 +586,9 @@ onUnmounted(() => {
                         </div>
 
                         <div class="pack-options">
+                            <RadioGroup v-model:value="state.zm" :option="state.zmOptions"
+                                :disabled="state.isLoading" v-if="state.zmOptions.length > 0"/>
+
                             <CheckboxGroup v-model:value="state.packs" :options="state.packOptions"
                                 :disabled="state.isLoading" />
                         </div>

@@ -149,3 +149,6 @@ export function scrollToTop(container: Ref<HTMLElement|null>) {
         });
     }, 100);
 }
+
+// ИД категорий, для которых использовать ЗМ
+export const useZMCategories = [14, 16, 18, 19, 20];

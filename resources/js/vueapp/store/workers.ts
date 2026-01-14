@@ -42,9 +42,9 @@ export const WorkerForm = {
 export const useWorkersStore = defineStore('workers', () => {
     const workers: Ref<WorkerInfo[]> = ref([]);
 
-    const calcBreak = (worker: WorkerInfo) => computed(() => 
-        worker.break.started_at.format('HH:mm:ss') <= getTimeString().format('HH:mm:ss') 
-        && 
+    const calcBreak = (worker: WorkerInfo) => computed(() =>
+        worker.break.started_at.format('HH:mm:ss') <= getTimeString().format('HH:mm:ss')
+        &&
         getTimeString().format('HH:mm:ss') <= worker.break.ended_at.format('HH:mm:ss')
     );
 
@@ -92,6 +92,26 @@ export const useWorkersStore = defineStore('workers', () => {
         return await deleteRequest('/api/workers/delete', unserialize(worker),
             (r: AxiosResponse) => {
                 splice(worker.worker_id!);
+            }
+        );
+    }
+
+    async function _result(ktus: { worker_id: number, ktu: number, check: boolean }[]): Promise<boolean> {
+        return await postRequest('/api/get_xlsx', ktus.filter(el => el.check == true),
+            (r: AxiosResponse) => {
+                if (r.data) {
+                    let url = r.data;
+                    // console.log(response);
+                    let a = document.createElement('a');
+                    if (typeof a.download === undefined) {
+                        window.location = url;
+                    } else {
+                        a.href = url;
+                        a.download = r.data;
+                        document.body.appendChild(a);
+                        a.click();
+                    }
+                }
             }
         );
     }
@@ -172,6 +192,7 @@ export const useWorkersStore = defineStore('workers', () => {
         _create,
         _update,
         _delete,
+        _result,
         splice,
         serialize,
         add,
