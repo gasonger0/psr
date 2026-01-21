@@ -29,7 +29,6 @@ const close = async (get: boolean) => {
         await workersStore._result(workers.value);
     }
     modal.close('result');
-    workers.value = [];
 }
 
 watch(

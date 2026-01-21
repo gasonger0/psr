@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Slot } from '@/store/dicts';
 import { LineInfo, useLinesStore } from '@/store/lines';
 import { useModalsStore } from '@/store/modal';
 import { usePlansStore } from '@/store/productsPlans';
@@ -16,17 +17,7 @@ const plans = usePlansStore();
 const workers = useWorkersStore();
 const lines = useLinesStore();
 
-const columns: Array<ColumnType> = [{
-    title: 'Сотрудник',
-    dataIndex: 'title',
-    width: 200,
-    fixed: 'left'
-} as ColumnType, {
-    title: 'Время обеда',
-    dataIndex: 'break',
-    width: 200,
-    fixed: 'left'
-} as ColumnType];
+const columns: Ref<Array<ColumnType & { work_time?: Slot }>> = ref([]);
 
 const cells: Ref<any[]> = ref([]);
 
@@ -70,21 +61,48 @@ const exit = () => {
 }
 
 const processCells = () => {
-    if (columns.length == 2) {
-        const ls = lines.lines.value;
-        lines.lines.filter((el: LineInfo) => el.has_plans == true).forEach((i: LineInfo) => {
-            let f = i as any;
-            f.dataIndex = i.line_id;
-            columns.push(f as ColumnType);
+    columnsReset();
+    lines.lines.filter(el => el.has_plans == true).forEach(i => {
+        columns.value.push({
+            title: i.title,
+            dataIndex: i.line_id,
+            width: 200,
+            work_time: i.work_time
         });
+    });
 
-    }
+
     cells.value = workers.workers.map((el: WorkerInfo) => {
         slots.getByWorker(el.worker_id).forEach((sl: WorkerSlot) => {
             el[String(sl.line_id)] = sl;
+            if (columns.value.find((el) => el.dataIndex == sl.line_id) === undefined) {
+                let line = lines.getByID(sl.line_id);
+                columns.value.push({
+                    title: line.title,
+                    dataIndex: line.line_id,
+                    width: 200,
+                    work_time: line.work_time
+                });
+            }
         });
         return el;
     });
+
+    console.log(columns, lines.lines.filter(i => i.has_plans));
+}
+
+const columnsReset = () => {
+    columns.value = [{
+        title: 'Сотрудник',
+        dataIndex: 'title',
+        width: 200,
+        fixed: 'left'
+    }, {
+        title: 'Время обеда',
+        dataIndex: 'break',
+        width: 200,
+        fixed: 'left'
+    }];
 }
 
 onUpdated(() => {
@@ -122,7 +140,7 @@ watch(
                 </template>
                 <template #bodyCell="{ column, record }">
                     <template
-                        v-if="column.dataIndex != 'title' && (record[(column as LineInfo).line_id] || column.dataIndex == 'break')">
+                        v-if="column.dataIndex != 'title' && (record[column.dataIndex as string] || column.dataIndex == 'break')">
                         <div class="pickers">
                             <TimePicker v-model:value="record[column.dataIndex as string].started_at" format="HH:mm"
                                 :showTime="true" :allowClear="true" type="time" :showDate="false" size="small"

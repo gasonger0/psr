@@ -29,9 +29,8 @@ interface ModalState {
     product: ProductInfo | null;
     line: LineInfo | null;
     packOptions: CheckboxOptionType[];
-    zmOptions: {label: string, value: number}[];
+    zmOptions: { label: string, value: number }[];
     packs: CheckboxValueType[];
-    zm: number;
     // TODO: если по МТ согласуют, то это можно нахер убирать
     selection: ProductSlot[];
     selRadioValue: number | null;
@@ -69,7 +68,6 @@ const state = reactive<ModalState>({
     packOptions: [],
     zmOptions: [],
     packs: [],
-    zm: null,
     selection: [],
     selRadioValue: null,
     showPack: false,
@@ -176,16 +174,16 @@ const handleHardware = () => {
             state.perfomance = state.slot.perfomance;
         }
 
-        // Коррекция производительности для упаковки на ЗМ
-        if (state.slot?.type_id === 2) {
-                   // Без Завёрток должно быть как у слота по умолчанию
-            console.log("no new slots. Default slot is:", state.slot);
+        // // Коррекция производительности для упаковки на ЗМ
+        // if (state.slot?.type_id === 2) {
+        //     // Без Завёрток должно быть как у слота по умолчанию
+        //     console.log("no new slots. Default slot is:", state.slot);
 
-            if ([4, 5, 6].includes(state.hardware!)) {
-                const perf = state.hardware === 4 || state.hardware === 5 ? 143.5 : 287;
-                state.perfomance += perf;
-            }
-        }
+        //     if ([4, 5, 6].includes(state.hardware!)) {
+        //         const perf = (state.hardware === 4 || state.hardware === 5) ? 143.5 : 287;
+        //         state.perfomance = perf;
+        //     }
+        // }
 
         changeTime();
         return;
@@ -203,10 +201,10 @@ const handleHardware = () => {
     state.perfomance = newSlots[0].perfomance;
 
     // Коррекция производительности для упаковки на ЗМ
-    if ([4, 5, 6].includes(state.hardware!) && newSlots[0].type_id === 2) {
-        const perf = state.hardware === 4 || state.hardware === 5 ? 143.5 : 287;
-        state.perfomance += perf;
-    }
+    // if ([4, 5, 6].includes(state.hardware!) && newSlots[0].type_id === 2) {
+    //     const perf = state.hardware === 4 || state.hardware === 5 ? 143.5 : 287;
+    //     state.perfomance += perf;
+    // }
     console.log(state.perfomance);
 
     changeTime();
@@ -244,7 +242,7 @@ const getPackOptions = async () => {
 
         // Получение категорий и обработка для one shot
         if (useZMCategories.includes(state.product.category_id)) {
-            state.zmOptions = [1,2,3].map((el: number) => {
+            state.zmOptions = [1, 2, 3].map((el: number) => {
                 return {
                     label: `<Упаковка> One Shot ЗМ ${el == 3 ? '№1 и №2' : '№' + el} (${el == 3 ? 287 : 143.5} кг/ч)`,
                     value: el
@@ -336,10 +334,10 @@ const initializeData = async () => {
 
         state.perfomance = slot.perfomance;
 
-
+        console.log('slot!', slot);
         // Устанавливаем оборудование если есть
         if (slot.hardware && slot.hardware > 0) {
-            state.hardware = slot.hardware;
+            state.hardware = Number(slot.hardware);
             handleHardware();
         } else {
             // Базовый расчет времени
@@ -390,9 +388,9 @@ const addPlan = async () => {
 
         const packIds = state.showPack ? [...state.packs] as number[] : [];
         if (localPlanData.value.plan_product_id) {
-            await plansStore._update(localPlanData.value, packIds, state.zm as number);
+            await plansStore._update(localPlanData.value, packIds);
         } else {
-            await plansStore._create(localPlanData.value, packIds, state.zm as number);
+            await plansStore._create(localPlanData.value, packIds);
         }
 
         emit('save');
@@ -498,8 +496,8 @@ onUnmounted(() => {
                 <div class="form-section">
                     <div class="form-row">
                         <span class="label">Объём изготовления:</span>
-                        <InputNumber v-model:value="localPlanData.amount" :min="0" :step="1"
-                            :disabled="state.isLoading" style="width: 120px" />
+                        <InputNumber v-model:value="localPlanData.amount" :min="0" :step="1" :disabled="state.isLoading"
+                            style="width: 120px" />
                     </div>
 
                     <!-- Время начала -->
@@ -545,6 +543,7 @@ onUnmounted(() => {
                     </div>
 
                     <!-- Выбор производительности -->
+                    <!-- Нафиг, если согласуют -->
                     <div v-if="state.selection.length" class="form-group">
                         <h4>Выберите производительность:</h4>
                         <RadioGroup v-model:value="state.selRadioValue" @change="handleSelection"
@@ -558,7 +557,8 @@ onUnmounted(() => {
                 </div>
 
                 <!-- Специфичные настройки для упаковки -->
-                <div v-if="state.slot.type_id === 2 && state.line.title.toLowerCase().includes('one shot')" class="form-section">
+                <div v-if="state.slot.type_id === 2 && state.line.title.toLowerCase().includes('one shot')"
+                    class="form-section">
                     <div class="form-group">
                         <h4>Оборудование упаковки:</h4>
                         <RadioGroup v-model:value="state.hardware" @change="handleHardware" :disabled="state.isLoading">
@@ -570,7 +570,8 @@ onUnmounted(() => {
                 </div>
 
                 <!-- Настройки упаковки -->
-                <div v-if="state.slot.type_id !== 2 && (state.packOptions.length || state.zmOptions.length)" class="form-section">
+                <div v-if="state.slot.type_id !== 2 && (state.packOptions.length || state.zmOptions.length)"
+                    class="form-section">
                     <Checkbox v-model:checked="state.showPack" :disabled="state.isLoading">
                         Сгенерировать план упаковки
                     </Checkbox>
@@ -586,8 +587,8 @@ onUnmounted(() => {
                         </div>
 
                         <div class="pack-options">
-                            <RadioGroup v-model:value="state.zm" :option="state.zmOptions"
-                                :disabled="state.isLoading" v-if="state.zmOptions.length > 0"/>
+                            <RadioGroup v-model:value="state.hardware" :option="state.zmOptions" :disabled="state.isLoading"
+                                v-if="state.zmOptions.length > 0" />
 
                             <CheckboxGroup v-model:value="state.packs" :options="state.packOptions"
                                 :disabled="state.isLoading" />

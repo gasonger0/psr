@@ -55,11 +55,10 @@ class ProductsPlanController extends Controller
         })->withSession($request)->orderBy('started_at', 'ASC')->get()->toArray();
 
         // Если задана упаковка... 
-        if (($pack = $request->post('packs')) || $request->post('zm_id')) {
+        if (($pack = $request->post('packs'))) {
             $this->processPacks($request, $pack, $plan, $order);
         }
 
-        // TODO? меняем время работы линии по началу первого и концу последнего плана
         LinesController::updateLinesTime($order);
         return Util::successMsg($plan->toArray() + [
             'packs' => ProductsPlan::withSession($request)->where('parent', $plan->plan_product_id)->get(),
@@ -90,11 +89,9 @@ class ProductsPlanController extends Controller
                 $el->delete();
             });
 
-        if (($pack = $request->post('packs')) || $request->post('zm_id')) {
+        if (($pack = $request->post('packs'))) {
             $this->processPacks($request, $pack, $plan, $order);
         }
-
-        // TODO? меняем время работы линии по началу первого и концу последнего плана
 
         LinesController::updateLinesTime($order);
         return Util::successMsg($plan->toArray() + [
@@ -406,35 +403,6 @@ class ProductsPlanController extends Controller
                     })->withSession($request)->orderBy('started_at', 'ASC')->get()->toArray();
                 }
             }
-        }
-
-        if ($zm_id = $request->post('zm_id')) {
-            $duration = Util::calcDurationForZM(
-                $product,
-                $amount,
-                $zm_id
-            );
-
-            $start = Carbon::parse($plan->started_at)->addMinutes($delay);
-            $ended_at = $start->copy();
-            $ended_at->addHours($duration)->addMinutes(15);
-
-            if ($ended_at < ($d = Carbon::parse($plan->ended_at))) {
-                $ended_at = $d->addMinutes($delay);
-            }
-
-            $packPlan = ProductsPlan::create(
-                [
-                    'product_id' => $product->product_id,
-                    'slot_id' => $pack_id,
-                    'started_at' => $start,
-                    'ended_at' => $ended_at,
-                    'parent' => $plan->plan_product_id,
-                    'amount' => $amount
-                ] + Util::getSessionAsArray($request)
-            );
-
-            $packsCheck[] = $packPlan;
         }
 
         // Проверка, что упаковываем не раньше глазировки

@@ -103,19 +103,19 @@ const emit = defineEmits([
                         <MenuItem>
                         <Button type="primary" @click="openModal('plans')">
                             <CalendarOutlined />
-                            Реестр планов
+                            Планы
                         </Button>
                         </MenuItem>
                         <MenuItem>
                         <Button type="primary" @click="openModal('products')">
                             <AppstoreOutlined />
-                            Реестр продукции
+                            Продукция
                         </Button>
                         </MenuItem>
                         <MenuItem>
                         <Button type="primary" @click="openModal('workers')">
                             <TeamOutlined />
-                            Реестр работников
+                            Компания
                         </Button>
                         </MenuItem>
                     </Menu>
@@ -131,8 +131,8 @@ const emit = defineEmits([
         </section>
         <section>
             <!-- <ConfigProvider locale="ru_RU"> -->
-                <DatePicker v-model:value="date" format="DD.MM.YYYY" mode="date" @open-change="showAccept = true;"
-                    :locale="locale" />
+            <DatePicker v-model:value="date" format="DD.MM.YYYY" mode="date" @open-change="showAccept = true;"
+                :locale="locale" />
             <!-- </ConfigProvider> -->
             <Switch v-model:checked="isDay" @change="showAccept = true" checkedChildren="День"
                 unCheckedChildren="Ночь" />

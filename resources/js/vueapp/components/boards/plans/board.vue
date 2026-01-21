@@ -161,7 +161,7 @@ onUpdated(async () => {
 
                     if (plans.length > 0 && position > 0) {
                         if (position < plans.length) {
-                            started_at = plans[position-1].ended_at;
+                            started_at = plans[position - 1].ended_at;
                         } else {
                             lastProd = plans.reduce((latest, current) => {
                                 return current.ended_at.isAfter(latest.ended_at) ? current : latest;

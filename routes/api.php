@@ -74,7 +74,6 @@ Route::group(['middleware' => ['web', ParseSession::class]], function () {
         ->prefix('/companies')
         ->middleware(ForceJsonResponse::class)
         ->group(function () {
-            // TODO crud!
             Route::get('/get', 'get');
             Route::put('/update', 'update');
             Route::post('/create', 'create');

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Companies;
 use App\Models\Lines;
 use App\Models\LinesExtra;
 use App\Models\ProductsCategories;
@@ -14,6 +15,7 @@ use App\Models\Slots;
 use App\Models\Workers;
 use App\Util;
 use Carbon\Carbon;
+use DateTime;
 use Exception;
 use Illuminate\Http\Request;
 use Shuchkin\SimpleXLSX;
@@ -448,7 +450,8 @@ class TableController extends Controller
                         $array[] = ['', '<style bgcolor="#D8E4BC"><b>' . mb_strtoupper($hw['hwTitle']) . '</b></style>'];
                     }
                     $colons = array_map(function ($i) {
-                        return $i['colon']; }, $hw['items']);
+                        return $i['colon'];
+                    }, $hw['items']);
 
                     $colons = array_filter(array_unique($colons));
                     if (count($colons) > 1 || array_search(3, $colons) !== false) {
@@ -646,14 +649,27 @@ class TableController extends Controller
     public function getFile(Request $request)
     {
         $data = $request->post();
+        $session = Util::getSessionAsArray($request);
+
+        $dateString =
+            (new DateTime($session['date']))->format('d.m.Y') . '_' . ($session['isDay'] == 1 ? 'день' : 'ночь');
 
         $lines = Lines::all();
         foreach ($lines as $line) {
             $line['slots'] = Slots::where('line_id', '=', $line['line_id'])->get()->toArray();
         }
 
+        $companies = [];
+        
+       foreach (Companies::get() as $comp){
+            $companies[$comp->company_id] = [
+                'title' => $comp->title,
+                'indexes' => []
+            ];
+       }
+
         $columns = [
-            ['<b><i>Наряд за</i></b>', date('d.m.Y H.i.s', time()), '', '', '', '', '', ''],
+            ['<b><i>Наряд за</i></b>', $dateString, '', '', '', '', '', ''],
             array_fill(0, 8, ''),
             [
                 'Список рабочих',
@@ -691,60 +707,52 @@ class TableController extends Controller
                     if (!$worker) {
                         // var_dump($slot);
                     }
-                    $columns[] = [
-                        $worker['title'],
+                    $row_num = count($columns) + 1;
+                    $row = [
+                        $worker->title,
                         // self::setFloat($slot['time_planned'] / 60),
                         $workTime,
-                        '',
+                        0,
                         self::setFloat($slot['down_time'] / 60),
-                        $workTime + self::setFloat(($slot['down_time'] / 60)),
+                        "<f>=C$row_num + D$row_num</f>",
                         $ktu,
-                        $ktu * ($workTime + self::setFloat($slot['down_time'] / 60))
+                        "<f>=E$row_num * F$row_num</f>"
                     ];
+
+                    $columns[] = $row;
+
+                    $companies[$worker->company_id]['indexes'][] = $row_num;
                 }
                 $count1 = count($columns);
                 $columns[] = [
                     '<style bgcolor="#FDE9D9">ИТОГО</style>',
-                    '<style bgcolor="#FDE9D9">' . self::summarize(array_column($columns, 1), $count, $count1) . '<style bgcolor="#FDE9D9">',
-                    '<style bgcolor="#FDE9D9"><style bgcolor="#FDE9D9">',
-                    '<style bgcolor="#FDE9D9">' . self::summarize(array_column($columns, 3), $count, $count1) . '<style bgcolor="#FDE9D9">',
-                    '<style bgcolor="#FDE9D9">' . self::summarize(array_column($columns, 4), $count, $count1) . '<style bgcolor="#FDE9D9">',
+                    '<style bgcolor="#FDE9D9">' . "<f>=SUM(B$count:B$count1)</f>" . '</style>',
+                    '<style bgcolor="#FDE9D9">' . "<f>=SUM(C$count:C$count1)</f>" . '</style>',
+                    '<style bgcolor="#FDE9D9">' . "<f>=SUM(D$count:D$count1)</f>" . '</style>',
+                    '<style bgcolor="#FDE9D9">' . "<f>=SUM(E$count:E$count1)</f>" . '</style>',
                     '',
-                    '<style bgcolor="#FDE9D9">' . self::summarize(array_column($columns, 6), $count, $count1) . '<style bgcolor="#FDE9D9">',
+                    '<style bgcolor="#FDE9D9">' . "<f>=SUM(G$count:G$count1)</f>" . '</style>',
                 ];
             }
         }
         $columns[] = [''];
         $columns[] = ['КОМПАНИИ'];
 
-        $companies = Workers::select('company')->distinct()->get();
         foreach ($companies as $company) {
-            $workers = array_column(
-                Workers::where('company', '=', $company->company)->get(['title'])->toArray(),
-                'title'
-            );
-
-            $arr = array_filter($columns, function ($el) use ($workers) {
-                if (array_search($el[0], $workers) !== false) {
-                    return $el;
-                }
-            });
-
             $columns[] = [
-                $company->company,
-                array_sum(array_column($arr, 1)),
-                '',
-                // array_sum(array_column($arr, 2)),
-                array_sum(array_column($arr, 3)),
-                array_sum(array_column($arr, 4)),
-                array_sum(array_column($arr, 5)),
-                array_sum(array_column($arr, 6))
+                $company['title'],
+                self::summarize($company['indexes'], 'B'),
+                self::summarize($company['indexes'], 'C'),
+                self::summarize($company['indexes'], 'D'),
+                self::summarize($company['indexes'], 'E'),
+                self::summarize($company['indexes'], 'F'),
+                self::summarize($company['indexes'], 'G'),
             ];
         }
 
 
         $xlsx = SimpleXLSXGen::fromArray($columns);
-        $name = 'Отчёт_' . date('d_m_Y-H_i_s', time()) . '.xlsx';
+        $name = 'Отчёт_' . $dateString . '.xlsx';
 
         $xlsx->saveAs($name);
         return $name;
@@ -761,16 +769,15 @@ class TableController extends Controller
     {
         return number_format((float) $num, 2, '.', '');
     }
-    static private function summarize(array $arr, int $start, int $end)
+    static private function summarize(array $arr, string $letter)
     {
-        if (count($arr) < $end) {
-            return 0;
+        if (count($arr) == 0) {
+            return '';
+        } 
+        foreach ($arr as &$index) {
+            $index = $letter . $index;
         }
-        $result = 0;
-        for ($i = $start; $i < $end; $i++) {
-            $result += floatval($arr[$i]);
-        }
-        return $result;
+        return '<f>=' . implode('+', $arr) . '</f>';
     }
 
     // static public function getPlans(){

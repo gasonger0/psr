@@ -3,7 +3,7 @@ import WorkersBoard from '@boards/workers/board.vue';
 import PlansBoard from '@boards/plans/board.vue';
 import ProductsDict from '@modals/products.vue';
 import { onBeforeMount, ref, Ref } from 'vue';
-import WorkersWindow from './vueapp/components/modals/workers.vue';
+import WorkersWindow from './vueapp/components/modals/company.vue';
 import Toolbar from '@common/toolbar.vue';
 import { getTimeString, postRequest } from '@/functions';
 import { useProductsStore } from '@/store/products';

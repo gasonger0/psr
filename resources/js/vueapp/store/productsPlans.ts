@@ -61,8 +61,8 @@ export const usePlansStore = defineStore("productsPlans", () => {
     });
     }
 
-    async function _create(data: ProductPlan, packs: Array<number>, zm_id?: number) {
-        return await postRequest('/api/plans/create', unserialize(data, packs, zm_id),
+    async function _create(data: ProductPlan, packs: Array<number>) {
+        return await postRequest('/api/plans/create', unserialize(data, packs),
             (r: AxiosResponse) => {
                 data.plan_product_id = r.data.plan_product_id;
                 
@@ -91,8 +91,8 @@ export const usePlansStore = defineStore("productsPlans", () => {
         );
     }
 
-    async function _update(data: ProductPlan, packs: Array<number>, zm_id?: number) {
-        await putRequest('/api/plans/update', unserialize(data, packs, zm_id),
+    async function _update(data: ProductPlan, packs: Array<number>) {
+        await putRequest('/api/plans/update', unserialize(data, packs),
             (r: AxiosResponse) => {
                 if (r.data.plansOrder) {
                     let date = sessionStorage.getItem('date'),
@@ -196,12 +196,11 @@ export const usePlansStore = defineStore("productsPlans", () => {
         line.has_plans = ref(true);
         return plan as ProductPlan;
     }
-    function unserialize(plan: ProductPlan, packs: Array<number>, zm_id?: number) {
+    function unserialize(plan: ProductPlan, packs: Array<number>) {
         let payload = Object.assign({}, plan as any);
         payload.packs = packs;
         payload.started_at = plan.started_at.format(format);
         payload.ended_at = plan.ended_at.format(format);
-        payload.zm_id = zm_id;
 
         return payload;
     }

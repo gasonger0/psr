@@ -7,12 +7,10 @@ import { ExclamationCircleOutlined, InfoCircleOutlined } from '@ant-design/icons
 import { computed, onBeforeMount, onBeforeUpdate, onMounted, onUpdated, ref, Ref, watch } from 'vue';
 import { usePlansStore } from '@/store/productsPlans';
 
-const props = defineProps({
-    product: {
-        type: Object as () => ProductInfo,
-        required: true
-    }
-});
+
+const props = defineProps<{
+    product: ProductInfo
+}>();
 
 const slotsStore = useProductsSlotsStore();
 /**

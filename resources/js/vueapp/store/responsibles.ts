@@ -1,14 +1,12 @@
 import { defineStore } from "pinia";
 import { deleteRequest, getRequest, notify, postRequest, putRequest } from "../functions";
 import { AxiosError, AxiosResponse } from "axios";
-import { objectType } from "ant-design-vue/es/_util/type";
-import { positions } from "./dicts";
-import { reactive, ref, Ref } from "vue";
+import { ref, Ref } from "vue";
 
 export type ResponsibleInfo = {
     responsible_id?: number,
     title: string,
-    position: number,
+    position: Ref<string>,
     isEditing: boolean
 };
 
@@ -22,17 +20,18 @@ export const useResponsiblesStore = defineStore('responsible', () => {
      */
     async function _load(): Promise<void> {
         responsibles.value = (await getRequest('api/responsibles/get')).map((el: any) => {
-            el.position = {
-                position_id: el.position,
-                title: positions[el.position]
-            };
+            // el.position = {
+            //     position_id: el.position,
+            //     title: positions[el.position]
+            // };
             el.isEditing = false;
+            el.position = ref(String(el.position));
             return el as ResponsibleInfo;
         });
     };
     /**
-     * Загружает нового сотрудника в БД
-     * @param {WorkerInfo} fields набор полей нового сотрудника 
+     * Загружает нового ответственного в БД
+     * @param {ResponsibleInfo} fields набор полей нового сотрудника 
      */
     async function _create(rec: ResponsibleInfo): Promise<void> {
         return await postRequest('/api/responsibles/create',
@@ -63,7 +62,7 @@ export const useResponsiblesStore = defineStore('responsible', () => {
     async function _delete(rec: ResponsibleInfo): Promise<void> {
         let res = await deleteRequest('/api/responsibles/delete', rec)
         if (res) {
-            this.responsibles.splice(rec.responsible_id);
+            splice(rec.responsible_id);
         }
         return;
     };
@@ -75,9 +74,9 @@ export const useResponsiblesStore = defineStore('responsible', () => {
      * Добавить сотрудника на фронт (локально)
      */
     function add(): void {
-        this.responsibles.push({
+        responsibles.value.push({
             title: '',
-            position: ref(1),
+            position: ref("1"),
             isEditing: true
         });
     };
@@ -87,7 +86,7 @@ export const useResponsiblesStore = defineStore('responsible', () => {
      * @returns 
      */
     function splice(id: number): void {
-        this.workers = this.workers.filter((n: ResponsibleInfo) => n.responsible_id != id);
+        responsibles.value = responsibles.value.filter((n: ResponsibleInfo) => n.responsible_id != id);
         return;
     };
 
