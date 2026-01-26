@@ -11,7 +11,7 @@ class Workers extends Model
     protected $primaryKey = 'worker_id';
     public $incrementing = true;
     public $timestamps = false;
-    protected $fillable = [
+    public $fillable = [
         'title',
         'company_id'
     ];

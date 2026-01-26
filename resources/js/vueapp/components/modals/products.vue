@@ -83,7 +83,13 @@ const deleteSlot = (slot: ProductSlot) => slotsStore._delete(slot);
 
 const saveSlots = () => {
     for (let i in slots.value) {
-        saveSlot(slots.value[i]);
+        slots.value[i].forEach((el: ProductSlot) => {
+            console.log(el);
+            if (el.isEditing) {
+                saveSlot(el);
+                el.isEditing = false;
+            }
+        });
     }
 }
 

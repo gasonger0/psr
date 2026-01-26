@@ -54,7 +54,7 @@ export const useProductsSlotsStore = defineStore('productsSlots', () => {
     async function _create(slot: ProductSlot): Promise<void> {
         await postRequest('/api/products_slots/create', slot,
             (r: AxiosResponse) => {
-                slot.product_id = JSON.parse(r.data).product_slot_id;
+                slot.product_id = r.data.product_slot_id;
             }
         )
     }

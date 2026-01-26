@@ -13,7 +13,7 @@ class ProductsOrder extends Model
     protected $primaryKey = 'order_id';
     public $incrementing = true;
     public $timestamps = false;
-    protected $fillable = [
+    public $fillable = [
         'product_id',
         'amount',
         'isDay',

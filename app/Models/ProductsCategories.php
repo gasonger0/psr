@@ -10,7 +10,7 @@ class ProductsCategories extends Model
     protected $primaryKey = 'category_id';
     public $incrementing = true;
     public $timestamps = false;
-    protected $fillable = [
+    public $fillable = [
         'title',
         'parent'
     ];

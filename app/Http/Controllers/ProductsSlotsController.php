@@ -55,7 +55,7 @@ class ProductsSlotsController extends Controller
             )
         );
         if ($result) {
-            return Util::successMsg($result, 201);
+            return Util::successMsg($result->toArray(), 201);
         } else {
             return Util::errorMsg($result);
         }

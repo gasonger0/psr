@@ -11,7 +11,7 @@ class ProductsSlots extends Model
     protected $primaryKey = 'product_slot_id';
     public $incrementing = true;
     public $timestamps = false;
-    protected $fillable = [
+    public $fillable = [
         'product_id',
         'line_id',
         'people_count',

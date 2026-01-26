@@ -14,7 +14,7 @@ class Slots extends Model
     public $incrementing = true;
     public $timestamps = false;
     // protected $dateFormat = 'U';
-    protected $fillable = [
+    public $fillable = [
         'started_at', 
         'ended_at',
         'line_id',
