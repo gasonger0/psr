@@ -116,7 +116,6 @@ class ProductsPlanController extends Controller
 
 
         // TODO обновить время работы линии и подтянуть время продукции на линиях
-
         return Util::successMsg('План удалён', 200);
     }
 

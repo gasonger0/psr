@@ -1,7 +1,7 @@
 import { defineStore } from "pinia";
 import { Ref, ref } from "vue";
 import { CategoryInfo, useCategoriesStore } from "./categories";
-import { deleteRequest, getRequest, postRequest, putRequest } from "../functions";
+import { deleteRequest, getRequest, notify, postRequest, putRequest } from "../functions";
 import { AxiosResponse } from "axios";
 import { useProductsSlotsStore } from "./productsSlots";
 
@@ -45,7 +45,8 @@ export const useProductsStore = defineStore('products', () => {
     async function _create(product: ProductInfo): Promise<void> {
         await postRequest('/api/products/create', product,
             (r: AxiosResponse) => {
-                product.product_id = JSON.parse(r.data).product_id;
+                product.product_id = r.data.product_id;
+                notify("success", "Продукция добавлена");
             }
         )
     }

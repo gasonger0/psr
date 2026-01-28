@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 import { ref, Ref } from "vue";
-import { deleteRequest, getRequest, postRequest, putRequest } from "../functions";
+import { deleteRequest, getRequest, notify, postRequest, putRequest } from "../functions";
 import { AxiosResponse } from "axios";
 import { ProductInfo } from "./products";
 
@@ -55,6 +55,7 @@ export const useProductsSlotsStore = defineStore('productsSlots', () => {
         await postRequest('/api/products_slots/create', slot,
             (r: AxiosResponse) => {
                 slot.product_id = r.data.product_slot_id;
+                notify("success", "Этап сохранён");
             }
         )
     }
@@ -68,9 +69,9 @@ export const useProductsSlotsStore = defineStore('productsSlots', () => {
     }
 
     async function _delete(slot: ProductSlot): Promise<void> {
-        await deleteRequest('/api/products_slots/delete', slot,
-            () => splice(slot.product_slot_id)
-        )
+        await deleteRequest('/api/products_slots/delete', slot);
+        splice(slot.product_slot_id);
+
     }
 
     /****** LOCAL ******/
@@ -79,7 +80,7 @@ export const useProductsSlotsStore = defineStore('productsSlots', () => {
     }
     function getPack(product_id: number): ProductSlot[] {
         return slots.value.filter((el: ProductSlot) => el.product_id == product_id && (
-            [2,3,4,5].indexOf(el.type_id) != -1 
+            [2, 3, 4, 5].indexOf(el.type_id) != -1
         ))!;
 
     }
