@@ -137,9 +137,9 @@ class ProductsPlanController extends Controller
         $allPlans = ProductsPlan::whereHas('slot', function ($query) use ($lineId) {
             $query->where('line_id', $lineId);
         })->withSession($request)
-        ->orderBy('started_at', 'ASC')
-        ->orderBy('plan_product_id', 'DESC')
-        ->get();
+            ->orderBy('started_at', 'ASC')
+            ->orderBy('plan_product_id', 'DESC')
+            ->get();
 
 
         // function ($query) use ($lineId) {
@@ -174,8 +174,8 @@ class ProductsPlanController extends Controller
             if ($prevPlan && $pl->ended_at > $prevPlan->started_at && $prevPlan->started_at > $pl->started_at && !$topShift) {
                 $topShift = Carbon::parse($prevPlan->started_at)->diffInMinutes($pl->ended_at);
                 // var_dump("Calced top: $topShift for $i");
-            // } else if ($nextPlan && $pl->started_at < $nextPlan->ended_at && $nextPlan->ended_at <= $pl->ended_at) {
-            //     $bottomShift = -Carbon::parse($nextPlan->ended_at)->diffInMinutes($pl->started_at);
+                // } else if ($nextPlan && $pl->started_at < $nextPlan->ended_at && $nextPlan->ended_at <= $pl->ended_at) {
+                //     $bottomShift = -Carbon::parse($nextPlan->ended_at)->diffInMinutes($pl->started_at);
                 // var_dump("Calced bottom: $bottomShift for $i");
 
                 // Обработка, если выткаем в середину, т.е. совпадает старт с точность до минуты
@@ -366,8 +366,8 @@ class ProductsPlanController extends Controller
                 $start = Carbon::parse($plan->started_at);
                 // Если опудривани, обсыпка или упаковка - добавляем задержку
                 if (
-                    ($slot->type_id == 2 || $slot->type_id == 5 || $slot->type_id == 3) &&
-                    !str_contains($slot->line->title, 'FLOY')
+                    ($slot->type_id == 2 || $slot->type_id == 5 || $slot->type_id == 3) 
+                    // && !str_contains($slot->line->title, 'FLOY')
                 ) {
                     $start->addMinutes($delay);
                 }
@@ -407,7 +407,7 @@ class ProductsPlanController extends Controller
         // Проверка, что упаковываем не раньше глазировки
         $glazPlans = ProductsPlan::where('parent', $plan->plan_product_id)
             ->whereHas('slot', function ($query) {
-                $query->where('type_id', 3);
+                $query->whereIn('type_id', [3, 5]);
             })->withSession($request)->get();
 
         if ($glazPlans->isNotEmpty()) {
@@ -419,24 +419,20 @@ class ProductsPlanController extends Controller
             $glaz_end = Carbon::parse($latestGlazEnd);
         }
         foreach ($packsCheck as $p) {
-            $packStart = Carbon::parse($p->started_at);
-            if (isset($glaz_end) && $packStart < $glaz_end) {
-                // Сдвигаем упаковку так, чтобы она начиналась после глазировки
-                $newStart = $glaz_end->copy();
-                $duration = Carbon::parse($p->ended_at)->diffInMinutes($packStart);
-                $newEnd = $newStart->copy()->addMinutes(-$duration);
-
+            $packEnd = Carbon::parse($p->ended_at);
+            if (isset($glaz_end) && $packEnd < $glaz_end) {
+                // Сдвигаем упаковку так, чтобы она КОНЧАЛАСЬ НЕ РАНЬШЕ глазировки
                 $p->update([
-                    'started_at' => $newStart,
-                    'ended_at' => $newEnd
+                    'ended_at' => $glaz_end
                 ]);
-
-                $this->checkPlans($request, $p);
-                $line_id = $p->slot->line_id;
-                $order[$line_id] = ProductsPlan::whereHas('slot', function ($query) use ($line_id) {
-                    $query->where('line_id', $line_id);
-                })->withSession($request)->orderBy('started_at', 'ASC')->get()->toArray();
             }
+
+            $this->checkPlans($request, $p);
+            $line_id = $p->slot->line_id;
+            $order[$line_id] = ProductsPlan::whereHas('slot', function ($query) use ($line_id) {
+                $query->where('line_id', $line_id);
+            })->withSession($request)->orderBy('started_at', 'ASC')->get()->toArray();
+            // TODO обработка для упаковки по ящикам?
         }
     }
 }
