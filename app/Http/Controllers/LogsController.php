@@ -72,7 +72,7 @@ class LogsController extends Controller
             ]
         ];
         $companies = [];
-        Logs::withSession($request)->get()->orderBy('created_at', 'ASC')->each(function ($el) use (&$columns, &$companies) {
+        Logs::withSession($request)->orderBy('started_at', 'ASC')->each(function ($el) use (&$columns, &$companies) {
             $columns[] = [
                 $el->log_id,
                 $el->line,
@@ -84,6 +84,9 @@ class LogsController extends Controller
             $duration = Carbon::parse($el->started_at)->diffInHours(Carbon::parse($el->ended_at));
 
             foreach(explode(',', $el->workers) as $id) {
+                if ($id == '' || $id == null) {
+                    continue;
+                }
                 $worker = Workers::find($id);
                 $company = Companies::where('company_id', $worker->company_id)->first();
 

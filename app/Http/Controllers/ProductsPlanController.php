@@ -173,12 +173,6 @@ class ProductsPlanController extends Controller
             // Считаем сдвиги
             if ($prevPlan && $pl->ended_at > $prevPlan->started_at && $prevPlan->started_at > $pl->started_at && !$topShift) {
                 $topShift = Carbon::parse($prevPlan->started_at)->diffInMinutes($pl->ended_at);
-                // var_dump("Calced top: $topShift for $i");
-                // } else if ($nextPlan && $pl->started_at < $nextPlan->ended_at && $nextPlan->ended_at <= $pl->ended_at) {
-                //     $bottomShift = -Carbon::parse($nextPlan->ended_at)->diffInMinutes($pl->started_at);
-                // var_dump("Calced bottom: $bottomShift for $i");
-
-                // Обработка, если выткаем в середину, т.е. совпадает старт с точность до минуты
             } else if ($prevPlan && Carbon::parse($prevPlan->started_at)->diffInMinutes($pl->started_at) < 1) {
                 $topShift = abs(Carbon::parse($prevPlan->started_at)->diffInMinutes($prevPlan->ended_at));
             }
@@ -187,18 +181,10 @@ class ProductsPlanController extends Controller
 
             // Применяем сдвиги, если они посчитаны
             if ($topShift != null || $bottomShift != null) {
-                // Если новый план, то сдвигаем на верхний сдвиг
-                // if ($pl->plan_product_id == $plan->plan_product_id && $currentPlanPosition != 0) {
                 $pl->update([
                     'started_at' => Carbon::parse($pl->started_at)->addMinutes($topShift),
                     'ended_at' => Carbon::parse($pl->ended_at)->addMinutes($topShift)
                 ]);
-                // } else if ($pl->plan_product_id != $plan->plan_product_id) {
-                // $pl->update([
-                //     'started_at' => Carbon::parse($pl->started_at)->addMinutes($bottomShift),
-                //     'ended_at' => Carbon::parse($pl->ended_at)->addMinutes($bottomShift)
-                // ]);
-                // }
             }
 
             $allPlans[$i] = $pl;
@@ -366,7 +352,7 @@ class ProductsPlanController extends Controller
                 $start = Carbon::parse($plan->started_at);
                 // Если опудривани, обсыпка или упаковка - добавляем задержку
                 if (
-                    ($slot->type_id == 2 || $slot->type_id == 5 || $slot->type_id == 3) 
+                    ($slot->type_id == 2 || $slot->type_id == 5 || $slot->type_id == 3)
                     // && !str_contains($slot->line->title, 'FLOY')
                 ) {
                     $start->addMinutes($delay);
@@ -432,7 +418,26 @@ class ProductsPlanController extends Controller
             $order[$line_id] = ProductsPlan::whereHas('slot', function ($query) use ($line_id) {
                 $query->where('line_id', $line_id);
             })->withSession($request)->orderBy('started_at', 'ASC')->get()->toArray();
-            // TODO обработка для упаковки по ящикам?
+        }
+
+        // Сборка ящиков
+        $plans = ProductsPlan::where('product_id', $plan->plan_product_id)->withSession($request)->get();
+        if ($plans->isNotEmpty()) {
+            // Находим самое позднее окончание планов
+            $latest = $plans->max(function ($plan) {
+                return Carbon::parse($plan->ended_at);
+            });
+            ProductsPlan::where('product_id', $plan->plan_product_id)->whereHas('slot', fn($p) => $p->line_id == 37)
+                ->withSession($request)->get()->each(function ($p) use ($latest, $request, $order) {
+                    $p->update([
+                        'ended_at' => Carbon::parse($latest)
+                    ]);
+                    $this->checkPlans($request, $p);
+                    $line_id = $p->slot->line_id;
+                    $order[$line_id] = ProductsPlan::whereHas('slot', function ($query) use ($line_id) {
+                        $query->where('line_id', $line_id);
+                    })->withSession($request)->orderBy('started_at', 'ASC')->get()->toArray();
+                });
         }
     }
 }

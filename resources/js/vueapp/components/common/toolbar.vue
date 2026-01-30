@@ -20,6 +20,7 @@ import { AxiosResponse } from 'axios';
 import locale from 'ant-design-vue/es/date-picker/locale/ru_RU';
 import { useModalsStore } from '@stores/modal';
 import { useProductsStore } from '@/store/products';
+import { useLogsStore } from '@/store/logs';
 
 dayjs.locale('ru-ru')
 
@@ -64,6 +65,9 @@ const updateSession = () => {
 }
 const openModal = (name: string) => {
     modalStore.open(name);
+    if (name == 'logs') {
+        useLogsStore()._load();
+    }
 }
 const boils = computed(() => {
     return useModalsStore().getBoils();

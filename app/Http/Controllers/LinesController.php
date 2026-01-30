@@ -115,20 +115,22 @@ class LinesController extends Controller
             ->first();
         $downFrom = $line->down_from;
         if ($downFrom != null) {
-            $diff = Carbon::parse($downFrom)->diffInMinutes(new \DateTime());
+            $diff = Carbon::parse($downFrom)->diffInMinutes(Carbon::now("Europe/Moscow")->format('Y-m-d H:i:s'));
             $line->down_time += $diff;
             $line->down_from = null;
             $line->save();
             SlotsController::down($request, $downFrom);
         } else {
-            $line->down_from = now('Europe/Moscow');
+            $line->down_from = Carbon::now("Europe/Moscow")->format('Y-m-d H:i:s');
             $line->save();
         }
 
         $logData = [
             'line_id' => $line->line_id,
-            'action' => "Остановка работы линии по причине: " . $request->post('reason')
-        ] + Util::getSessionAsArray($request);
+            'action' => "Остановка работы линии по причине: " . $request->post('reason'),
+        ] + Util::getSessionAsArray($request) +
+        ($downFrom ? ["ended_at" => Carbon::now("Europe/Moscow")->format('Y-m-d H:i:s')] : 
+            ["started_at" => Carbon::now("Europe/Moscow")->format('Y-m-d H:i:s')]);
 
         $log = $downFrom ? LogsController::update($logData) : LogsController::create($logData);
 
