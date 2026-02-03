@@ -421,7 +421,9 @@ class ProductsPlanController extends Controller
         }
 
         // Сборка ящиков
-        $plans = ProductsPlan::where('product_id', $plan->plan_product_id)->withSession($request)->get();
+        $plans = ProductsPlan::whereHas('slot', function ($query) use ($plan) {
+            $query->where('product_id', $plan->plan_product_id);
+        })->withSession($request)->get();
         if ($plans->isNotEmpty()) {
             // Находим самое позднее окончание планов
             $latest = $plans->max(function ($plan) {
@@ -429,14 +431,16 @@ class ProductsPlanController extends Controller
             });
             ProductsPlan::where('product_id', $plan->plan_product_id)->whereHas('slot', fn($p) => $p->line_id == 37)
                 ->withSession($request)->get()->each(function ($p) use ($latest, $request, $order) {
-                    $p->update([
-                        'ended_at' => Carbon::parse($latest)
-                    ]);
-                    $this->checkPlans($request, $p);
-                    $line_id = $p->slot->line_id;
-                    $order[$line_id] = ProductsPlan::whereHas('slot', function ($query) use ($line_id) {
-                        $query->where('line_id', $line_id);
-                    })->withSession($request)->orderBy('started_at', 'ASC')->get()->toArray();
+                    if (Carbon::parse($p->ended_at)->diffInMinutes($latest) < 0) {
+                        $p->update([
+                            'ended_at' => Carbon::parse($latest)
+                        ]);
+                        $this->checkPlans($request, $p);
+                        $line_id = $p->slot->line_id;
+                        $order[$line_id] = ProductsPlan::whereHas('slot', function ($query) use ($line_id) {
+                            $query->where('line_id', $line_id);
+                        })->withSession($request)->orderBy('started_at', 'ASC')->get()->toArray();
+                    }
                 });
         }
     }

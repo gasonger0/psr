@@ -87,11 +87,19 @@ const abortController = ref<AbortController | null>(null);
 // Computed properties
 const time = computed(() => {
     if (!localPlanData.value?.amount || !state.product || !state.perfomance) return 0;
-
-    return localPlanData.value.amount *
-        eval(state.product.amount2parts) *
-        eval(state.product.parts2kg) /
-        state.perfomance;
+    // Ящики
+    if (state.line.line_id == 37) {
+        let amount = localPlanData.value.amount;
+        if (state.line.title.includes('телевизор')) {
+            amount += amount * eval(state.product.amount2parts);
+        }
+        return amount / state.perfomance;
+    } else {
+        return localPlanData.value.amount *
+            eval(state.product.amount2parts) *
+            eval(state.product.parts2kg) /
+            state.perfomance;
+    }
 });
 
 const boils = computed(() => {
@@ -463,6 +471,35 @@ watch(() => localPlanData.value?.started_at, () => {
     changeTime();
 }, { deep: true });
 
+// Комбинированный watch для отслеживания и данных, и видимости модалки
+watch(
+    () => ({
+        data: props.data,
+        isVisible: modal.visibility['plan']
+    }),
+    ({ data, isVisible }, oldState) => {
+        // Если модалка стала видимой И есть данные
+        if (isVisible && data) {
+            // Инициализируем если:
+            // 1. Это первое открытие
+            // 2. Данные изменились
+            // 3. Компонент не инициализирован
+            if (
+                !oldState?.isVisible || 
+                JSON.stringify(data) !== JSON.stringify(oldState?.data) ||
+                !state.isInitialized
+            ) {
+                initializeData();
+            }
+        } else if (!isVisible) {
+            // Модалка закрылась
+            abortController.value?.abort();
+            resetState();
+        }
+    },
+    { immediate: true, deep: true }
+);
+
 // Lifecycle
 onUnmounted(() => {
     abortController.value?.abort();
@@ -544,7 +581,7 @@ onUnmounted(() => {
 
                     <!-- Выбор производительности -->
                     <!-- Нафиг, если согласуют -->
-                    <div v-if="state.selection.length" class="form-group">
+                    <!-- <div v-if="state.selection.length" class="form-group">
                         <h4>Выберите производительность:</h4>
                         <RadioGroup v-model:value="state.selRadioValue" @change="handleSelection"
                             :disabled="state.isLoading">
@@ -553,7 +590,7 @@ onUnmounted(() => {
                                 {{ v.perfomance }} кг/ч
                             </RadioButton>
                         </RadioGroup>
-                    </div>
+                    </div> -->
                 </div>
 
                 <!-- Специфичные настройки для упаковки -->
@@ -587,8 +624,8 @@ onUnmounted(() => {
                         </div>
 
                         <div class="pack-options">
-                            <RadioGroup v-model:value="state.hardware" :option="state.zmOptions" :disabled="state.isLoading"
-                                v-if="state.zmOptions.length > 0" />
+                            <RadioGroup v-model:value="state.hardware" :option="state.zmOptions"
+                                :disabled="state.isLoading" v-if="state.zmOptions.length > 0" />
 
                             <CheckboxGroup v-model:value="state.packs" :options="state.packOptions"
                                 :disabled="state.isLoading" />
