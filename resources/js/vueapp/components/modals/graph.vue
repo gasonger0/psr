@@ -114,7 +114,10 @@ watch(
     (ev) => {
         processCells();
     },
-    { deep: true }
+    {
+        deep: true,
+        immediate: true
+    }
 );
 
 watch(
@@ -122,7 +125,10 @@ watch(
     (ev) => {
         processCells();
     },
-    { deep: true }
+    {
+        deep: true,
+        immediate: true
+    }
 );
 </script>
 <template>

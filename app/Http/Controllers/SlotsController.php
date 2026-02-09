@@ -22,6 +22,7 @@ class SlotsController extends Controller
     public function create(Request $request)
     {
         Util::appendSessionToData($request);
+
         $exists = Util::checkDublicate(new Slots(), [], $request->only((new Slots())->getFillable()), true);
         if ($exists) {
             return Util::errorMsg('Такой слот уже существует');
@@ -48,13 +49,13 @@ class SlotsController extends Controller
     public function delete(Request $request)
     {
         if ($request->post('delete')) {
-            // Досрочное окончание
-            Slots::find($request->post('slot_id'))->update([
-                'ended_at' => Carbon::now('Europe/Moscow')
-            ]);
-        } else {
             // не вышел на работу
             Slots::find($request->post('slot_id'))->delete();
+        } else {
+            // Досрочное окончание
+            Slots::find($request->post('slot_id'))->update([
+                'ended_at' => Carbon::now()
+            ]);
         }
         return Util::successMsg('Смена сотрудника звершена', 200);
     }
@@ -62,29 +63,29 @@ class SlotsController extends Controller
     /* ACTIONS */
     public function change(Request $request)
     {
-        Util::appendSessionToData($request);
+        $cookie = Util::getSessionAsArray($request);
 
-        $oldSlot = Slots::find($request->post('old_slot_id'))->first();
+        $oldSlot = Slots::find($request->post('old_slot_id'));
 
         if (!$oldSlot) {
             return Util::errorMsg('Такого слота не существует', 404);
         }
 
-        $oldSlot->update([
-            'ended_at' => Carbon::now('Europe/Moscow')
-        ]);
-
-        $request->merge([
-            'line_id' => $request->post('new_line_id'),
-            'started_at' => Carbon::now('Europe/Moscow'),
+        $data = new Request([
             'worker_id' => $oldSlot->worker_id,
-            'ended_at' => $oldSlot->ended_at
+            'line_id' => $request->post('new_line_id'),
+            'started_at' => Carbon::now(),
+            'ended_at' => $oldSlot->ended_at  
+        ] + $cookie, [], $cookie);
+
+        // $data->cookie('date', $cookie['date']);
+        // $data->cookie('isDay', $cookie['isDay']);
+
+        $oldSlot->update([
+            'ended_at' => Carbon::now()
         ]);
 
-        $request->request->remove('new_worker_id');
-        $request->request->remove('slot_id');
-
-        return $this->create($request);
+        return $this->create($data);
     }
 
     public static function afterLineUpdate(Request $request, array $old)

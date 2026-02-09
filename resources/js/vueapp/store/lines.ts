@@ -103,9 +103,9 @@ export const useLinesStore = defineStore('lines', () => {
 
     function getIfDone(line: LineInfo): boolean {
         let timeString = getTimeString();
-        if (line.work_time.started_at < timeString
+        if (line.work_time.started_at <= timeString
             &&
-            timeString < line.work_time.ended_at
+            timeString <= line.work_time.ended_at
         ) {
             return false;
         }

@@ -43,7 +43,7 @@ const handleCardChange = (success: boolean) => {
     }
     prodLine.value = prodLine.value as number + 1;
     let line_id = slotsStore.getById(activePlan.value.slot_id).line_id;
-    linesStore.updateVersion(linesStore.getByID(line_id).line_id);
+    linesStore.updateVersion(line_id);
     activePlan.value = null;
     isNewPlan.value = false;
 }

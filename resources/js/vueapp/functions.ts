@@ -100,7 +100,7 @@ export function getTimeString(): dayjs.Dayjs {
     }
 
     return dayjs.default(
-        `${date.format('YYYY-MM-DD')} ${time.hour()}:${time.minute}:${time.second}`,
+        `${date.format('YYYY-MM-DD')} ${time.hour()}:${time.minute()}:${time.second()}`,
         'YYYY-MM-DD HH:mm:ss' 
     );
 }

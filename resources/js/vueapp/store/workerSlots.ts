@@ -72,7 +72,7 @@ export const useWorkerSlotsStore = defineStore('workersSlots', () => {
             slot_id: rec.current_slot_id,
             delete: del
         }, (response: AxiosResponse) => {
-            splice(rec.current_slot_id!);
+            splice(rec.current_slot_id);
             rec.current_slot_id = undefined;
             rec.current_line_id = undefined;
             notify('success', `Сотрудник ${rec.title} убран со смены`);
@@ -113,6 +113,9 @@ export const useWorkerSlotsStore = defineStore('workersSlots', () => {
             new_line_id: line_id
         },
             (r: AxiosResponse) => {
+                slots.value.push(serialize(r.data));
+                let old = slots.value.find(el => el.slot_id == worker.current_slot_id);
+                old.ended_at = dayjs.default(r.data.started_at, format);
                 worker.current_line_id = r.data.line_id;
                 worker.current_slot_id = r.data.slot_id;
             });
@@ -162,8 +165,10 @@ export const useWorkerSlotsStore = defineStore('workersSlots', () => {
 
     function getCurrent(): WorkerSlot[] {
         let ts = getTimeString();
-        return slots.value.filter(el =>
-            el.started_at <= ts && el.ended_at >= ts
+        return slots.value.filter(el => {
+            return el.started_at <= ts && el.ended_at >= ts
+        
+        }
         );
     }
 

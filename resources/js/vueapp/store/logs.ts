@@ -18,7 +18,7 @@ export const useLogsStore = defineStore("logs", () => {
     async function _load(): Promise<void> {
         logs.value = (await getRequest('/api/logs/get')).map(el => {
             el.started_at = dayjs.default(el.started_at).format("HH:mm:ss");
-            el.ended_at = dayjs.default(el.ended_at).format("HH:mm:ss");
+            el.ended_at = el.ended_at != null ? dayjs.default(el.ended_at).format("HH:mm:ss") : null;
             el.line = useLinesStore().getByID(el.line_id).title;
             return el as LogInfo;
         });

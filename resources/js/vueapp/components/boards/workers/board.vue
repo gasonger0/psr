@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { BackTop, Card, FloatButton, Input, FloatButtonGroup, Button, Form, FormItem, Switch } from 'ant-design-vue';
-import { ref, Ref, watch, computed, onBeforeMount, TemplateRef, onMounted } from 'vue';
+import { ref, Ref, watch, computed, onBeforeMount, TemplateRef, onMounted, nextTick, onUpdated } from 'vue';
 import 'vue-color-kit/dist/vue-color-kit.css';
 import { LoginOutlined, PlusCircleOutlined, UserAddOutlined, PrinterOutlined } from '@ant-design/icons-vue';
 import { useWorkersStore, WorkerForm, WorkerInfo } from '@stores/workers';
@@ -26,7 +26,6 @@ let linesContainer: Ref<HTMLElement | null> = ref();
 let active: Ref<HTMLElement | null> = ref(null);
 const showList = ref(false);
 const workerRefs = ref<Record<number, InstanceType<typeof ItemCard>>>({});
-const linesRefs = ref({});
 const monitorInterval: Ref<number> = ref(null);
 const editMode: Ref<boolean> = ref(false);
 
@@ -37,9 +36,7 @@ const handleCardChange = (id: number, worker_id: number) => {
     if (workerRefs[worker_id]) {
         workerRefs[worker_id].$forceUpdate();
     }
-    if (linesRefs[id]) {
-        linesRefs[id] += 1;
-    }
+    linesStore.updateVersion(id);
 }
 
 const newListText = computed(() => {
@@ -90,6 +87,7 @@ watch(
 
 const monitor = async () => {
     let current = workerSlotsStore.getCurrent();
+    console.log(current);
     workersStore.workers.forEach(worker => {
         let curSlot = current.find(i => i.worker_id == worker.worker_id);
         if (!curSlot) {
@@ -106,17 +104,23 @@ const monitor = async () => {
 const handleEditMode = () => {
     if (editMode.value) {
         clearInterval(monitorInterval.value);
+        document.querySelectorAll('.done-line').forEach(el => {
+            el.classList.remove('hidden-hard');
+        });
     } else {
+        document.querySelectorAll('.done-line').forEach(el => {
+            el.classList.add('hidden-hard');
+        });
         monitorInterval.value = setInterval(monitor, 3000);
     }
 }
 
-onMounted(async () => {
-    linesStore.lines.forEach((el: LineInfo) => {
-        linesRefs[el.line_id] = 1;
+onUpdated(async () => {
+    document.querySelectorAll('.done-line').forEach(el => {
+        el.classList.add('hidden-hard');
     });
+
     recalcCounters();
-    monitorInterval.value = setInterval(monitor, 3000);
     let draggable = document.querySelectorAll('.line_items');
     draggable.forEach(line => {
         line.addEventListener(`dragstart`, (ev: Event) => {
@@ -126,20 +130,11 @@ onMounted(async () => {
             let target = ev.target as HTMLElement;
             scrollToTop(linesContainer);
             target.classList.add(`selected`);
-            if (!editMode.value) {
-                document.querySelectorAll('.done-line').forEach(el => {
-                    el.classList.add('hidden-hard');
-                });
-            }
             active.value = target;
+            ev.stopPropagation();
         })
 
         line.addEventListener(`dragend`, (ev) => {
-            if (!editMode.value) {
-                document.querySelectorAll('.done-line').forEach(el => {
-                    el.classList.toggle('hidden-hard');
-                });
-            }
             let target = ev.target as HTMLElement;
             if (target.classList.contains('selected') && ev.target == active.value) {
                 target.classList.remove(`selected`);
@@ -152,14 +147,21 @@ onMounted(async () => {
                     notify('warning', 'Такого сотрудника не существует');
                     return;
                 }
-                let line_id = line.parentElement!.dataset.id;
+                let line_id = Number(line.parentElement!.dataset.id);
+                let old_line = workerSlotsStore.getCurrent().find((el) => el.worker_id == worker.worker_id);
                 if (typeof worker?.current_line_id == 'number') {
-                    workerSlotsStore._change(worker, Number(line_id));
-                    handleCardChange(Number(line_id), worker.worker_id);
+                    workerSlotsStore._change(worker, line_id);
+                    handleCardChange(line_id, worker.worker_id);
                 } else {
-                    workerSlotsStore._create(worker, Number(line_id), editMode.value);
-                    handleCardChange(Number(line_id), worker.worker_id);
+                    workerSlotsStore._create(worker, line_id, editMode.value);
+                    handleCardChange(line_id, worker.worker_id);
                 }
+                if (old_line) {
+                    linesStore.updateVersion(old_line.line_id);
+                }
+                linesStore.updateVersion(line_id);
+                clearInterval(monitorInterval.value);
+                monitorInterval.value = setInterval(monitor, 3000);
             }
         });
 
@@ -172,35 +174,41 @@ onMounted(async () => {
             if (!isMoveable) {
                 return;
             }
-            const nextElement = getNextElement(
-                Number(
-                    (ev.target as Element).getAttribute('clientY')
-                ),
-                currentElement as Element
-            );
-            // Проверяем, нужно ли менять элементы местами
-            if (
-                nextElement &&
-                activeElement === nextElement.previousElementSibling ||
-                activeElement === nextElement
-            ) {
-                // Если нет, выходим из функции, чтобы избежать лишних изменений в DOM
-                return;
-            }
 
-            const lastElement = line.lastElementChild;
-            if (nextElement == null) {
-                line.append(activeElement as HTMLElement);
-            } else {
-                if (nextElement.parentElement != line) {
-                    line.append(activeElement as HTMLElement);
-                } else {
-                    line.insertBefore(activeElement as HTMLElement, nextElement);
-                }
-            }
+            line.append(activeElement as HTMLElement);
+            // const nextElement = getNextElement(
+            //     Number(
+            //         (ev.target as Element).getAttribute('clientY')
+            //     ),
+            //     currentElement as Element
+            // );
+            // // Проверяем, нужно ли менять элементы местами
+            // if (
+            //     nextElement &&
+            //     activeElement === nextElement.previousElementSibling ||
+            //     activeElement === nextElement
+            // ) {
+            //     // Если нет, выходим из функции, чтобы избежать лишних изменений в DOM
+            //     return;
+            // }
+
+            // const lastElement = line.lastElementChild;
+            // if (nextElement == null) {
+            //     line.append(activeElement as HTMLElement);
+            // } else {
+            //     if (nextElement.parentElement != line) {
+            //         line.append(activeElement as HTMLElement);
+            //     } else {
+            //         line.insertBefore(activeElement as HTMLElement, nextElement);
+            //     }
+            // }
         })
     });
     document.querySelector('.lines-container')!.scrollTo({ left: 0 });
+
+    monitor();
+    monitorInterval.value = setInterval(monitor, 30000);
+
 });
 
 const emit = defineEmits(['ready']);
@@ -214,7 +222,8 @@ const emit = defineEmits(['ready']);
             <PrinterOutlined />
             Распечатать график
         </Button>
-        <Switch v-model:checked="editMode" checked-children="Планирование" un-checked-children="Коррекция" @change="handleEditMode"/>
+        <Switch v-model:checked="editMode" checked-children="Планирование" un-checked-children="Коррекция"
+            @change="handleEditMode" />
     </div>
     <div class="lines-container" ref="linesContainer">
         <div class="line" :data-id="-1" v-show="showList">
@@ -237,7 +246,7 @@ const emit = defineEmits(['ready']);
             </section>
         </div>
         <div class="line" v-for="line in linesStore.lines" :data-id="line.line_id!" :class="getLineClass(line)"
-            :key="linesRefs[line.line_id]">
+            :key="`line-${line.line_id}-${line.version}`">
             <LineForm :data="line" />
             <section class="line_items">
                 <ItemCard v-for="(v, k) in workersStore.getByLine(line.line_id!)" :cardData="v"
