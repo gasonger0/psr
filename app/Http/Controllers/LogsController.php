@@ -81,9 +81,42 @@ class LogsController extends Controller
                 $el->people_count
             ];
 
-            $duration = Carbon::parse($el->started_at)->diffInHours(Carbon::parse($el->ended_at));
-
-            foreach(explode(',', $el->workers) as $id) {
+            $durationByLine = Carbon::parse($el->started_at)->diffInHours(Carbon::parse($el->ended_at));
+            if ($el->workers == '' || $el->workers == null){
+                continue;
+            }
+            
+            $workerSlots = Slots::where('line_id', $el->line_id)
+                ->withSession($request)
+                ->whereIn('worker_id', explode(',', $el->workers))
+                ->each(function($slot) use (&$companies, $el) {
+                    $worker = Workers::find($slot->worker_id);
+                    $company = Companies::where('company_id', $worker->company_id)->first();
+                    
+                    if (!isset($companies[$company->company_id])) {
+                        $companies[$company->company_id] = [
+                            'title' => $company->title,
+                            'hours' => 0
+                        ];
+                    }
+                    /*
+                    Проверка простоя и слота на соприкосновение:
+                    1) Если простой кончился раньше слота - скипаем
+                    2) Если простой начался во время слота и кончился во время слота, простой фиксируем
+                    3) Если простой начался во время слота и кончился позже, то простой фиксируем от его начала до конца слота!
+                    4) Если прсотой начался раньше слота, но кончился во время слота, фиксируем 
+                    */
+                    if ($slot->started_at >= $el->ended_at) {
+                        continue;
+                    } else if ($slot->started_at <= $el->started_at && $slot->ended_at >= $el->ended_at) {
+                        $companies[$company->company_id]['hours'] += $durationByLine;
+                    } else if ($slot->started_at >= $el->started_at && $slot->ended_at >= $el->ended_at) {
+                        $companies[$company->company_id]['hours'] += abs(Carbon::parse($slot->started_at)->diffInHours(Carbon::parse($el->ended_at)));
+                    } else if ($slot->started_at <= $el->started_at && $slot->ended_at < $el->ended_at) {
+                        $companies[$company->company_id]['hours'] += abs(Carbon::parse($slot->ended_at)->diffInHours(Carbon::parse($el->started_at)));
+                    }
+                });
+            /*foreach(explode(',', $el->workers) as $id) {
                 if ($id == '' || $id == null) {
                     continue;
                 }
@@ -96,10 +129,10 @@ class LogsController extends Controller
                         'hours' => 0
                     ];
                 }
-
-                $companies[$company->company_id]['hours'] += $duration;
-            }
-            return $el;
+                
+                $companies[$company->company_id]['hours'] += $durationByLine;
+            }*/
+            //return $el;
         });
 
         array_push($columns, [], ['КОМПАНИИ']);
