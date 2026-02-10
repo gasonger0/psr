@@ -286,123 +286,56 @@ class TableController extends Controller
     }
     public function getPlans(Request $request)
     {
+        // Подготовка
         $session = Util::getSessionAsArray($request);
-        $plans = ProductsPlan::withSession($request)->get();
-
         $lines = [];
         $products = [];
         $slots = [];
 
-        // $plans->each(function($plan) {
-        //     $slots[] = $plan->slot;
-        //     $lines[] = $plan->slot->line_id;
-        //     $products[] = ProductsDictionary::find($plan->slot->product_id);
-        // });
-
         $responsibles = Responsible::get(['responsible_id', 'title']);
 
-        // $linesFromPlans = array_unique(array_map(function ($el) {
-        //     return $el['line_id'];
-        // }, $plans));
-        // $productsFromLines = array_unique(array_map(function ($el) {
-        //     return $el['product_id'];
-        // }, $plans));
-        // $slotsFromProducts = array_unique(array_map(function ($el) {
-        //     return $el['slot_id'];
-        // }, $plans));
-
-        // $r = json_decode(ResponsibleController::getList(), true);
-        // $responsibles = [];
-        // foreach ($r as $f) {
-        //     $responsibles[$f['responsible_id']] = $f['title'];
-        // }
-
-        // $lines = json_decode(LinesController::getList($request), true);
-        // $lines = array_filter($lines, function ($el) use ($linesFromPlans) {
-        //     return in_array($el['line_id'], $linesFromPlans);
-        // });
-        // $products = ProductsDictionary::whereIn('product_id', $productsFromLines)->get(['product_id', 'title', 'amount2parts', 'parts2kg', 'kg2boil', 'cars', 'cars2plates'])->toArray();
-        // $slots = ProductsSlots::whereIn('product_slot_id', $slotsFromProducts)->get(['product_slot_id', 'people_count', 'perfomance', 'product_id'])->toArray();
-
-        // foreach ($products as &$prod) {
-        //     $slot = array_filter($slots, function ($el) use ($prod) {
-        //         return $el['product_id'] === $prod['product_id'];
-        //     });
-        //     $slot = reset($slot);
-        //     $prod['people_count'] = $slot['people_count'];
-        //     $prod['perfomance'] = $slot['perfomance'];
-        // }
-
-        // $linesFiltered = [];
-        // // Варка
-        // $linesFiltered[0] = array_filter($lines, function ($el) {
-        //     return $el['type_id'] == 1;
-        // });
-        // // Упаковка
-        // $linesFiltered[1] = array_filter($lines, function ($el) {
-        //     return $el['type_id'] == 2;
-        // });
-        // unset($lines);
-
+        // Создаём шапки листов
         $arr = [
             1 => self::makeArrayHeader($session),
             2 => self::makeArrayHeader($session)
         ];
 
+        // Распределяем линии по листам
         $linesSheets = [
             1 => [],
             2 => []
         ];
-        Lines::each(function ($line) use (&$linesSheets) {
-            if ($line->plans->isNotEmpty()) {
+        Lines::each(function ($line) use (&$linesSheets, $session) {
+            $pls = array_filter($line->plans->toArray(), fn($p) => $p['date'] == $session['date'] && $p['isDay'] == $session['isDay']);
+            if ($pls) {
                 $linesSheets[$line->type_id][] = $line;
             }
         });
 
+        // Обработка листов
         foreach ($linesSheets as $sheet => &$lines) {
             $array = $arr[$sheet];
             $dateCount = 0;
+            $dateCountNew = [];
+            // Обработка линий на листе
             foreach ($lines as &$line) {
-                $line['started_at'] = Carbon::parse($line['started_at']);
-                $line['ended_at'] = Carbon::parse($line['ended_at']);
+                // Получаем планы со всех смен (пока хз как исправить)
                 $linePlans = $line->plans->sortBy('started_at');
 
-                // $linePlans = array_map(function ($el) use ($products) {
-                //     $prod_id = array_search(
-                //         $el['product_id'],
-                //         array_column($products, 'product_id')
-                //     );
-
-                //     if ($prod_id !== false) {
-                //         $el['title'] = $products[$prod_id]['title'];
-                //         $el['amount2parts'] = $products[$prod_id]['amount2parts'] ? $products[$prod_id]['amount2parts'] : 1;
-                //         $el['parts2kg'] = $products[$prod_id]['parts2kg'] ? $products[$prod_id]['parts2kg'] : 1;
-                //         $el['kg2boil'] = $products[$prod_id]['kg2boil'] ? $products[$prod_id]['kg2boil'] : 1;
-                //         $el['cars'] = $products[$prod_id]['cars'] ? $products[$prod_id]['cars'] : 1;
-                //         $el['cars2plates'] = $products[$prod_id]['cars2plates'] ? $products[$prod_id]['cars2plates'] : 1;
-                //         $el['perfomance'] = $products[$prod_id]['perfomance'] ? $products[$prod_id]['perfomance'] : 1;
-                //         $el['people_count'] = $products[$prod_id]['people_count'] ? $products[$prod_id]['people_count'] : 1;
-                //     }
-
-                //     return $el;
-                // }, $linePlans);
-
-                // array_multisort(
-                //     array_column($linePlans, 'position'),
-                //     SORT_ASC,
-                //     $linePlans
-                // );
-                // $line['started_at'] = $linePlans[0]['started_at'];
-                // $line['ended_at'] = (last($linePlans))['ended_at'];
-                // var_dump($line->line_id);
+                // Переводим линию в массив и добавляем данные со смены
                 $line = $line->toArray() + (
                     LinesExtra::withSession($request)->where('line_id', $line->line_id)->first()->toArray()
                 );
+                $line['started_at'] = Carbon::parse($line['started_at']);
+                $line['ended_at'] = Carbon::parse($line['ended_at']);
                 $line['items'] = [];
+
+                // Собираем список оборудования с планов
                 $hardwares = array_unique($linePlans->map(function ($item) {
                     return $item->slot->hardware;
                 })->toArray());
 
+                // Обрабатываем оборудование с линий
                 if (count($hardwares) != 0) {
                     foreach ($hardwares as $hw) {
                         $line['items'][$hw] = [
@@ -410,48 +343,85 @@ class TableController extends Controller
                             'items' => []
                         ];
                     }
-                    $linePlans->each(function ($p) use (&$line) {
-                        $line['items'][$p->slot->hardware]['items'][] = $p->toArray() + $p->slot->product->toArray();
+                    // Группируем планы по оборудованию 
+                    $linePlans->each(function ($p) use (&$line, $session) {
+                        if ($p['date'] == $session['date'] && $p['isDay'] == $session['isDay']) {
+                            $line['items'][$p->slot->hardware]['items'][] = $p->toArray() + $p->slot->product->toArray();
+                        }
                     });
-                    // $line['items']
                 } else {
                     $line['items'][0] = [
                         'items' => $linePlans
                     ];
                 }
 
+                // Делаем ФИО Отсветсвенных 
+                // TODO нужны только на упаковке
                 $line['master'] = $line['master'] ? explode(' ', Responsible::find($line['master'])->title) : '';
                 $line['engineer'] = $line['engineer'] ? explode(' ', Responsible::find($line['engineer'])->title) : '';
-
-
                 if (is_array($line['master'])) {
                     $line['master'] = $line['master'][0] . '.' . mb_substr($line['master'][1], 0, 1) . '.';
                 }
                 if (is_array($line['engineer'])) {
                     $line['engineer'] = $line['engineer'][0] . '.' . mb_substr($line['engineer'][1], 0, 1) . '.';
                 }
-                $array[] = ['', '<style bgcolor="#D8E4BC"><b>' . $line['title'] . '</b> (' . $line['extra_title'] . ')</style>', '', '', '', '', '', '', '', '', '', $line['workers_count'], $line['started_at']->format('H:i'), $line['ended_at']->format("H:i")];
+
+                // Делаем шапку линии
+                $array[] = self::makeRow([
+                    1 => 
+                        "<style bgcolor=\"#D8E4BC\"><b>$line[title]</b>" . 
+                        ($line['extra_title'] ? "($line[extra_title])" : "") . 
+                        '</style>',
+                    11 => $line['workers_count'],
+                    12 => $line['started_at']->format('H:i'),
+                    13 => $line['ended_at']->format("H:i")
+                ]);
+                
+                // Ставим детектор
                 if ($line['has_detector']) {
-                    $array[] = ['', '<style bgcolor="#fc8c03"><b><i>МЕТАЛОДЕТЕКТОР</i></b></style>', '', '', '', '', '', '', '', '', '', '', $line['detector_start'], $line['detector_end']];
-                }
-                $array[] = ['', '<style bgcolor="#B7DEE8"><b>ОТВЕТСТВЕННЫЕ: ' . $line['master'] . ',' . $line['engineer'] . '</b></style>'];
-                if ($line['prep_time'] != 0) {
-                    $array[] = ['', '<style bgcolor="#FFC263"><b><i>Подготовительное время</i></b></style>', '', '', '', '', '', '', '', '', '', '', $line['started_at']->format("H:i"), $line['started_at']->addMinutes($line['prep_time'])->format('H:i')];
+                    $array[] = self::makeRow([
+                        1 => '<style bgcolor="#FC8C03"><b><i>МЕТАЛОДЕТЕКТОР</i></b></style>',
+                        12 => $line['detector_start'], 
+                        13 => $line['detector_end']
+                    ]);
                 }
 
+                // Ответственные
+                if (($line['master'] || $line['engineer']) && $line['type_id'] == 2) {
+                    $array[] = self::makeRow([
+                        1 => 
+                            "<style bgcolor=\"#B7DEE8\"><b>" .
+                            "ОТВЕТСТВЕННЫЕ: $line[master], $line[engineer]" .
+                            "</b></style>"
+                    ]);
+                }
+                
+                if ($line['prep_time'] != 0) {
+                    $array[] = self::makeRow([
+                        1 => '<style bgcolor="#FFC263"><b><i>Подготовительное время</i></b></style>',
+                        12 => $line['started_at']->format("H:i"), 
+                        13 => $line['started_at']
+                            ->addMinutes($line['prep_time'])
+                            ->format('H:i')
+                    ]);
+                }
+
+                // Суммы по Зефиру, Суфле и Конфетам
                 $sum = [
                     'z' => [0, 0],
                     's' => [0, 0],
                     'k' => [0, 0]
                 ];
 
+                // Обрабатываем оборудование
                 foreach ($line['items'] as &$hw) {
                     if (isset($hw['hwTitle'])) {
-                        $array[] = ['', '<style bgcolor="#D8E4BC"><b>' . mb_strtoupper($hw['hwTitle']) . '</b></style>'];
+                        $array[] = ['', 
+                            '<style bgcolor="#D8E4BC"><b>' . mb_strtoupper($hw['hwTitle']) . '</b></style>'
+                        ];
                     }
-                    $colons = array_map(function ($i) {
-                        return $i['colon'];
-                    }, $hw['items']);
+                    // Выделяем колонки
+                    $colons = array_map(fn($i) => $i['colon'], $hw['items']);
 
                     $colons = array_filter(array_unique($colons));
                     if (count($colons) > 1 || array_search(3, $colons) !== false) {
@@ -460,11 +430,33 @@ class TableController extends Controller
                         $array[] = ['', '<b>' . self::$colons[array_shift($colons)] . '</b>'];
                     }
 
-                    // usort($hw['items'], function ($a, $b) {
-                    //     return strtotime($a['started_at']) <=> strtotime($b['started_at']);
-                    // });                   
-
+                    // Обработка продукции
                     foreach ($hw['items'] as $product) {
+                        $row_index = count($array) + 1;
+
+                        // Чекаем, что реестр не из пустых значений
+                        $product['amount2parts'] ??= 1;
+                        $product['parts2kg'] ??= 1;
+                        $product['kg2boil'] ??= 1;
+                        $product['cars'] ??= 1;
+                        $product['cars2plates'] ??= 1;
+
+                        // Расчёты
+                        
+                        /*$counts = [
+                            2 => intval($product['amount']),
+                            3 => "ОКРУГЛ(C$row_index*$product[amount2parts];0)",
+                            4 => "ОКРУГЛ(D$row_index*$product[parts2kg];0)",
+                            5 => "E$row_index*$product[kg2boil]",
+                            6 => "ОКРУГЛВНИЗ(K$row_index, 0)",
+                            8 => "(K$row_index - H$row_index)*$product[cars2plates]",
+                            10 => "F$row_index*$product[cars]>"
+                        ];
+
+                        foreach ($counts as $k => &$row) {
+                            $row = self::$MCS . $row . self::$MCE;
+                        }*/
+
                         $crates = intval($product['amount']);
                         $parts = ceil(eval ("return $crates*$product[amount2parts];"));
                         $kg = ceil(eval ("return $parts*$product[parts2kg];"));
@@ -472,12 +464,6 @@ class TableController extends Controller
                         $prec = eval ("return $boils*$product[cars];");
                         $cars = floor($prec);
                         $plates = eval ("return ($prec - $cars)*$product[cars2plates];");
-                        // var_dump(10);
-                        // die();
-
-                        // eval('$parts = ceil(' . $crates . '*' . $product['amount2parts'] . ');');
-                        // eval('$kg = ceil(' . $parts . '*' . $product['parts2kg'] . ');');
-                        // eval('$boils = ' . $kg . '*' . $product['kg2boil'] . ';');
 
                         if (mb_strpos(mb_strtolower($product['title']), 'зефир') !== false) {
                             $sum['z'][0] += $kg;
@@ -493,13 +479,26 @@ class TableController extends Controller
                             $sum['z'][0] += $kg;
                             $sum['z'][1] += $boils;
                         }
+                            
 
-                        // eval('$prec =  ' . $boils . '*' . $product['cars'] . ';');
-                        // $cars = floor($prec);
-                        // eval('$plates = ' . ($prec - $cars) . '*' . $product['cars2plates'] . ';');
 
-                        // var_dump($product);
-                        // die();
+                        /*$array[] = self::makeRow([
+                            1 => $product['title'],
+                            7 => '<b>т</b>',
+                            9 => '<b>под</b>',
+                            11 => $product['slot']['people_count'],
+                            12 => Carbon::parse($product['started_at'])->format('H:i'),
+                            13 => Carbon::parse($product['ended_at'])->format('H:i'),
+                            15 => "<f>=R$row_index * {$product['amount2parts']}</f>",
+                            16 => "<f>=S$row_index * {$product['parts2kg']}</f>",
+                            29 => "<f>=E$row_index / {$product['slot']['perfomance']} * {$product['slot']['people_count']}</f>",
+                            30 => "<f>=T$row_index / {$product['slot']['perfomance']} * {$product['slot']['people_count']}</f>"
+                        ] + $counts);
+
+                        $dateCountNew[] = "C$row_index";
+                        $dateCountNew[] = "D$row_index";*/
+
+                        
                         $array[] = [
                             '',
                             $product['title'],
@@ -534,8 +533,10 @@ class TableController extends Controller
                             $kg / $product['slot']['perfomance'] * $product['slot']['people_count'],
                             '<f>=T' . (count($array) + 1) . '/' . $product['slot']['perfomance'] . '*' . $product['slot']['people_count'] . '</f>'
                         ];
+                        
 
                         $dateCount += $crates + $parts;
+                        
                     }
                 }
                 if ($line['after_time'] != 0) {
@@ -660,13 +661,13 @@ class TableController extends Controller
         }
 
         $companies = [];
-        
-       foreach (Companies::get() as $comp){
+
+        foreach (Companies::get() as $comp) {
             $companies[$comp->company_id] = [
                 'title' => $comp->title,
                 'indexes' => []
             ];
-       }
+        }
 
         $columns = [
             ['<b><i>Наряд за</i></b>', $dateString, '', '', '', '', '', ''],
@@ -773,11 +774,19 @@ class TableController extends Controller
     {
         if (count($arr) == 0) {
             return '';
-        } 
+        }
         foreach ($arr as &$index) {
             $index = $letter . $index;
         }
         return '<f>=' . implode('+', $arr) . '</f>';
+    }
+
+    private static function makeRow(array $items): array {
+        $new = array_fill(0, 30, '');
+        foreach ($items as $k => $v) {
+            $new[$k] = $v;
+        }
+        return $new;
     }
 
     // static public function getPlans(){
