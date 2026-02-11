@@ -51,8 +51,9 @@ const changeTime = (index: DataIndex, record: Record<string, any>) => {
         useWorkerSlotsStore()._update(record[index as string]);
     }
 };
-const addSlot = async (line: ColumnType, rec: Record<string, any>) => {
-    let newSlot = await slots._add(line as LineInfo, rec.worker_id);
+const addSlot = async (lineCol: ColumnType, rec: Record<string, any>) => {
+    let line = useLinesStore().getByID(Number(lineCol.dataIndex));
+    let newSlot = await slots.add(line, rec.worker_id);
     rec[newSlot.line_id] = newSlot;
 };
 
@@ -88,7 +89,6 @@ const processCells = () => {
         return el;
     });
 
-    console.log(columns, lines.lines.filter(i => i.has_plans));
 }
 
 const columnsReset = () => {

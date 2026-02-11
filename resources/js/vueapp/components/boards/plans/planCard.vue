@@ -35,7 +35,6 @@ const beforeEdit = () => {
 
 onBeforeMount(() => {
     if (slot && slot.type_id == 1 && props.data && props.data.plan_product_id && boils.value){
-        console.log(props.data.plan_product_id, boils.value);
         modal.boils[props.data.plan_product_id] = boils.value;
     }
 });

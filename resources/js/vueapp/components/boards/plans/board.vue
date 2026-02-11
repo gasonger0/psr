@@ -32,10 +32,8 @@ const activePlan: Ref<ProductPlan | null> = ref();
 const prodLine: Ref<PropertyKey> = ref(1);
 
 const handleCardChange = (success: boolean) => {
-    console.log(success, isNewPlan.value);
     if (!success) {
         if (isNewPlan.value) {
-            console.log('removed last');
             plansStore.removeLast();
             isNewPlan.value = false;
         }
@@ -157,7 +155,6 @@ onUpdated(async () => {
                         plans = plansStore.getByLine(curLine.line_id),
                         lastProd = null,
                         started_at = dayjs.default();
-                    console.log(position);
 
                     if (plans.length > 0 && position > 0) {
                         if (position < plans.length) {
@@ -230,7 +227,6 @@ onUpdated(async () => {
             // if (!isMoveable) {
             //     return;
             // }
-            // console.log(ev);
             const nextElement = getNextElement(
                 Number(
                     ev.clientY

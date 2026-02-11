@@ -368,20 +368,20 @@ class TableController extends Controller
 
                 // Делаем шапку линии
                 $array[] = self::makeRow([
-                    1 => 
-                        "<style bgcolor=\"#D8E4BC\"><b>$line[title]</b>" . 
-                        ($line['extra_title'] ? "($line[extra_title])" : "") . 
+                    1 =>
+                        "<style bgcolor=\"#D8E4BC\"><b>$line[title]</b>" .
+                        ($line['extra_title'] ? "($line[extra_title])" : "") .
                         '</style>',
                     11 => $line['workers_count'],
                     12 => $line['started_at']->format('H:i'),
                     13 => $line['ended_at']->format("H:i")
                 ]);
-                
+
                 // Ставим детектор
                 if ($line['has_detector']) {
                     $array[] = self::makeRow([
                         1 => '<style bgcolor="#FC8C03"><b><i>МЕТАЛОДЕТЕКТОР</i></b></style>',
-                        12 => $line['detector_start'], 
+                        12 => $line['detector_start'],
                         13 => $line['detector_end']
                     ]);
                 }
@@ -389,17 +389,17 @@ class TableController extends Controller
                 // Ответственные
                 if (($line['master'] || $line['engineer']) && $line['type_id'] == 2) {
                     $array[] = self::makeRow([
-                        1 => 
+                        1 =>
                             "<style bgcolor=\"#B7DEE8\"><b>" .
                             "ОТВЕТСТВЕННЫЕ: $line[master], $line[engineer]" .
                             "</b></style>"
                     ]);
                 }
-                
+
                 if ($line['prep_time'] != 0) {
                     $array[] = self::makeRow([
                         1 => '<style bgcolor="#FFC263"><b><i>Подготовительное время</i></b></style>',
-                        12 => $line['started_at']->format("H:i"), 
+                        12 => $line['started_at']->format("H:i"),
                         13 => $line['started_at']
                             ->addMinutes($line['prep_time'])
                             ->format('H:i')
@@ -416,7 +416,8 @@ class TableController extends Controller
                 // Обрабатываем оборудование
                 foreach ($line['items'] as &$hw) {
                     if (isset($hw['hwTitle'])) {
-                        $array[] = ['', 
+                        $array[] = [
+                            '',
                             '<style bgcolor="#D8E4BC"><b>' . mb_strtoupper($hw['hwTitle']) . '</b></style>'
                         ];
                     }
@@ -442,7 +443,7 @@ class TableController extends Controller
                         $product['cars2plates'] ??= 1;
 
                         // Расчёты
-                        
+
                         /*$counts = [
                             2 => intval($product['amount']),
                             3 => "ОКРУГЛ(C$row_index*$product[amount2parts];0)",
@@ -456,14 +457,17 @@ class TableController extends Controller
                         foreach ($counts as $k => &$row) {
                             $row = self::$MCS . $row . self::$MCE;
                         }*/
-
-                        $crates = intval($product['amount']);
-                        $parts = ceil(eval ("return $crates*$product[amount2parts];"));
-                        $kg = ceil(eval ("return $parts*$product[parts2kg];"));
-                        $boils = ceil(eval ("return $kg*$product[kg2boil];"));
-                        $prec = eval ("return $boils*$product[cars];");
-                        $cars = floor($prec);
-                        $plates = eval ("return ($prec - $cars)*$product[cars2plates];");
+                        try {
+                            $crates = intval($product['amount']);
+                            $parts = ceil(eval ("return $crates*$product[amount2parts];"));
+                            $kg = ceil(eval ("return $parts*$product[parts2kg];"));
+                            $boils = ceil(eval ("return $kg*$product[kg2boil];"));
+                            $prec = eval ("return $boils*$product[cars];");
+                            $cars = floor($prec);
+                            $plates = eval ("return ($prec - $cars)*$product[cars2plates];");
+                        } catch (Exception $e) {
+                            return Util::errorMsg("Проверьте формулы для " . $product['title']);
+                        }
 
                         if (mb_strpos(mb_strtolower($product['title']), 'зефир') !== false) {
                             $sum['z'][0] += $kg;
@@ -479,7 +483,7 @@ class TableController extends Controller
                             $sum['z'][0] += $kg;
                             $sum['z'][1] += $boils;
                         }
-                            
+
 
 
                         /*$array[] = self::makeRow([
@@ -498,7 +502,7 @@ class TableController extends Controller
                         $dateCountNew[] = "C$row_index";
                         $dateCountNew[] = "D$row_index";*/
 
-                        
+
                         $array[] = [
                             '',
                             $product['title'],
@@ -533,10 +537,10 @@ class TableController extends Controller
                             $kg / $product['slot']['perfomance'] * $product['slot']['people_count'],
                             '<f>=T' . (count($array) + 1) . '/' . $product['slot']['perfomance'] . '*' . $product['slot']['people_count'] . '</f>'
                         ];
-                        
+
 
                         $dateCount += $crates + $parts;
-                        
+
                     }
                 }
                 if ($line['after_time'] != 0) {
@@ -781,7 +785,8 @@ class TableController extends Controller
         return '<f>=' . implode('+', $arr) . '</f>';
     }
 
-    private static function makeRow(array $items): array {
+    private static function makeRow(array $items): array
+    {
         $new = array_fill(0, 30, '');
         foreach ($items as $k => $v) {
             $new[$k] = $v;

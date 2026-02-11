@@ -93,7 +93,7 @@ const time = computed(() => {
         if (state.line.title.includes('телевизор')) {
             amount += amount * eval(state.product.amount2parts);
         }
-        return amount / state.perfomance;
+        return amount * eval(state.product.amount2parts) / state.perfomance;
     } else {
         return localPlanData.value.amount *
             eval(state.product.amount2parts) *
@@ -213,8 +213,6 @@ const handleHardware = () => {
     //     const perf = state.hardware === 4 || state.hardware === 5 ? 143.5 : 287;
     //     state.perfomance += perf;
     // }
-    console.log(state.perfomance);
-
     changeTime();
 };
 
@@ -462,8 +460,6 @@ watch(() => modal.visibility['plan'], (isVisible) => {
 });
 
 watch(() => localPlanData.value?.amount, () => {
-    console.log('changed amount');
-    console.log(localPlanData, state);
     changeTime();
 }, { deep: true });
 

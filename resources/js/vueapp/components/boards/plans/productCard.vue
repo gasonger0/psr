@@ -43,9 +43,6 @@ onBeforeMount(async () => {
         slotsReceieved.value = true
     } 
 });
-onMounted(() => {
-    console.log("Mounted card " + props.product)
-})
 
 defineExpose(props);
 </script>

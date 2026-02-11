@@ -28,6 +28,7 @@ const showList = ref(false);
 const workerRefs = ref<Record<number, InstanceType<typeof ItemCard>>>({});
 const monitorInterval: Ref<number> = ref(null);
 const editMode: Ref<boolean> = ref(false);
+const showEditMode: Ref<boolean> = ref(true);
 
 const setWorkerRef = (el: any, workerId: number) => {
     if (el) workerRefs.value[workerId] = el;
@@ -87,7 +88,6 @@ watch(
 
 const monitor = async () => {
     let current = workerSlotsStore.getCurrent();
-    console.log(current);
     workersStore.workers.forEach(worker => {
         let curSlot = current.find(i => i.worker_id == worker.worker_id);
         if (!curSlot) {
@@ -101,8 +101,8 @@ const monitor = async () => {
     });
 };
 
-const handleEditMode = () => {
-    if (editMode.value) {
+const handleEditMode = (check: boolean) => {
+    if (check) {
         clearInterval(monitorInterval.value);
         document.querySelectorAll('.done-line').forEach(el => {
             el.classList.remove('hidden-hard');
@@ -111,14 +111,22 @@ const handleEditMode = () => {
         document.querySelectorAll('.done-line').forEach(el => {
             el.classList.add('hidden-hard');
         });
+        if (useWorkerSlotsStore().slots.length > 0) {
+            showEditMode.value = false;
+        }
         monitorInterval.value = setInterval(monitor, 3000);
     }
 }
 
 onUpdated(async () => {
-    document.querySelectorAll('.done-line').forEach(el => {
-        el.classList.add('hidden-hard');
-    });
+    if (!editMode.value) {
+        document.querySelectorAll('.done-line').forEach(el => {
+            el.classList.add('hidden-hard');
+        });
+    }
+    if (useWorkerSlotsStore().slots.length > 0) {
+        showEditMode.value = false;
+    }
 
     recalcCounters();
     let draggable = document.querySelectorAll('.line_items');
@@ -223,7 +231,7 @@ const emit = defineEmits(['ready']);
             Распечатать график
         </Button>
         <Switch v-model:checked="editMode" checked-children="Планирование" un-checked-children="Коррекция"
-            @change="handleEditMode" />
+            @change="handleEditMode" v-show="showEditMode"/>
     </div>
     <div class="lines-container" ref="linesContainer">
         <div class="line" :data-id="-1" v-show="showList">

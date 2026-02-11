@@ -132,7 +132,7 @@ export const useWorkerSlotsStore = defineStore('workersSlots', () => {
     function getByWorker(id: number): WorkerSlot[] {
         return slots.value.filter((el: WorkerSlot) => el.worker_id == id);
     }
-    async function _add(line: LineInfo, worker_id: number) {
+    async function add(line: LineInfo, worker_id: number) {
         slots.value.push({
             worker_id: worker_id,
             line_id: line.line_id,
@@ -143,7 +143,7 @@ export const useWorkerSlotsStore = defineStore('workersSlots', () => {
             date: line.date
         });
 
-        let slot = slots.value.at(-1);
+        let slot = slots.value.at(slots.value.length-1);
         await postRequest('/api/workers_slots/create', unserialize(slot),
             (r: AxiosResponse) => {
                 slot.slot_id = r.data.slot_id;
@@ -158,6 +158,7 @@ export const useWorkerSlotsStore = defineStore('workersSlots', () => {
     }
     function unserialize(slot: WorkerSlot) {
         let payload = JSON.parse(JSON.stringify(slot));
+        console.log(slot, payload);
         payload.started_at = slot.started_at.format(format);
         payload.ended_at = slot.ended_at.format(format);
         return payload;
@@ -174,7 +175,7 @@ export const useWorkerSlotsStore = defineStore('workersSlots', () => {
 
     return {
         slots,
-        _add,
+        add,
         _load,
         _create,
         _update,

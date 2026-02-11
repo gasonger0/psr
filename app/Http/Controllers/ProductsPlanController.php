@@ -359,8 +359,8 @@ class ProductsPlanController extends Controller
                 }
                 $ended_at = $start->copy();
                 $ended_at->addHours($duration)->addMinutes(15);
-
-                if ($ended_at < ($d = Carbon::parse($plan->ended_at))) {
+                $d = Carbon::parse($plan->ended_at);
+                if ($ended_at < $d) {
                     $ended_at = $d->addMinutes($delay);
                 }
 
