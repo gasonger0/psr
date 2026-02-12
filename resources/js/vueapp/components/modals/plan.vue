@@ -32,10 +32,7 @@ interface ModalState {
     zmOptions: { label: string, value: number }[];
     packs: CheckboxValueType[];
     // TODO: если по МТ согласуют, то это можно нахер убирать
-    selection: ProductSlot[];
-    selRadioValue: number | null;
     showPack: boolean;
-    colon: any;
     hardware: number | null;
     slots: ProductSlot[];
     perfomance: number;
@@ -68,10 +65,7 @@ const state = reactive<ModalState>({
     packOptions: [],
     zmOptions: [],
     packs: [],
-    selection: [],
-    selRadioValue: null,
     showPack: false,
-    colon: 1,
     hardware: null,
     slots: [],
     perfomance: 0,
@@ -90,10 +84,12 @@ const time = computed(() => {
     // Ящики
     if (state.line.line_id == 37) {
         let amount = localPlanData.value.amount;
-        if (state.line.title.includes('телевизор')) {
+        if (state.product.title.includes('телевизор')) {
             amount += amount * eval(state.product.amount2parts);
+        } else {
+            amount *= eval(state.product.amount2parts);
         }
-        return amount * eval(state.product.amount2parts) / state.perfomance;
+        return amount / state.perfomance;
     } else {
         return localPlanData.value.amount *
             eval(state.product.amount2parts) *
@@ -161,7 +157,6 @@ const changeTime = () => {
 const handleHardware = () => {
     // if (!state.slots.length || state.hardware === null) return;
 
-    state.selection = [];
 
     // Ищем слоты с указанным оборудованием
     let newSlots = state.slots.filter((slot: ProductSlot) =>
@@ -198,36 +193,17 @@ const handleHardware = () => {
     }
 
     // Если несколько слотов, предлагаем выбрать
-    if (newSlots.length > 1) {
-        state.selection = newSlots;
-        state.selRadioValue = newSlots[0].product_slot_id;
+    // if (newSlots.length > 1) {
+    //     state.selection = newSlots;
+    //     state.selRadioValue = newSlots[0].product_slot_id;
+    //     state.slot = { ...newSlots[0] };
+    // } else {
         state.slot = { ...newSlots[0] };
-    } else {
-        state.slot = { ...newSlots[0] };
-    }
+    // }
 
     state.perfomance = newSlots[0].perfomance;
 
-    // Коррекция производительности для упаковки на ЗМ
-    // if ([4, 5, 6].includes(state.hardware!) && newSlots[0].type_id === 2) {
-    //     const perf = state.hardware === 4 || state.hardware === 5 ? 143.5 : 287;
-    //     state.perfomance += perf;
-    // }
     changeTime();
-};
-
-const handleSelection = () => {
-    if (!state.selection.length || state.selRadioValue === null) return;
-
-    const selectedSlot = state.selection.find(
-        slot => slot.product_slot_id === state.selRadioValue
-    );
-
-    if (selectedSlot) {
-        state.slot = { ...selectedSlot };
-        state.perfomance = selectedSlot.perfomance;
-        changeTime();
-    }
 };
 
 const getPackOptions = async () => {
@@ -355,12 +331,6 @@ const initializeData = async () => {
             state.packs = plansStore.plans
                 .filter(el => el.parent === props.data!.plan_product_id)
                 .map(i => i.slot_id);
-
-            if (props.data.colon) {
-                state.colon = props.data.colon;
-            } else {
-                state.colon = 1;
-            }
         }
 
         state.showPack = state.packs.length > 0;
@@ -387,11 +357,6 @@ const addPlan = async () => {
     state.isLoading = true;
 
     try {
-        // const planData: ProductPlan = 
-        // localPlanData.value
-        //   colon: ref(state.slot.type_id === 1 ? Number(state.colon?.[0]) : 1)
-
-
         const packIds = state.showPack ? [...state.packs] as number[] : [];
         if (localPlanData.value.plan_product_id) {
             await plansStore._update(localPlanData.value, packIds);
@@ -423,10 +388,7 @@ const resetState = () => {
         packOptions: [],
         zmOptions: [],
         packs: [],
-        selection: [],
-        selRadioValue: null,
         showPack: false,
-        colon: null,
         hardware: null,
         slots: [],
         perfomance: 0,
@@ -559,7 +521,7 @@ onUnmounted(() => {
 
                     <div class="form-group">
                         <h4>Варочная колонка:</h4>
-                        <RadioGroup v-model:value="state.colon" :disabled="state.isLoading">
+                        <RadioGroup v-model:value="localPlanData.colon" :disabled="state.isLoading">
                             <RadioButton v-for="(v, k) in colons" :value="k" :key="k">
                                 {{ v }}
                             </RadioButton>
@@ -574,19 +536,6 @@ onUnmounted(() => {
                             </RadioButton>
                         </RadioGroup>
                     </div>
-
-                    <!-- Выбор производительности -->
-                    <!-- Нафиг, если согласуют -->
-                    <!-- <div v-if="state.selection.length" class="form-group">
-                        <h4>Выберите производительность:</h4>
-                        <RadioGroup v-model:value="state.selRadioValue" @change="handleSelection"
-                            :disabled="state.isLoading">
-                            <RadioButton v-for="v in state.selection" :value="v.product_slot_id"
-                                :key="v.product_slot_id">
-                                {{ v.perfomance }} кг/ч
-                            </RadioButton>
-                        </RadioGroup>
-                    </div> -->
                 </div>
 
                 <!-- Специфичные настройки для упаковки -->

@@ -29,7 +29,7 @@ let linesContainer: Ref<HTMLElement | null> = ref();
 let active: Ref<HTMLElement | null> = ref(null);
 let isNewPlan: Ref<boolean> = ref(false);
 const activePlan: Ref<ProductPlan | null> = ref();
-const prodLine: Ref<PropertyKey> = ref(1);
+const prodLine: Ref<number> = ref(1);
 
 const handleCardChange = (success: boolean) => {
     if (!success) {
@@ -39,7 +39,7 @@ const handleCardChange = (success: boolean) => {
         }
         return;
     }
-    prodLine.value = prodLine.value as number + 1;
+    prodLine.value += 1;
     let line_id = slotsStore.getById(activePlan.value.slot_id).line_id;
     linesStore.updateVersion(line_id);
     activePlan.value = null;

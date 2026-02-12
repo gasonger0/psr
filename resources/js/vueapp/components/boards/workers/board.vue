@@ -231,7 +231,7 @@ const emit = defineEmits(['ready']);
             Распечатать график
         </Button>
         <Switch v-model:checked="editMode" checked-children="Планирование" un-checked-children="Коррекция"
-            @change="handleEditMode" v-show="showEditMode"/>
+            @change="handleEditMode" v-show="showEditMode || (!showEditMode && editMode)"/>
     </div>
     <div class="lines-container" ref="linesContainer">
         <div class="line" :data-id="-1" v-show="showList">

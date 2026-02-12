@@ -3,8 +3,8 @@ import { useProductsStore } from '@/store/products';
 import { ProductPlan, usePlansStore } from '@/store/productsPlans';
 import { useProductsSlotsStore } from '@/store/productsSlots';
 import { Card, Tooltip } from 'ant-design-vue';
-import { computed, onBeforeMount } from 'vue';
-import { DeleteOutlined, EditOutlined } from '@ant-design/icons-vue';
+import { computed, onBeforeMount, onUpdated, Ref, ref } from 'vue';
+import { ClockCircleOutlined, DeleteOutlined, EditOutlined, WarningOutlined } from '@ant-design/icons-vue';
 import { useModalsStore } from '@/store/modal';
 
 const props = defineProps({
@@ -17,13 +17,15 @@ const modal = useModalsStore();
 
 let slot = useProductsSlotsStore().getById(props.data.slot_id);
 let product = useProductsStore().getByID(slot.product_id);
+const parent = usePlansStore().plans.find((el: ProductPlan) => el.plan_product_id == props.data.parent);
+const offset: Ref<number> = ref(0);
 
 const boils = computed((): number => {
     return Number(
         (props.data.amount *
-        eval(product.kg2boil) *
-        eval(product.amount2parts) *
-        eval(product.parts2kg)).toFixed(2)
+            eval(product.kg2boil) *
+            eval(product.amount2parts) *
+            eval(product.parts2kg)).toFixed(2)
     );
 });
 const beforeEdit = () => {
@@ -32,11 +34,22 @@ const beforeEdit = () => {
     };
     emit('edit', props.data);
 }
+const getOffset = () => {
+    if (parent) {
+        let time = props.data.started_at.diff(parent.started_at, 'minutes');
+        offset.value = time;
+    }
+};
 
 onBeforeMount(() => {
-    if (slot && slot.type_id == 1 && props.data && props.data.plan_product_id && boils.value){
+    if (slot && slot.type_id == 1 && props.data && props.data.plan_product_id && boils.value) {
         modal.boils[props.data.plan_product_id] = boils.value;
     }
+    getOffset();
+});
+
+onUpdated(() => {
+    getOffset();
 });
 
 const emit = defineEmits<{
@@ -55,6 +68,9 @@ const emit = defineEmits<{
                 </Tooltip>
                 <Tooltip title="Редактировать">
                     <EditOutlined class="icon edit" @click="beforeEdit" />
+                </Tooltip>
+                <Tooltip v-if="offset != 0 && offset != parent.delay" :title="`Интервал от варки не соблюдён, ${offset} вместо ${parent.delay}`">
+                    <WarningOutlined class="icon delete" />
                 </Tooltip>
             </div>
         </template>

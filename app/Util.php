@@ -120,10 +120,11 @@ class Util
         if ($slot->line_id == 37) {     // сборка ящиков
             // если  телевизоры, то по штукам в ящике + ящикам, иначе по ящикам
             $title = $slot->line->title;
+            $newAmount = eval("return $amount * $product->amount2parts;");
             if (mb_strpos($title, "телевизор") !== false) {
-                $amount = eval("return $amount * $product->amount2parts + $amount;");
+                $newAmount += $amount;
             }
-            return eval("return $amount * $product->amount2parts / $slot->perfomance;");
+            return eval("return $amount / $slot->perfomance;");
         }
         return
             eval("return $product->parts2kg*$amount*$product->amount2parts;") /

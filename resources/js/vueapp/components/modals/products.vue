@@ -79,7 +79,13 @@ const saveSlot = (slot: ProductSlot) => {
     }
     slot.isEditing = false;
 };
-const deleteSlot = (slot: ProductSlot) => slotsStore._delete(slot);
+const deleteSlot = (slot: ProductSlot) => {
+    slotsStore._delete(slot);
+    let index = slots.value[slot.type_id].indexOf(slot);
+    if (index) {
+        delete slots.value[slot.type_id][index];
+    }
+}
 
 const saveSlots = () => {
     for (let i in slots.value) {

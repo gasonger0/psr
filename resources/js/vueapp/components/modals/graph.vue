@@ -6,7 +6,7 @@ import { usePlansStore } from '@/store/productsPlans';
 import { ProductSlot } from '@/store/productsSlots';
 import { useWorkersStore, WorkerInfo } from '@/store/workers';
 import { useWorkerSlotsStore, WorkerSlot } from '@/store/workerSlots';
-import { Button, Modal, Switch, Table, TimePicker } from 'ant-design-vue';
+import { Button, Modal, Switch, Table, TimePicker, TimeRangePicker } from 'ant-design-vue';
 import { ColumnType } from 'ant-design-vue/es/table';
 import { DataIndex } from 'ant-design-vue/es/vc-table/interface';
 import { computed, onMounted, onUpdated, Ref, ref, watch } from 'vue';
@@ -42,6 +42,7 @@ const formatSlotTime = (rec: Record<string, any>, col: ColumnType) => {
     }
 }
 
+const ctime = (ev) => console.log(ev);
 const changeTime = (index: DataIndex, record: Record<string, any>) => {
     if (index == "break") {
         // Обновляем обед сотрудника
@@ -75,6 +76,7 @@ const processCells = () => {
 
     cells.value = workers.workers.map((el: WorkerInfo) => {
         slots.getByWorker(el.worker_id).forEach((sl: WorkerSlot) => {
+            // el[String(sl.line_id)] = [sl.started_at, sl.ended_at];
             el[String(sl.line_id)] = sl;
             if (columns.value.find((el) => el.dataIndex == sl.line_id) === undefined) {
                 let line = lines.getByID(sl.line_id);
@@ -148,6 +150,10 @@ watch(
                     <template
                         v-if="column.dataIndex != 'title' && (record[column.dataIndex as string] || column.dataIndex == 'break')">
                         <div class="pickers">
+                            <!-- <TimeRangePicker
+                                v-model="record[column.dataIndex as string]" size="small"
+                                @change="ctime"
+                            /> -->
                             <TimePicker v-model:value="record[column.dataIndex as string].started_at" format="HH:mm"
                                 :showTime="true" :allowClear="true" type="time" :showDate="false" size="small"
                                 class="timepicker" @change="changeTime(column.dataIndex, record)" />

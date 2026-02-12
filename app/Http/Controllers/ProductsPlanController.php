@@ -46,13 +46,12 @@ class ProductsPlanController extends Controller
         Util::appendSessionToData($request);
         $plan = ProductsPlan::create($request->only((new ProductsPlan)->getFillable()));
         $order = [];
-        $this->checkPlans($request, $plan);
 
         $line_id = $plan->slot->line_id;
+        $this->checkPlans($request, $line_id);
 
-        $order[$line_id] = ProductsPlan::whereHas('slot', function ($query) use ($line_id) {
-            $query->where('line_id', $line_id);
-        })->withSession($request)->orderBy('started_at', 'ASC')->get()->toArray();
+
+        $order[$line_id] = self::getByLine($line_id, $request);
 
         // Если задана упаковка... 
         if (($pack = $request->post('packs'))) {
@@ -74,14 +73,11 @@ class ProductsPlanController extends Controller
         $plan->update($request->only((new ProductsPlan)->getFillable()));
 
         $order = [];
-        $this->checkPlans($request, $plan);
+        $line_id = $plan->slot->line_id;
+        $this->checkPlans($request, $line_id);
         // Обновляем данные модели, проверяем упаковку
 
-        $line_id = $plan->slot->line_id;
-
-        $order[$line_id] = ProductsPlan::whereHas('slot', function ($query) use ($line_id) {
-            $query->where('line_id', $line_id);
-        })->withSession($request)->orderBy('started_at', 'ASC')->get()->toArray();
+        $order[$line_id] = self::getByLine($line_id, $request);
 
         // Удаляем упаковки по данной продукции
         ProductsPlan::where('parent', $plan->plan_product_id)
@@ -108,10 +104,10 @@ class ProductsPlanController extends Controller
             return Util::errorMsg('Такого плана не существует', 404);
         }
         $plan->delete();
-        $this->checkPlans($request, $plan);
+        $this->checkPlans($request, $plan->slot->line_id);
         ProductsPlan::where('parent', $id)->get()->each(function ($pack) use ($request) {
             $pack->delete();
-            ProductsPlanController::checkPlans($request, $pack);
+            ProductsPlanController::checkPlans($request, $pack->slot->line_id);
         });
 
 
@@ -130,10 +126,8 @@ class ProductsPlanController extends Controller
     /**
      * Проверка планов на коллизию и автоматический сдвиг
      */
-    public static function checkPlans(Request $request, ProductsPlan $plan)
+    public static function checkPlans(Request $request, int $lineId)
     {
-        $lineId = $plan->slot->line_id;
-
         $allPlans = ProductsPlan::whereHas('slot', function ($query) use ($lineId) {
             $query->where('line_id', $lineId);
         })->withSession($request)
@@ -142,45 +136,42 @@ class ProductsPlanController extends Controller
             ->get();
 
 
-        // function ($query) use ($lineId) {
-        // $query->where('line_id', $plan->slot->line_id);
-        // })->orderBy('started_at', 'ASC');
-
         // Если на линии всего один план, то на нём не может быть коллизий
         if (count($allPlans) == 1) {
             return;
         }
 
         // Считаем длительности для контроля и ищем налезания
-        // $checksum = [];
-
-        $prevPlan = null;
-        $nextPlan = null;
-
+         $prevPlan = null;
 
         for ($i = 0; $i < count($allPlans); $i++) {
             $pl = $allPlans[$i];
 
             $prevPlan = $i > 0 ? $allPlans[$i - 1] : null;
-            $nextPlan = $i != count($allPlans) - 1 ? $allPlans[$i + 1] : null;
 
-            // TODO надо ли?
-            // $checksum[$pl->plan_product_id] = Carbon::parse($pl->started_at)->diffInMinutes($pl->ended_at);
-
-            $topShift = null;
-            $bottomShift = null;
-
-            // Считаем сдвиги
-            if ($prevPlan && $pl->ended_at > $prevPlan->started_at && $prevPlan->started_at > $pl->started_at && !$topShift) {
-                $topShift = Carbon::parse($prevPlan->started_at)->diffInMinutes($pl->ended_at);
-            } else if ($prevPlan && Carbon::parse($prevPlan->started_at)->diffInMinutes($pl->started_at) < 1) {
-                $topShift = abs(Carbon::parse($prevPlan->started_at)->diffInMinutes($prevPlan->ended_at));
+            if (!$prevPlan) {
+                continue;
             }
 
+            $topShift = null;
+
+            // Считаем сдвиги
+            if (
+                !$topShift && (
+                $pl->ended_at > $prevPlan->started_at && 
+                $prevPlan->started_at > $pl->started_at 
+                )
+            ) { 
+                $topShift = Carbon::parse($prevPlan->started_at)->diffInMinutes($pl->ended_at);
+            } else if (Carbon::parse($prevPlan->started_at)->diffInMinutes($pl->started_at) < 1) {
+                $topShift = abs(Carbon::parse($prevPlan->started_at)->diffInMinutes($prevPlan->ended_at));
+            } else if($pl->started_at < $prevPlan->ended_at && $pl->started_at > $prevPlan->started_at) {
+                $topShift = abs(Carbon::parse($prevPlan->ended_at)->diffInMinutes($pl->started_at));
+            } 
 
 
             // Применяем сдвиги, если они посчитаны
-            if ($topShift != null || $bottomShift != null) {
+            if ($topShift != null) {
                 $pl->update([
                     'started_at' => Carbon::parse($pl->started_at)->addMinutes($topShift),
                     'ended_at' => Carbon::parse($pl->ended_at)->addMinutes($topShift)
@@ -203,6 +194,11 @@ class ProductsPlanController extends Controller
             return Util::errorMsg('Нет записей для смены порядка.', 404);
         }
 
+        // ИД связанных линий, на которых нужно проверить коллизии
+        $assocLines = [];
+
+        $order = [];
+
         foreach ($request->post() as $item) {
             // Находим план по ИД
             $prod = ProductsPlan::find($item['plan_product_id']);
@@ -211,34 +207,35 @@ class ProductsPlanController extends Controller
 
             // Список планов по упаковке, привязанных к текущему плану
             ProductsPlan::where('parent', $prod->plan_product_id)
-                ->whereHas('slot', function ($query) use ($prod) {
-                    $query->where('line_id', $prod->slot->line_id);
-                })
                 ->withSession($request)
-                ->each(function ($pack) use ($prod, $request) {
-                    // Расчитываем время разницы в упаковке 
-    
+                ->each(function ($pack) use ($prod, $request, &$assocLines) {
+
                     // Получаем длительность в минутах
-                    $duration = Carbon::parse($pack->ended_at)
+                    $duration = abs(Carbon::parse($pack->ended_at)
                         ->diffInMinutes(
                             Carbon::parse($pack->started_at)
-                        );
-                    // Обновляем данные в модели
-                    $pack->started_at = Carbon::parse($pack->started_at)->addMinutes($prod->delay);
-                    $pack->ended_at = Carbon::parse($pack->started_at)->addMinutes($duration);
-                    $pack->save();
+                        ));
 
-                    // Проверка
-                    $this->checkPlans($request, $pack);
+                    $newStart = Carbon::parse($prod->started_at)->addMinutes($prod->delay);
+
+                    // Обновляем данные в модели
+                    $pack->update([
+                        'started_at' => $newStart,
+                        'ended_at' => ($newStart->copy())->addMinutes($duration)
+                    ]);
+                    // Добавляем для проверки позже 
+                    $assocLines[] = $pack->slot->line_id;
                 });
         }
 
-        return Response([
-            'message' => [
-                'type' => 'success',
-                'title' => 'Порядок продукции обновлён'
-            ]
-        ], 200);
+        // Проверка
+        array_map(function ($lineId) use ($request, $order) {
+            self::checkPlans($request, $lineId);
+            $order[$lineId] = self::getByLine($lineId, $request);
+        }, array_unique($assocLines));
+
+        // Обновляённый порядок
+        return Util::successMsg($order, 202);
     }
 
     /**
@@ -246,6 +243,9 @@ class ProductsPlanController extends Controller
      * 2) Для каждого из них смотрим, есть ли упаковка и какой с ней интервал. Если будет несколько ГП на варку и на упаковку одного и того же продукта, надо как-то разруливать наверное?
      * 3) Считаем интервал с упаковкой, двигаем текущий план и делаем checkplans для упаковки
      * 4) Если наш план - это и есть упаковка, то упаковку не ищем 
+     */
+    /**
+     * @deprecated не используется
      */
     public static function composePlans(ProductsPlan $plan, int $delay = 0)
     {
@@ -275,28 +275,6 @@ class ProductsPlanController extends Controller
                         ProductsPlanController::composePlans($p, $item->delay);
                     });
                 }
-
-
-                // if ($item->type_id == 2) {
-                //     return;
-                // }
-                // $start = Carbon::parse($item->started_at);
-                // ProductsPlan::where('date', $date)
-                //     ->where('isDay', $isDay)
-                //     ->where('product_id', $item->product_id)
-                //     ->where('type_id', 2)
-                //     ->each(function($pack) use($date, $isDay, $start, $prevEnd) {
-                //         if ($prevEnd instanceof Carbon) {
-                //             $delay = $start->diffInMinutes(Carbon::parse($pack->started_at));
-                //             $duration = Carbon::parse($pack->started_at)->diffInMinutes(Carbon::parse($pack->ended_at));
-                //             var_dump('delay: ' . $delay . ', duration: ' . $duration , ', prevend: ' . $prevEnd->format('H:i:s'));
-                //             $pack->started_at = $prevEnd->addMinutes($delay);
-                //             $pack->ended_at = $prevEnd->addMinutes($delay)->addMinutes($duration);
-                //             $pack->save();
-                //             ProductsPlanController::checkPlans($date, $isDay, $pack);
-                //         }
-                //     });
-    
             });
     }
 
@@ -359,9 +337,9 @@ class ProductsPlanController extends Controller
                 }
                 $ended_at = $start->copy();
                 $ended_at->addHours($duration)->addMinutes(15);
-                $d = Carbon::parse($plan->ended_at);
+                $d = Carbon::parse($plan->ended_at)->addMinutes(15)->addMinutes($delay);
                 if ($ended_at < $d) {
-                    $ended_at = $d->addMinutes($delay);
+                    $ended_at = $d;
                 }
 
                 $packPlan = ProductsPlan::create(
@@ -379,13 +357,12 @@ class ProductsPlanController extends Controller
                     $packsCheck[] = $packPlan;
                     // Если упаковка, запоминаем ИД и потом будем по другим позициям чекать
                 } else {
-                    $this->checkPlans($request, $packPlan);
-
                     $line_id = $packPlan->slot->line_id;
 
-                    $order[$line_id] = ProductsPlan::whereHas('slot', function ($query) use ($line_id) {
-                        $query->where('line_id', $line_id);
-                    })->withSession($request)->orderBy('started_at', 'ASC')->get()->toArray();
+                    $this->checkPlans($request, $line_id);
+
+                    $order[$line_id] = self::getByLine($line_id, $request);
+
                 }
             }
         }
@@ -401,7 +378,6 @@ class ProductsPlanController extends Controller
             $latestGlazEnd = $glazPlans->max(function ($plan) {
                 return Carbon::parse($plan->ended_at);
             });
-            // var_dump($glaz);
             $glaz_end = Carbon::parse($latestGlazEnd);
         }
         foreach ($packsCheck as $p) {
@@ -413,11 +389,11 @@ class ProductsPlanController extends Controller
                 ]);
             }
 
-            $this->checkPlans($request, $p);
             $line_id = $p->slot->line_id;
-            $order[$line_id] = ProductsPlan::whereHas('slot', function ($query) use ($line_id) {
-                $query->where('line_id', $line_id);
-            })->withSession($request)->orderBy('started_at', 'ASC')->get()->toArray();
+
+            $this->checkPlans($request, $line_id);
+            $order[$line_id] = self::getByLine($line_id, $request);
+
         }
 
         // Сборка ящиков
@@ -435,13 +411,21 @@ class ProductsPlanController extends Controller
                         $p->update([
                             'ended_at' => Carbon::parse($latest)
                         ]);
-                        $this->checkPlans($request, $p);
+
                         $line_id = $p->slot->line_id;
-                        $order[$line_id] = ProductsPlan::whereHas('slot', function ($query) use ($line_id) {
-                            $query->where('line_id', $line_id);
-                        })->withSession($request)->orderBy('started_at', 'ASC')->get()->toArray();
+
+                        $this->checkPlans($request, $line_id);
+
+                        $order[$line_id] = self::getByLine($line_id, $request);
                     }
                 });
         }
+    }
+
+    private function getByLine(int $line_id, Request $request): array
+    {
+        return ProductsPlan::whereHas('slot', function ($query) use ($line_id) {
+            $query->where('line_id', $line_id);
+        })->withSession($request)->orderBy('started_at', 'ASC')->get()->toArray();
     }
 }
