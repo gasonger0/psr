@@ -6,10 +6,12 @@ import { usePlansStore } from '@/store/productsPlans';
 import { ProductSlot } from '@/store/productsSlots';
 import { useWorkersStore, WorkerInfo } from '@/store/workers';
 import { useWorkerSlotsStore, WorkerSlot } from '@/store/workerSlots';
-import { Button, Modal, Switch, Table, TimePicker, TimeRangePicker } from 'ant-design-vue';
+import { PlusCircleOutlined, PlusOutlined } from '@ant-design/icons-vue';
+import { Button, Modal, Switch, Table, TimeRangePicker } from 'ant-design-vue';
 import { ColumnType } from 'ant-design-vue/es/table';
 import { DataIndex } from 'ant-design-vue/es/vc-table/interface';
 import { computed, onMounted, onUpdated, Ref, ref, watch } from 'vue';
+import TimePicker from '../common/timePicker.vue';
 
 const modal = useModalsStore();
 const slots = useWorkerSlotsStore();
@@ -42,21 +44,27 @@ const formatSlotTime = (rec: Record<string, any>, col: ColumnType) => {
     }
 }
 
-const ctime = (ev) => console.log(ev);
-const changeTime = (index: DataIndex, record: Record<string, any>) => {
-    if (index == "break") {
+const changeTime = (slot: WorkerSlot|WorkerInfo, isBreak: boolean = false) => {
+    if (isBreak) {
         // Обновляем обед сотрудника
-        workers._update(record as WorkerInfo);
+        workers._update(slot as WorkerInfo);
     } else {
         // обновляем слот
-        useWorkerSlotsStore()._update(record[index as string]);
+        slots._update(slot as WorkerSlot);
     }
 };
 const addSlot = async (lineCol: ColumnType, rec: Record<string, any>) => {
     let line = useLinesStore().getByID(Number(lineCol.dataIndex));
     let newSlot = await slots.add(line, rec.worker_id);
-    rec[newSlot.line_id] = newSlot;
+    // rec[newSlot.line_id].push(newSlot);
 };
+const deleteSlot = async (slot: WorkerSlot) => {
+    let index = cells.value.findIndex(el => el.worker_id == slot.worker_id);
+    await slots._remove(slot);
+    let slotIndex = cells.value[index][slot.line_id].indexOf(slot);
+    delete cells.value[index][slot.line_id][slotIndex];
+    cells.value[index][slot.line_id] = cells.value[index][slot.line_id].filter(i => i != null)
+}
 
 const exit = () => {
     modal.close('graph');
@@ -73,11 +81,15 @@ const processCells = () => {
         });
     });
 
-
     cells.value = workers.workers.map((el: WorkerInfo) => {
         slots.getByWorker(el.worker_id).forEach((sl: WorkerSlot) => {
-            // el[String(sl.line_id)] = [sl.started_at, sl.ended_at];
-            el[String(sl.line_id)] = sl;
+            if (!el[sl.line_id]) {
+                el[sl.line_id] = [];
+            }
+            if (!el[sl.line_id].find((i) => i.slot_id == sl.slot_id)) {
+                el[String(sl.line_id)].push(sl);
+            }
+
             if (columns.value.find((el) => el.dataIndex == sl.line_id) === undefined) {
                 let line = lines.getByID(sl.line_id);
                 columns.value.push({
@@ -90,7 +102,6 @@ const processCells = () => {
         });
         return el;
     });
-
 }
 
 const columnsReset = () => {
@@ -148,19 +159,21 @@ watch(
                 </template>
                 <template #bodyCell="{ column, record }">
                     <template
-                        v-if="column.dataIndex != 'title' && (record[column.dataIndex as string] || column.dataIndex == 'break')">
-                        <div class="pickers">
-                            <!-- <TimeRangePicker
-                                v-model="record[column.dataIndex as string]" size="small"
-                                @change="ctime"
-                            /> -->
-                            <TimePicker v-model:value="record[column.dataIndex as string].started_at" format="HH:mm"
-                                :showTime="true" :allowClear="true" type="time" :showDate="false" size="small"
-                                class="timepicker" @change="changeTime(column.dataIndex, record)" />
-                            <span> - </span>
-                            <TimePicker v-model:value="record[column.dataIndex as string].ended_at" format="HH:mm"
-                                :showTime="true" :allowClear="true" type="time" :showDate="false" size="small"
-                                class="timepicker" @change="changeTime(column.dataIndex, record)" />
+                        v-if="
+                            column.dataIndex != 'title' && 
+                            (record[column.dataIndex as string] || column.dataIndex == 'break')">
+                        <div class="pickers" v-if="column.dataIndex == 'break'">
+                            <TimePicker :model="record[column.dataIndex as string]"
+                                @change="changeTime(record[column.dataIndex as string] as WorkerInfo, true)" />
+                        </div>
+                        <div class="pickers" v-for="(slot, k) in record[column.dataIndex as string]" v-else>
+                            <TimePicker 
+                                v-if="slot"
+                                :model="slot" :last="record[column.dataIndex as string].length == k+1" 
+                                :dels="true"
+                                @change="changeTime(slot)" 
+                                @add="addSlot(column, record)" 
+                                @del="deleteSlot(slot)"/>
                         </div>
                     </template>
                     <template v-else-if="!record[column.dataIndex as string]">

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Companies;
 use App\Models\Lines;
 use App\Models\Slots;
 use App\Models\Workers;
@@ -23,10 +24,10 @@ class SlotsController extends Controller
     {
         Util::appendSessionToData($request);
 
-        $exists = Util::checkDublicate(new Slots(), [], $request->only((new Slots())->getFillable()), true);
-        if ($exists) {
-            return Util::errorMsg('Такой слот уже существует');
-        }
+        // $exists = Util::checkDublicate(new Slots(), [], $request->only((new Slots())->getFillable()), true);
+        // if ($exists) {
+        //     return Util::errorMsg('Такой слот уже существует');
+        // }
         $result = Slots::create($request->only((new Slots())->getFillable()));
         if ($result) {
             return Util::successMsg($result->toArray());
@@ -170,7 +171,7 @@ class SlotsController extends Controller
 
         // Заполняем строки 
         Workers::all()->each(function ($worker) use ($lines, &$columns, $request) {
-            $row = [$worker->company, $worker->title];
+            $row = [Companies::find($worker->company_id)->title, $worker->title];
             $lines->each(function ($line) use ($request, $worker, &$row) {
                 $slot = Slots::withSession($request)
                     ->where('line_id', $line->line_id)

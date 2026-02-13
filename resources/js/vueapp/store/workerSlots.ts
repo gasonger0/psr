@@ -79,6 +79,15 @@ export const useWorkerSlotsStore = defineStore('workersSlots', () => {
             return;
         });
     };
+    async function _remove(rec: WorkerSlot) {
+        await deleteRequest('/api/workers_slots/delete', {
+            slot_id: rec.slot_id,
+            delete: true
+        }, (response: AxiosResponse) => {
+            splice(rec.slot_id);
+            return;
+        }); 
+    }
     /**
      * Замена работника на смене
      * @param old_worker 
@@ -180,6 +189,7 @@ export const useWorkerSlotsStore = defineStore('workersSlots', () => {
         _create,
         _update,
         _delete,
+        _remove,
         _change,
         _replace,
         getByWorker,
