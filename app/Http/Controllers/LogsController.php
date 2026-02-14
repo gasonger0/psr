@@ -17,14 +17,10 @@ class LogsController extends Controller
 {
     public static function create(array $data)
     {
-        $start = Carbon::now()->format("Y-m-d H:i:s");
-        if (isset($data['started_at'])) {
-            $start = $data['started_at'];
-        }
         $workers = Slots::withSession($data)
             ->where('line_id', $data['line_id'])
-            ->where('started_at', '<=', $start)
-            ->where('ended_at', '>=', $data['ended_at'] ?? Carbon::now()->format('Y-m-d H:i:s'))
+            ->where('started_at', '<=', $data['started_at'])
+            ->where('ended_at', '>=', $data['ended_at'] ?? $data['started_at'])
             ->get()
             ->map(function ($i) {
                 return $i->worker_id;
@@ -33,7 +29,7 @@ class LogsController extends Controller
         $log = Logs::create($data + [
             'people_count' => count($workers),
             'workers' => implode(',', $workers),
-            'started_at' => $start,
+            'started_at' => $data['started_at'],
             'ended_at' => $data['ended_at'] ?? null
         ]);
         return $log->toArray();

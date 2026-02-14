@@ -161,7 +161,9 @@ watch(
                     <template
                         v-if="
                             column.dataIndex != 'title' && 
-                            (record[column.dataIndex as string] || column.dataIndex == 'break')">
+                            (record[column.dataIndex as string] && record[column.dataIndex as string].length > 0
+                             || column.dataIndex == 'break')
+                            ">
                         <div class="pickers" v-if="column.dataIndex == 'break'">
                             <TimePicker :model="record[column.dataIndex as string]"
                                 @change="changeTime(record[column.dataIndex as string] as WorkerInfo, true)" />
@@ -176,7 +178,7 @@ watch(
                                 @del="deleteSlot(slot)"/>
                         </div>
                     </template>
-                    <template v-else-if="!record[column.dataIndex as string]">
+                    <template v-else-if="!record[column.dataIndex as string] || record[column.dataIndex as string].length == 0">
                         <Button class="footer-button" type="dashed" @click="addSlot(column, record)">
                             +
                         </Button>

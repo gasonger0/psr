@@ -4,10 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Models\Companies;
 use App\Models\Lines;
+use App\Models\LinesExtra;
 use App\Models\Slots;
 use App\Models\Workers;
+use App\Models\WorkersBreaks;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\Session;
+use Illuminate\Contracts\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Shuchkin\SimpleXLSXGen;
 use App\Util;
@@ -55,7 +57,7 @@ class SlotsController extends Controller
         } else {
             // Досрочное окончание
             Slots::find($request->post('slot_id'))->update([
-                'ended_at' => Carbon::now()
+                'ended_at' => Util::getCurrentTime($request)
             ]);
         }
         return Util::successMsg('Смена сотрудника звершена', 200);
@@ -72,18 +74,20 @@ class SlotsController extends Controller
             return Util::errorMsg('Такого слота не существует', 404);
         }
 
+        $newEnd = Util::getCurrentTime($request);
+
         $data = new Request([
             'worker_id' => $oldSlot->worker_id,
             'line_id' => $request->post('new_line_id'),
-            'started_at' => Carbon::now(),
-            'ended_at' => $oldSlot->ended_at  
+            'started_at' => $newEnd->format("Y-m-d H:i:s"),
+            'ended_at' => Carbon::parse($oldSlot->ended_at)->format("Y-m-d H:i:s")
         ] + $cookie, [], $cookie);
 
         // $data->cookie('date', $cookie['date']);
         // $data->cookie('isDay', $cookie['isDay']);
 
         $oldSlot->update([
-            'ended_at' => Carbon::now()
+            'ended_at' => $newEnd->format("Y-m-d H:i:s")
         ]);
 
         return $this->create($data);
@@ -132,13 +136,15 @@ class SlotsController extends Controller
     public function replace(Request $request)
     {
         $oldSlot = Slots::find($request->post('slot_id'));
-        $oldEnd = $oldSlot->ended_at;
-        $oldSlot->ended_at = now('Europe/Moscow');
-        $oldSlot->save();
+        $oldEnd = Carbon::parse($oldSlot->ended_at);
 
+        $newEnd = Util::getCurrentTime($request);
+
+        $oldSlot->ended_at = $newEnd->format("Y-m-d H:i:s");
+        $oldSlot->save();
         $request->merge([
-            'started_at' => now('Europe/Moscow'),
-            'ended_at' => $oldEnd,
+            'started_at' => $newEnd->format("Y-m-d H:i:s"),
+            'ended_at' => $oldEnd->format("Y-m-d H:i:s"),
             'line_id' => $oldSlot->line_id,
             'worker_id' => $request->post('new_worker_id'),
         ]);
@@ -162,63 +168,129 @@ class SlotsController extends Controller
     public function print(Request $request)
     {
         // Создаём шапку для таблицы
-        $lines = Lines::all(['title', 'line_id']);
-        $columns = [['Компания', 'Работник']];
-        $lines->each(function ($line) use (&$columns) {
-            array_push($columns[0], $line->title, '');
-        });
+        $lines = Lines::select(['title', 'line_id'])
+            ->with([
+                "linesExtra" => function (Builder $query) use ($request) {
+                    $query->withSession($request);
+                }
+            ])
+            ->whereIn(
+                'line_id',
+                Slots::withSession($request)
+                    ->get('line_id')
+            )->get();
+        $border = "border=\"none none medium#313131 none\"";
+        $center1 = "<middle><center>";
+        $center2 = "</middle></center>";
 
+        $columns = [
+            [
+                "<style>Компания</style>",
+                "<style>СПИСОК РАБОЧИХ</style>",
+                "<style>$center1 Обед$center2</style>",
+                "<style></style>"
+            ],
+            [
+                '',
+                '',
+                "$center1 начало $center2",
+                "$center1 конец $center2"
+            ],
+            array_fill(0, 4, "<style $border></style>")
+        ];
+
+        $lines->each(function ($line) use (&$columns, $border, $center1, $center2) {
+            array_push($columns[0], "<style height=\"30\"><wraptext>$center1 $line->title $center2</wraptext></style>", "<style></style>");
+            array_push($columns[1], "$center1 начало $center2", "$center1 конец $center2");
+            array_push(
+                $columns[2],
+                "<style $border>" .
+                Carbon::parse($line->linesExtra[0]->started_at)->format('H:i:s') .
+                "</style",
+                "<style $border>" .
+                Carbon::parse($line->linesExtra[0]->ended_at)->format('H:i:s') .
+                "</style>"
+            );
+        });
 
         // Заполняем строки 
-        Workers::all()->each(function ($worker) use ($lines, &$columns, $request) {
-            $row = [Companies::find($worker->company_id)->title, $worker->title];
-            $lines->each(function ($line) use ($request, $worker, &$row) {
-                $slot = Slots::withSession($request)
+        Workers::all()->each(function ($worker) use ($lines, &$columns, $request, $border) {
+            $lunch = WorkersBreaks::withSession($request)
+                ->where('worker_id', $worker->worker_id)
+                ->first();
+            $workerRows = [
+                [
+                    Companies::find($worker->company_id)->title,
+                    explode(" ", $worker->title)[0],
+                    Carbon::parse($lunch->started_at)->format('H:i:s'),
+                    Carbon::parse($lunch->ended_at)->format('H:i:s')
+                ]
+            ];
+            $lines->each(function ($line) use ($request, $worker, &$workerRows) {
+                $slots = Slots::withSession($request)
                     ->where('line_id', $line->line_id)
-                    ->where('worker_id', $worker->worker_id)->first();
-                if ($slot) {
-                    array_push(
-                        $row,
-                        Carbon::parse($slot->started_at)->format('H:i:s'),
-                        Carbon::parse($slot->ended_at)->format('H:i:s')
-                    );
+                    ->where('worker_id', $worker->worker_id);
+                if ($slots) {
+                    $slots->each(function ($sl, $k) use (&$workerRows) {
+                        if (!isset($workerRows[$k])) {
+                            $workerRows[$k] = array_fill(0, count($workerRows[0]) - 2, '');
+                        }
+                        array_push(
+                            $workerRows[$k],
+                            Carbon::parse($sl->started_at)->format('H:i:s'),
+                            Carbon::parse($sl->ended_at)->format('H:i:s')
+                        );
+                    });
+
+                    // Проверка, что соответсвует кол-во строк
+                    $maxCount = max(array_map(fn($r) => count($r), $workerRows));
+                    foreach ($workerRows as &$row) {
+                        if (count($row) < $maxCount) {
+                            $counts = $maxCount - count($row);
+                            $row = array_merge($row, array_fill(0, $counts, ""));
+                        }
+                    }
                 } else {
-                    array_push($row, '', '');
+                    foreach ($workerRows as &$r) {
+                        array_push($r, "", "");
+                    }
                 }
             });
-            $itemsCount = array_filter(array_slice($row, 2), function ($value) {
-                return $value != '';
+
+            $itemsCount = array_filter($workerRows, function (&$value) use ($columns) {
+                return count($value) > 4;
             });
             if (count($itemsCount) > 0) {
-                $columns[] = $row;
+                // Делаем нижнюю границу
+                $lastIndex = count($workerRows) - 1;
+                if (count($workerRows[$lastIndex]) < count($columns[0])) {
+                    $linesCount = count($workerRows[$lastIndex]);
+                    $workerRows[$lastIndex] = array_merge(
+                        $workerRows[$lastIndex],
+                        array_fill(0, count($columns[0]) - $linesCount, "")
+                    );
+                }
+                $workerRows[$lastIndex] = array_map(fn($i) => "<style $border>$i</style>", $workerRows[$lastIndex]);
+                array_push($columns, ...$workerRows);
             }
         });
-
-        $i = 2;
-        while ($i < count($columns[0])) {
-            $isEmpty = array_filter(array_column($columns, $i), function ($value) {
-                return $value != '';
-            });
-            if (count($isEmpty) <= 1) {
-                array_walk($columns, function (&$row) use ($i) {
-                    array_splice($row, $i, 2);
-                });
-            } else {
-                $i += 2;
-            }
-        }
 
         // Пост обработка по мёржу ячеек
         $file = SimpleXLSXGen::fromArray($columns);
-        $i = 4;
-        $a = 95; // Заглавная А
+        $i = 2;
+        $a = 97; // Заглавная А
 
-        while ($i <= count($columns[0])) {
+        while ($i < count($columns[0])) {
             $mergeRange = chr($a + $i) . "1:" . chr($a + $i + 1) . '1';
             $file->mergeCells($mergeRange);
-
+            $file->setColWidth($i, 10)->setColWidth($i + 1, 10);
             $i += 2;
         }
+
+        $file
+            ->setColWidth(1, 10)
+            ->setColWidth(2, 30);
+
         $date = Carbon::parse($request->attributes->get('date'))->format('Y_m_d');
         $isDay = $request->attributes->get('isDay') ? 'День' : 'Ночь';
         $name = "График_$date-$isDay.xlsx";

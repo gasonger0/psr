@@ -89,7 +89,7 @@ class LinesController extends Controller
                 'line_id' => $line->line_id,
                 'action' => 'Перенос начала работы линии по причине: ' . $request->post('cancel_reason'),
                 'started_at' => $old['started_at'],
-                'ended_at' => Carbon::now()->format('Y-m-d H:i:s')
+                'ended_at' => Util::getCurrentTime($request)
             ] + Util::getSessionAsArray($request));
         }
         SlotsController::afterLineUpdate($request, $old);
@@ -110,18 +110,20 @@ class LinesController extends Controller
     /* ACTIONS */
     public static function down(Request $request)
     {
+        $downTime = Util::getCurrentTime($request);
+
         $line = LinesExtra::where('line_id', $request->post('line_id'))
             ->withSession($request)
             ->first();
         $downFrom = $line->down_from;
         if ($downFrom != null) {
-            $diff = Carbon::parse($downFrom)->diffInMinutes(Carbon::now("Europe/Moscow")->format('Y-m-d H:i:s'));
+            $diff = Carbon::parse($downFrom)->diffInMinutes($downTime);
             $line->down_time += $diff;
             $line->down_from = null;
             $line->save();
             SlotsController::down($request, $downFrom);
         } else {
-            $line->down_from = Carbon::now("Europe/Moscow")->format('Y-m-d H:i:s');
+            $line->down_from = $downTime->format('Y-m-d H:i:s');
             $line->save();
         }
 
@@ -129,8 +131,8 @@ class LinesController extends Controller
             'line_id' => $line->line_id,
             'action' => "Остановка работы линии по причине: " . $request->post('reason'),
         ] + Util::getSessionAsArray($request) +
-        ($downFrom ? ["ended_at" => Carbon::now("Europe/Moscow")->format('Y-m-d H:i:s')] : 
-            ["started_at" => Carbon::now("Europe/Moscow")->format('Y-m-d H:i:s')]);
+        ($downFrom ? ["ended_at" => $downTime->format('Y-m-d H:i:s')] : 
+            ["started_at" => $downTime->format('Y-m-d H:i:s')]);
 
         $log = $downFrom ? LogsController::update($logData) : LogsController::create($logData);
 

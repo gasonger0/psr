@@ -42,7 +42,7 @@ export const useWorkerSlotsStore = defineStore('workersSlots', () => {
         }
         const ls = useLinesStore();
         let line = ls.getByID(line_id);
-        let time = dayjs.default();
+        let time = getTimeString();
         if (plan) {
             time = line.work_time.started_at;
         }
@@ -72,7 +72,12 @@ export const useWorkerSlotsStore = defineStore('workersSlots', () => {
             slot_id: rec.current_slot_id,
             delete: del
         }, (response: AxiosResponse) => {
-            splice(rec.current_slot_id);
+            if (del){
+                splice(rec.current_slot_id);
+            } else {
+                let index = slots.value.findIndex(el => el.slot_id == rec.current_slot_id);
+                slots.value[index].ended_at = getTimeString();
+            }
             rec.current_slot_id = undefined;
             rec.current_line_id = undefined;
             notify('success', `Сотрудник ${rec.title} убран со смены`);
@@ -101,10 +106,12 @@ export const useWorkerSlotsStore = defineStore('workersSlots', () => {
         return await putRequest('/api/workers_slots/replace', {
             slot_id: old_worker!.current_slot_id!,
             new_worker_id: new_worker!.worker_id
-        }, async (r: any) => {
+        }, async (r: AxiosResponse) => {
             old_worker!.popover = false;
             splice(old_worker!.current_slot_id!);
-            new_worker!.current_slot_id = r.slot_id;
+            slots.value.push(serialize(r.data))
+
+            new_worker!.current_slot_id = r.data.slot_id;
             new_worker!.current_line_id = old_worker!.current_line_id;
             old_worker!.current_line_id = undefined;
             old_worker!.current_slot_id = undefined;
@@ -123,6 +130,7 @@ export const useWorkerSlotsStore = defineStore('workersSlots', () => {
         },
             (r: AxiosResponse) => {
                 slots.value.push(serialize(r.data));
+                console.log(slots.value);
                 let old = slots.value.find(el => el.slot_id == worker.current_slot_id);
                 old.ended_at = dayjs.default(r.data.started_at, format);
                 worker.current_line_id = r.data.line_id;
@@ -166,8 +174,17 @@ export const useWorkerSlotsStore = defineStore('workersSlots', () => {
         return slot as WorkerSlot;
     }
     function unserialize(slot: WorkerSlot) {
+        if (sessionStorage.getItem("isDay") == "0") {
+            if (slot.ended_at.isBefore(slot.started_at)) {
+                // Ситуация: 02/01 23:59 - 02/01 05:00
+                slot.ended_at.add(1, "day");
+            } else if (Math.abs(slot.ended_at.diff(slot.started_at)) > 13) {
+                // Ситуация: 01/02 22:49 - 02/02 22:54
+                slot.ended_at.subtract(1, "day");
+            }
+        }
         let payload = JSON.parse(JSON.stringify(slot));
-        console.log(slot, payload);
+
         payload.started_at = slot.started_at.format(format);
         payload.ended_at = slot.ended_at.format(format);
         return payload;
@@ -175,11 +192,10 @@ export const useWorkerSlotsStore = defineStore('workersSlots', () => {
 
     function getCurrent(): WorkerSlot[] {
         let ts = getTimeString();
-        return slots.value.filter(el => {
+        let val = slots.value.filter(el => {
             return el.started_at <= ts && el.ended_at >= ts
-        
-        }
-        );
+        });
+        return val;
     }
 
     return {

@@ -328,9 +328,10 @@ class ProductsPlanController extends Controller
                 );
 
                 $start = Carbon::parse($plan->started_at);
-                // Если опудривани, обсыпка или упаковка - добавляем задержку
+                // Если опудривани, обсыпка или упаковка, но не сборка ящиков - добавляем задержку
                 if (
                     ($slot->type_id == 2 || $slot->type_id == 5 || $slot->type_id == 3)
+                    && $slot->line_id != 37
                     // && !str_contains($slot->line->title, 'FLOY')
                 ) {
                     $start->addMinutes($delay);
@@ -338,7 +339,7 @@ class ProductsPlanController extends Controller
                 $ended_at = $start->copy();
                 $ended_at->addHours($duration)->addMinutes(15);
                 $d = Carbon::parse($plan->ended_at)->addMinutes(15)->addMinutes($delay);
-                if ($ended_at < $d) {
+                if ($ended_at < $d) {   // TODO возмодно, такая штука не нужна для сборки ящиков
                     $ended_at = $d;
                 }
 

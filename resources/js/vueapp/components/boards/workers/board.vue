@@ -33,11 +33,13 @@ const showEditMode: Ref<boolean> = ref(true);
 const setWorkerRef = (el: any, workerId: number) => {
     if (el) workerRefs.value[workerId] = el;
 };
-const handleCardChange = (id: number, worker_id: number) => {
+const handleCardChange = (line_ids: number[], worker_id: number) => {
     if (workerRefs[worker_id]) {
         workerRefs[worker_id].$forceUpdate();
     }
-    linesStore.updateVersion(id);
+    line_ids.forEach(id => {
+        linesStore.updateVersion(id);
+    });
 }
 
 const newListText = computed(() => {
@@ -99,6 +101,8 @@ const monitor = async () => {
         }
         worker.on_break = workersStore.calcBreak(worker).value;
     });
+
+    console.log(current);
 };
 
 const handleEditMode = (check: boolean) => {
@@ -159,15 +163,15 @@ onUpdated(async () => {
                 let old_line = workerSlotsStore.getCurrent().find((el) => el.worker_id == worker.worker_id);
                 if (typeof worker?.current_line_id == 'number') {
                     workerSlotsStore._change(worker, line_id);
-                    handleCardChange(line_id, worker.worker_id);
+                    handleCardChange([line_id], worker.worker_id);
                 } else {
                     workerSlotsStore._create(worker, line_id, editMode.value);
-                    handleCardChange(line_id, worker.worker_id);
+                    handleCardChange([line_id], worker.worker_id);
                 }
                 if (old_line) {
                     linesStore.updateVersion(old_line.line_id);
                 }
-                linesStore.updateVersion(line_id);
+                
                 clearInterval(monitorInterval.value);
                 monitorInterval.value = setInterval(monitor, 3000);
             }
@@ -215,7 +219,7 @@ onUpdated(async () => {
     document.querySelector('.lines-container')!.scrollTo({ left: 0 });
 
     monitor();
-    monitorInterval.value = setInterval(monitor, 30000);
+    monitorInterval.value = setInterval(monitor, 3000);
 
 });
 
@@ -231,7 +235,7 @@ const emit = defineEmits(['ready']);
             Распечатать график
         </Button>
         <Switch v-model:checked="editMode" checked-children="Планирование" un-checked-children="Коррекция"
-            @change="handleEditMode" v-show="showEditMode || (!showEditMode && editMode)"/>
+            @change="handleEditMode" v-show="showEditMode || (!showEditMode && editMode)" />
     </div>
     <div class="lines-container" ref="linesContainer">
         <div class="line" :data-id="-1" v-show="showList">

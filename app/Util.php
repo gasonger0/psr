@@ -146,6 +146,17 @@ class Util
         return $duration;
     }
 
+    public static function getCurrentTime(Request $request): Carbon {
+        $session_date = Carbon::parse(Util::getSessionAsArray($request)['date']);
+        return Carbon::now("Europe/Moscow")
+            ->setDate(
+                $session_date->year, 
+                $session_date->month, 
+                $session_date->day
+                );
+
+    }
+
     public static function createDate(array $data, Request $request, Lines $line)
     {
         $isDay = $request->attributes->get("isDay");
