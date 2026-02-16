@@ -317,6 +317,8 @@ class TableController extends Controller
             $array = $arr[$sheet];
             $dateCount = 0;
             $dateCountNew = [];
+            $returnMassCells = [];
+            $globalZ = 0;
             // Обработка линий на листе
             foreach ($lines as &$line) {
                 // Получаем планы со всех смен (пока хз как исправить)
@@ -332,7 +334,7 @@ class TableController extends Controller
 
                 // Собираем список оборудования с планов
                 $hardwares = array_unique($linePlans->map(function ($item) {
-                    return $item->slot->hardware;
+                    return $item->hardware;
                 })->toArray());
 
                 // Обрабатываем оборудование с линий
@@ -346,7 +348,10 @@ class TableController extends Controller
                     // Группируем планы по оборудованию 
                     $linePlans->each(function ($p) use (&$line, $session) {
                         if ($p['date'] == $session['date'] && $p['isDay'] == $session['isDay']) {
-                            $line['items'][$p->slot->hardware]['items'][] = $p->toArray() + $p->slot->product->toArray();
+                            $line['items'][$p->hardware]['items'][] =
+                                $p->toArray() +
+                                $p->slot->product->toArray() +
+                                ['slot' => $p->slot];
                         }
                     });
                 } else {
@@ -368,19 +373,17 @@ class TableController extends Controller
 
                 // Делаем шапку линии
                 $array[] = self::makeRow([
-                    1 =>
-                        "<style bgcolor=\"#D8E4BC\"><b>$line[title]</b>" .
-                        ($line['extra_title'] ? "($line[extra_title])" : "") .
-                        '</style>',
+                    1 => "<style bgcolor=\"#D8E4BC\"><b>$line[title]</b></style>",
+                    4 => ($line['extra_title'] ? "($line[extra_title])" : ""),
                     11 => $line['workers_count'],
-                    12 => $line['started_at']->format('H:i'),
-                    13 => $line['ended_at']->format("H:i")
+                    12 => "<b>" . $line['started_at']->format('H:i') . "</b>",
+                    13 => "<b>" . $line['ended_at']->format("H:i") . "</b>"
                 ]);
 
                 // Ставим детектор
-                if ($line['has_detector']) {
+                if ($line['has_detector'] && $line['type_id'] == 2) {
                     $array[] = self::makeRow([
-                        1 => '<style bgcolor="#FC8C03"><b><i>МЕТАЛОДЕТЕКТОР</i></b></style>',
+                        1 => '<style bgcolor="#FC8C03"><b><i>МЕТАЛЛОДЕТЕКТОР</i></b></style>',
                         12 => $line['detector_start'],
                         13 => $line['detector_end']
                     ]);
@@ -502,41 +505,25 @@ class TableController extends Controller
                         $dateCountNew[] = "C$row_index";
                         $dateCountNew[] = "D$row_index";*/
 
-
-                        $array[] = [
-                            '',
-                            $product['title'],
-                            self::$MCS . $crates . self::$MCE,
-                            self::$MCS . $parts . self::$MCE,
-                            self::$MCS . $kg . self::$MCE,
-                            self::$MCS . $boils . self::$MCE,
-                            self::$MCS . $cars . self::$MCE,
-                            '<b>т</b>',
-                                // $prec,
-                            self::$MCS . ceil($plates) . self::$MCE,
-                            '<b>под</b>',
-                            self::$MCS . '<b>' . $prec . '</b>' . self::$MCE,
-                            $product['slot']['people_count'],
-                            Carbon::parse($product['started_at'])->format('H:i'),
-                            Carbon::parse($product['ended_at'])->format('H:i'),
-                            '',
-                            '<f>=R' . (count($array) + 1) . '*' . $product['amount2parts'],
-                            '<f>=S' . (count($array) + 1) . '*' . $product['parts2kg'],
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            $kg / $product['slot']['perfomance'] * $product['slot']['people_count'],
-                            '<f>=T' . (count($array) + 1) . '/' . $product['slot']['perfomance'] . '*' . $product['slot']['people_count'] . '</f>'
-                        ];
+                        $array[] = self::makeRow([
+                            1 => $product['title'],
+                            2 => self::$MCS . $crates . self::$MCE,
+                            3 => self::$MCS . $parts . self::$MCE,
+                            4 => self::$MCS . $kg . self::$MCE,
+                            5 => self::$MCS . $boils . self::$MCE,
+                            6 => self::$MCS . $cars . self::$MCE,
+                            7 => '<b>т</b>',
+                            8 => self::$MCS . ceil($plates) . self::$MCE,
+                            9 => '<b>под</b>',
+                            10 => self::$MCS . '<b>' . $prec . '</b>' . self::$MCE,
+                            11 => $product['slot']['people_count'],
+                            12 => Carbon::parse($product['started_at'])->format('H:i'),
+                            13 => Carbon::parse($product['ended_at'])->format('H:i'),
+                            15 => '<f>=R' . (count($array) + 1) . '*' . $product['amount2parts'],
+                            16 => '<f>=S' . (count($array) + 1) . '*' . $product['parts2kg'],
+                            29 => $kg / $product['slot']['perfomance'] * $product['slot']['people_count'],
+                            30 => '<f>=T' . (count($array) + 1) . '/' . $product['slot']['perfomance'] . '*' . $product['slot']['people_count'] . '</f>'
+                        ]);
 
 
                         $dateCount += $crates + $parts;
@@ -544,15 +531,44 @@ class TableController extends Controller
                     }
                 }
                 if ($line['after_time'] != 0) {
-                    $lastTime = Carbon::parse($array[count($array) - 1][13]);
-                    $array[] = ['', '<style bgcolor="#FFC263"><b><i>Заключительное время</i></b></style>', '', '', '', '', '', '', '', '', '', '', $lastTime->format('H:i:s'), $lastTime->addMinutes($line['after_time'])->format('H:i:s')];
+                    $lastTime = Carbon::parse($line['ended_at']);
+                    $array[] = self::makeRow([
+                        1 => '<style bgcolor="#FFC263"><b><i>Заключительное время</i></b></style>',
+                        12 => $lastTime->addMinutes(-$line['after_time'])->format('H:i:s'),
+                        13 => $lastTime->addMinutes($line['after_time'])->format('H:i:s')
+                    ]);
                 }
                 $array[] = [];
+
+                if ($line['type_id'] == 2) {
+                    if ($sum['z'][0] > 0) {
+                        $val = Util::calcReturnMass($line, $sum['z'][0], 'z');
+                        if ($val != false) {
+                            $array[] = ["", "Возвратные отходы зеф.массы:", '', '', "<i>$val</i>"];
+                            $returnMassCells[] = "E" . count($array);
+                        }
+                    }
+
+                    if ($sum['s'][0] > 0) {
+                        $val = Util::calcReturnMass($line, $sum['s'][0], 's');
+                        if ($val != false) {
+                            $array[] = ["", "Возвратные отходы суфле:", '', '', "<i>$val</i>"];
+                            // $returnMassCells[] = "E" . count($array);
+                        }
+                    }
+
+                    $array[] = [];
+                } else {
+                    // TODO Возможно, для линий варки тоже надо не для всех
+                    $array[] = ["", "Возвратные отходы зеф.массы:"];
+                    $returnMassCells[] = "E" . count($array);
+                }
 
                 $array[] = ['', '<b>Итого зефира</b>', '', '', $sum['z'][0], $sum['z'][1]];
                 $array[] = ['', '<b>Итого суфле</b>', '', '', $sum['s'][0], $sum['s'][1]];
                 $array[] = ['', '<b>Итого конфет</b>', '', '', $sum['k'][0], $sum['k'][1]];
                 $array[] = ['', '<b>Отходы</b>'];
+                $globalZ += $sum['z'][0];
                 $sum = [
                     'z' => [0, 0],
                     's' => [0, 0],
@@ -563,26 +579,37 @@ class TableController extends Controller
             }
 
             if ($sheet == 1) {
+                // Датирование
                 $dating = LinesExtra::withSession($request)
                     ->where('line_id', 42)
-                    // ->with(['lines'])
                     ->first()
                     ->toArray();
-                //     Lines::find(42)->toArray(),
-                //     LinesExtraController::get($, $isDay, 42)->toArray()
-                // );
-
-                // var_dump($dating);
 
                 $array[] = ['', '<style bgcolor="#B7DEE8"><b>ОТВЕТСТВЕННЫЕ: ' . $dating['master'] . ',' . $dating['engineer'] . '</b></style>'];
-                $array[] = ['', '<style bgcolor="#D8E4BC"><b>ДАТИРОВАНИЕ</b></style>', '', ($dateCount / 8000), '', '', '', '', '', '', '', $dating['workers_count'], Carbon::parse($dating['started_at'])->format("H:i"), Carbon::parse($dating['ended_at'])->format("H:i")];
+                $array[] = self::makeRow([
+                    1 => '<style bgcolor="#D8E4BC"><b>ДАТИРОВАНИЕ</b></style>',
+                    3 => ($dateCount / 8000),
+                    11 => $dating['workers_count'],
+                    12 => Carbon::parse($dating['started_at'])->format("H:i"),
+                    13 => Carbon::parse($dating['ended_at'])->format("H:i")
+                ]);
 
             }
+            $array[] = [];
+            $array[] = self::makeRow([
+                1 => "ИТОГО ЗЕФИРА",
+                4 => $globalZ
+
+            ]);
+            $array[] = self::makeRow([
+                1 => "ИТОГО ВОЗВРАТНОЙ МАССЫ",
+                4 => "<f>=" . implode(" + ", $returnMassCells)
+            ]);
             $arr[$sheet] = $array;
+            $globalZ = 0;
+            $returnMassCells = [];
+            $dateCount = 0;
         }
-
-        // die();
-
 
         $xlsx = SimpleXLSXGen::fromArray($arr[1], 'Варка')
             ->setDefaultFontSize(20)
@@ -659,12 +686,20 @@ class TableController extends Controller
         $dateString =
             (new DateTime($session['date']))->format('d.m.Y') . '_' . ($session['isDay'] == 1 ? 'день' : 'ночь');
 
-        $lines = Lines::all();
-        foreach ($lines as $line) {
-            $line['slots'] = Slots::where('line_id', '=', $line['line_id'])->get()->toArray();
+        $lines = Lines::all()->toArray();
+        foreach ($lines as &$line) {
+            $line['slots'] = Slots::where('line_id', '=', $line['line_id'])
+                ->withSession($request)
+                ->groupBy(['worker_id', 'slot_id'])
+                ->get()
+                ->toArray();
+            // var_dump(Slots::where('line_id', '=', $line['line_id'])->groupBy(['worker_id', 'slot_id'])->toRawSql());
         }
-
+        // var_dump($lines);
+        // die();
         $companies = [];
+        $sum = array_fill(1, 6, []);
+        $sumByLines = array_fill(1, 6, []);
 
         foreach (Companies::get() as $comp) {
             $companies[$comp->company_id] = [
@@ -684,11 +719,18 @@ class TableController extends Controller
                 'Итого часов',
                 'КТУ',
                 'Итого часов с КТУ',
-                'Примечание'
+                'Примечание',
+                'Тоннаж (чел-часы)'
             ]
         ];
+
+        // Получаем объём изготовления по каждой из продукций на линиях
+        $times = Util::getLinesPersonalTime($request);
+
+
         foreach ($lines as $line) {
             if ($line['slots'] && count($line['slots']) > 0) {
+
                 $columns[] = [
                     '<style bgcolor="' . ($line['color'] ? $line['color'] : '#1677ff') . '">' . $line['title'] . '</style>',
                     '',
@@ -697,10 +739,12 @@ class TableController extends Controller
                     '',
                     '',
                     '',
-                    ''
+                    '',
+                    isset($times[$line['line_id']]) ? $times[$line['line_id']]['amountByPeopleHours'] : ''
                 ];
 
-                $count = count($columns);
+                $count = count($columns) + 1;
+
                 // $line
                 foreach ($line['slots'] as $slot) {
                     $worker = Workers::find($slot['worker_id']);
@@ -719,7 +763,7 @@ class TableController extends Controller
                         $workTime,
                         0,
                         self::setFloat($slot['down_time'] / 60),
-                        "<f>=C$row_num + D$row_num</f>",
+                        "<f>=C$row_num - D$row_num</f>",
                         $ktu,
                         "<f>=E$row_num * F$row_num</f>"
                     ];
@@ -727,6 +771,12 @@ class TableController extends Controller
                     $columns[] = $row;
 
                     $companies[$worker->company_id]['indexes'][] = $row_num;
+
+                    // Человек от данной компании на конкретной линии
+                    if (!isset($companies[$worker->company_id]['lines'][$line['line_id']])) {
+                        $companies[$worker->company_id]['lines'][$line['line_id']] = 0;
+                    }
+                    $companies[$worker->company_id]['lines'][$line['line_id']] += 1;
                 }
                 $count1 = count($columns);
                 $columns[] = [
@@ -738,22 +788,66 @@ class TableController extends Controller
                     '',
                     '<style bgcolor="#FDE9D9">' . "<f>=SUM(G$count:G$count1)</f>" . '</style>',
                 ];
+
+                // Человек суммарно на данной линии
+                if (isset($times[$line['line_id']])) {
+                    $times[$line['line_id']]['totalPeople'] = $count1 - $count + 1;
+                }
+                foreach (['B', 'C', 'D', 'E', 'F', 'G'] as $k => $i) {
+                    $sum[$k + 1][] = $i . count($columns);
+                    $sumByLines[$k + 1][] = $i . $count - 1;
+                }
             }
         }
         $columns[] = [''];
-        $columns[] = ['КОМПАНИИ'];
+        $sumByLines = array_map(fn($i) => "<f>=" . implode(" + ", $i), $sumByLines);
+        $columns[] = ["ИТОГО ПО ЗАДАНИЮ", ...$sumByLines];
+        $sum = array_map(fn($i) => "<f>=" . implode(" + ", $i), $sum);
+        $columns[] = ["ИТОГО ПО РАСПИСАННЫМ ЛЮДЯМ", ...$sum];
+        $columns[] = [];
+        $columns[] = [
+            "КОМПАНИИ",
+            "Отработано часов по плану",
+            "Отработано часов по факту",
+            "Простои",
+            "Итого часов",
+            "КТУ",
+            "Итого часов с КТУ",
+            "Тоннаж"
+        ];
+
+        $counter = count($columns);
 
         foreach ($companies as $company) {
+            $amount = [];
+            if (isset($company['lines'])) {
+                foreach ($company['lines'] as $line_id => $people_count) {
+                    if (isset($times[$line_id])) {
+                        // var_dump($times[$line_id], $people_count);
+                        $amount[] = $times[$line_id]['amount'] . "/" . 
+                            $times[$line_id]['totalPeople']."*".
+                            $people_count;
+                    }
+                }
+            }
+
             $columns[] = [
                 $company['title'],
                 self::summarize($company['indexes'], 'B'),
                 self::summarize($company['indexes'], 'C'),
                 self::summarize($company['indexes'], 'D'),
                 self::summarize($company['indexes'], 'E'),
-                self::summarize($company['indexes'], 'F'),
+                '',
+                // self::summarize($company['indexes'], 'F'),
                 self::summarize($company['indexes'], 'G'),
+                count($amount) > 0 ? "<f>=" . implode("+", $amount) : ''
             ];
         }
+        // Тоннаж: масса по линии * кол-во человек по компаниям (count($company['indexes']) / сумму)
+
+        // for ( $i = $counter; $i < count($columns); $i++) {
+        //     $columns[$i][7] = "<f>=".
+        // }
 
 
         $xlsx = SimpleXLSXGen::fromArray($columns);
@@ -782,7 +876,8 @@ class TableController extends Controller
         foreach ($arr as &$index) {
             $index = $letter . $index;
         }
-        return '<f>=' . implode('+', $arr) . '</f>';
+        return '<f>=(' . implode('+', $arr) . ')</f>';
+        // return '<f>=(' . implode('+', $arr) . ')/' . count($arr) . '</f>';
     }
 
     private static function makeRow(array $items): array

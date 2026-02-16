@@ -25,11 +25,6 @@ class SlotsController extends Controller
     public function create(Request $request)
     {
         Util::appendSessionToData($request);
-
-        // $exists = Util::checkDublicate(new Slots(), [], $request->only((new Slots())->getFillable()), true);
-        // if ($exists) {
-        //     return Util::errorMsg('Такой слот уже существует');
-        // }
         $result = Slots::create($request->only((new Slots())->getFillable()));
         if ($result) {
             return Util::successMsg($result->toArray());
@@ -60,7 +55,7 @@ class SlotsController extends Controller
                 'ended_at' => Util::getCurrentTime($request)
             ]);
         }
-        return Util::successMsg('Смена сотрудника звершена', 200);
+        return Util::successMsg();
     }
 
     /* ACTIONS */
@@ -156,7 +151,6 @@ class SlotsController extends Controller
 
     public function clear($date = null, $isDay)
     {
-        // TODO А надо ли оно тут?
         if (!$date) {
             return;
         }

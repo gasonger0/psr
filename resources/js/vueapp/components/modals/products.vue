@@ -128,8 +128,6 @@ const exit = () => {
             </section>
             <Divider type="vertical" style="height:unset;" />
             <section class="products">
-                <!-- TODO лишние стили мб -->
-                <!-- <List :data-source="products" v-if="products.length != 0" style="max-height:60vh; overflow: auto;"> -->
                 <List :data-source="products" v-if="products.length != 0" class="product_list">
                     <template #renderItem="{ item }">
                         <ListItem v-if="!item.isEditing" class="product_list-item" :class="getClass(item)">

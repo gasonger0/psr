@@ -21,7 +21,7 @@ class ProductsSlots extends Model
     ];
 
     public function product(){
-        return $this->belongsTo(ProductsDictionary::class,'product_id','product_id');
+        return $this->hasOne(ProductsDictionary::class,'product_id','product_id');
     }
     public function line(){
         return $this->hasOne(Lines::class,'line_id', 'line_id');

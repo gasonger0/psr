@@ -85,9 +85,10 @@ class LinesController extends Controller
 
         $log = null;
         if ($request->post('cancel_reason')) {
+            // Ищем старый лог с такой причиной
             $log = LogsController::create([
                 'line_id' => $line->line_id,
-                'action' => 'Перенос начала работы линии по причине: ' . $request->post('cancel_reason'),
+                'action' => 'Перенос начала работы линии по причине: ' . $request->post('cancel_reason_string'),
                 'started_at' => $old['started_at'],
                 'ended_at' => Util::getCurrentTime($request)
             ] + Util::getSessionAsArray($request));

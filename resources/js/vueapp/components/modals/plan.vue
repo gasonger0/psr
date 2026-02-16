@@ -31,7 +31,6 @@ interface ModalState {
     packOptions: CheckboxOptionType[];
     zmOptions: { label: string, value: number }[];
     packs: CheckboxValueType[];
-    // TODO: если по МТ согласуют, то это можно нахер убирать
     showPack: boolean;
     hardware: number | null;
     slots: ProductSlot[];
@@ -355,7 +354,7 @@ const addPlan = async () => {
     if (!localPlanData.value || !state.slot) return;
 
     state.isLoading = true;
-
+    localPlanData.value.hardware = state.hardware;
     try {
         const packIds = state.showPack ? [...state.packs] as number[] : [];
         if (localPlanData.value.plan_product_id) {

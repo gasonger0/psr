@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import { format, Slot } from "@stores/dicts";
+import { cancelReasons, format, Slot } from "@stores/dicts";
 import * as dayjs from 'dayjs'
 import { ResponsibleInfo } from "@stores/responsibles";
 import { reactive, Ref, ref } from "vue";
@@ -162,7 +162,11 @@ export const useLinesStore = defineStore('lines', () => {
         item.detector_start = line.detector.detector_start?.format(format);
         item.detector_end = line.detector.detector_end?.format(format);
         item.date = line.date.format('YYYY-MM-DD');
+        if (item.cancel_reason != null) {
+            item.cancel_reason_string = cancelReasons[item.cancel_reason-1]['label'];
+        }
         delete item.detector, item.work_time, item.version;
+        console.log(item);
         return item;
     }
 
@@ -176,7 +180,7 @@ export const useLinesStore = defineStore('lines', () => {
             let plans = usePlansStore().getByLine(lineId);
             if (plans.length > 0) {
                 line.work_time.started_at = plans[0].started_at.subtract(line.prep_time, 'minute');
-                line.work_time.ended_at = plans[plans.length - 1].ended_at.subtract(line.after_time, 'minute');
+                line.work_time.ended_at = plans[plans.length - 1].ended_at.add(line.after_time, 'minute');
             }
             line.version = (line.version || 0) + 1; // Инкрементим версию
 

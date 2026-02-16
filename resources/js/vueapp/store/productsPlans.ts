@@ -21,7 +21,8 @@ export type ProductPlan = {
     date?: dayjs.Dayjs,
     isDay?: boolean,
     parent?: number,
-    delay?: number
+    delay?: number,
+    hardware?: number
 }
 
 export const usePlansStore = defineStore("productsPlans", () => {
@@ -39,7 +40,10 @@ export const usePlansStore = defineStore("productsPlans", () => {
         await deleteRequest('/api/plans/delete', plan,
             (r: AxiosResponse) => {
                 splice(plan.plan_product_id);
-                plans.value.filter(el => el.parent == plan.plan_product_id).forEach(i => splice(i.plan_product_id));
+                plans.value.filter(el => el.parent == plan.plan_product_id).forEach(i => {
+                    splice(i.plan_product_id)
+                    useLinesStore().updateVersion(useProductsSlotsStore().getById(i.slot_id).line_id);
+                });
             }
         )
     }

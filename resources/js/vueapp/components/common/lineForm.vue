@@ -152,8 +152,8 @@ const currentWorkerCount = computed(() => {
                     :options="selectResponsible" />
                 <Select v-model:value="data.engineer" class="select resp" :dropdown-match-select-width="false"
                     :options="selectResponsible" />
-                <Checkbox v-model:checked="data.detector.has_detector" class="metal">
-                    Установить металодетектор
+                <Checkbox v-model:checked="data.detector.has_detector" class="metal" v-if="data.type_id == 2">
+                    Установить металлодетектор
                 </Checkbox>
                 <div v-if="data.detector.has_detector">
                     <section class="metal">

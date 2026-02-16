@@ -103,15 +103,20 @@ class ProductsPlanController extends Controller
         if (!$plan) {
             return Util::errorMsg('Такого плана не существует', 404);
         }
+        $line_ids = [
+            $plan->slot->line_id => self::getByLine($plan->slot->line_id, $request)
+        ];
         $plan->delete();
         $this->checkPlans($request, $plan->slot->line_id);
-        ProductsPlan::where('parent', $id)->get()->each(function ($pack) use ($request) {
+        ProductsPlan::where('parent', $id)->get()->each(function ($pack) use ($request, $line_ids) {
             $pack->delete();
             ProductsPlanController::checkPlans($request, $pack->slot->line_id);
+            $line_ids[$pack->slot->line_id] = ProductsPlanController::getByLine($pack->slot->line_id, $request);
         });
 
 
-        // TODO обновить время работы линии и подтянуть время продукции на линиях
+        // TODO
+        LinesController::updateLinesTime($line_ids);
         return Util::successMsg('План удалён', 200);
     }
 
@@ -234,6 +239,7 @@ class ProductsPlanController extends Controller
             $order[$lineId] = self::getByLine($lineId, $request);
         }, array_unique($assocLines));
 
+        LinesController::updateLinesTime($order);
         // Обновляённый порядок
         return Util::successMsg($order, 202);
     }
@@ -249,7 +255,6 @@ class ProductsPlanController extends Controller
      */
     public static function composePlans(ProductsPlan $plan, int $delay = 0)
     {
-        // TODO придумать, как обрабатывать задержку у дочерних планов?
         $session = [
             'date' => $plan->date,
             'isDay' => $plan->isDay

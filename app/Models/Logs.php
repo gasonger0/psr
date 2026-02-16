@@ -5,6 +5,7 @@ namespace App\Models;
 use App\withSession;
 use Illuminate\Database\Eloquent\Model;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 class Logs extends Model
 {
     use withSession;
@@ -22,4 +23,8 @@ class Logs extends Model
         'started_at',
         'ended_at'
     ];
+
+    public function line(): HasOne {
+        return $this->hasOne(Lines::class, 'line_id', 'line_id');
+    }
 }

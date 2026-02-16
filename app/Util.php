@@ -3,6 +3,7 @@
 namespace App;
 use App\Models\Lines;
 use App\Models\ProductsDictionary;
+use App\Models\ProductsPlan;
 use App\Models\ProductsSlots;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
@@ -58,7 +59,7 @@ class Util
      * @param int $status HTTP-код
      * @return \Illuminate\Http\Response
      */
-    public static function successMsg(array|string|null $data, int $status = 200)
+    public static function successMsg(array|string|null $data = null, int $status = 200)
     {
         if (is_string($data)) {
             return Response([
@@ -120,14 +121,14 @@ class Util
         if ($slot->line_id == 37) {     // сборка ящиков
             // если  телевизоры, то по штукам в ящике + ящикам, иначе по ящикам
             $title = $slot->line->title;
-            $newAmount = eval("return $amount * $product->amount2parts;");
+            $newAmount = eval ("return $amount * $product->amount2parts;");
             if (mb_strpos($title, "телевизор") !== false) {
                 $newAmount += $amount;
             }
-            return eval("return $amount / $slot->perfomance;");
+            return eval ("return $amount / $slot->perfomance;");
         }
         return
-            eval("return $product->parts2kg*$amount*$product->amount2parts;") /
+            eval ("return $product->parts2kg*$amount*$product->amount2parts;") /
             $slot->perfomance;
     }
 
@@ -138,22 +139,24 @@ class Util
      * @param int $hardware ЗМ
      * @return float|int
      */
-    public static function calcDurationForZM(ProductsDictionary $product, int $amount, int $hardware): float {
-        $duration = eval("return $product->parts2kg*$amount*$product->amount2parts;") / 143.5;
+    public static function calcDurationForZM(ProductsDictionary $product, int $amount, int $hardware): float
+    {
+        $duration = eval ("return $product->parts2kg*$amount*$product->amount2parts;") / 143.5;
         if ($hardware == 3) {
             $duration *= 2;
         }
         return $duration;
     }
 
-    public static function getCurrentTime(Request $request): Carbon {
+    public static function getCurrentTime(Request $request): Carbon
+    {
         $session_date = Carbon::parse(Util::getSessionAsArray($request)['date']);
         return Carbon::now("Europe/Moscow")
             ->setDate(
-                $session_date->year, 
-                $session_date->month, 
+                $session_date->year,
+                $session_date->month,
                 $session_date->day
-                );
+            );
 
     }
 
@@ -164,7 +167,7 @@ class Util
         switch ($line->type_id) {
             case 1:
                 $stime = $isDay ? [7, 45, 0] : [18, 30, 0];
-                $etime = $isDay ? [18, 30, 0] : [5,30,0];
+                $etime = $isDay ? [18, 30, 0] : [5, 30, 0];
                 $data['started_at'] = $date->setTime(...$stime)->format('Y-m-d H:i:s');
                 $data['ended_at'] = $date->setTime(...$etime)->format('Y-m-d H:i:s');
                 break;
@@ -181,5 +184,52 @@ class Util
         // $data['ended_at'] = $date->setTime($etime->hour, $etime->minute, 0)->addHours($isDay ? 0 : 12)->format('Y-m-d H:i:s');
 
         return $data;
+    }
+
+    // TODO в параметры линий
+    public static function calcReturnMass(array $line, int $sum, string $type): int|bool
+    {
+        $title = mb_strtolower($line['title']);
+        if (str_contains($title, "непрерывная линия")) {
+            return 25;
+        } else if (str_contains($title, "шоколадная линия 1")) {
+            match ($type) {
+                'z' => $sum * 0.015,
+                's' => $sum * 0.00405
+            };
+        } else if (str_contains($title, "полуавт")) {
+            return $sum * 0.025;
+        } else if (str_contains($title, "shot")) {
+            return $sum * 0.005;
+        }
+        return false;
+    }
+
+    public static function getLinesPersonalTime(Request $request): array
+    {
+        $array = [];
+        ProductsPlan::withSession($request)
+            ->with(['slot', 'line', 'product'])
+            ->each(function (ProductsPlan $pl) use (&$array) {
+                $line_id = $pl->line->line_id;
+                if (!isset($array[ $line_id ])) {
+                    $array[ $line_id ] = [
+                        'amount' => 0,
+                        'amountByPeopleHours' => 0,
+                        'totalPeople' => 0
+                    ];
+                }
+                $amount = 
+                    $pl->amount * 
+                    $pl->product->amount2parts * 
+                    $pl->product->parts2kg;
+
+                $array[ $line_id ]['amount'] = $amount;
+                $array[ $line_id ]['amountByPeopleHours'] = 
+                    $amount
+                    / $pl->slot->perfomance
+                    * $pl->slot->people_count;
+            });
+            return $array;
     }
 }

@@ -57,26 +57,47 @@ class LogsController extends Controller
             - Парсим время простоя, считаем его длительность
             - Берём список сотрудников простоя и по компаниям перемножаем на длительности
          */
-        $columns = [
+
+        $columns = [[
+            'Стоимость простоя',
+            '220'
+        ], []];
+        $columns[] =
             [
-                'ИД',
                 'Линия',
                 'Начат',
                 'Окончен',
-                'Кол-во человек на линии'
-            ]
+                'Кол-во человек на линии',
+                'Итого часов простоев',
+                'Стоимость',
+                'Причина'
         ];
         $companies = [];
+        $lines = [];
         Logs::withSession($request)
+            ->with('line')
             ->orderBy('started_at', 'ASC')
-            ->each(function ($el) use (&$columns, &$companies, $request) {
+            ->each(function ($el) use (&$columns, &$companies, $request, &$lines) {
+                $count = count($columns)+1;
                 $columns[] = [
-                    $el->log_id,
-                    $el->line,
+                    $el->line->title,
                     Carbon::parse($el->started_at)->format('H:i:s'),
                     Carbon::parse($el->ended_at)->format('H:i:s'),
-                    $el->people_count
+                    $el->people_count,
+                    "<f>=МИНУТЫ(C$count-B$count)/60*D$count",
+                    "<f>=B1*E$count",
+                    explode(": ", $el->action)[1]
                 ];
+
+                if (!isset($lines[ $el->line_id ])) {
+                    $lines[$el->line_id] = [
+                        'title' => $el->line->title,
+                        'hours' => [],
+                        'cost' => []
+                    ];
+                }
+                $lines[ $el->line_id]['hours'][] = "E$count";
+                $lines[ $el->line_id]['cost'][] = "F$count";
 
                 $durationByLine = Carbon::parse($el->started_at)->diffInHours(Carbon::parse($el->ended_at));
                 if ($el->workers == '' || $el->workers == null) {
@@ -93,7 +114,8 @@ class LogsController extends Controller
                         if (!isset($companies[$company->company_id])) {
                             $companies[$company->company_id] = [
                                 'title' => $company->title,
-                                'hours' => 0
+                                'hours' => 0,
+                                'people' => 0
                             ];
                         }
                         /*
@@ -112,27 +134,20 @@ class LogsController extends Controller
                         } else if ($slot->started_at <= $el->started_at && $slot->ended_at < $el->ended_at) {
                             $companies[$company->company_id]['hours'] += abs(Carbon::parse($slot->ended_at)->diffInHours(Carbon::parse($el->started_at)));
                         }
+                        $companies[$company->company_id]['people'] += 1;
                     });
-                /*foreach(explode(',', $el->workers) as $id) {
-                    if ($id == '' || $id == null) {
-                        continue;
-                    }
-                    $worker = Workers::find($id);
-                    $company = Companies::where('company_id', $worker->company_id)->first();
-
-                    if (!isset($companies[$company->company_id])) {
-                        $companies[$company->company_id] = [
-                            'title' => $company->title,
-                            'hours' => 0
-                        ];
-                    }
-
-                    $companies[$company->company_id]['hours'] += $durationByLine;
-                }*/
-                //return $el;
             });
 
-        array_push($columns, [], ['КОМПАНИИ']);
+        array_push($columns, [], ["ИТОГО ПО ЛИНИЯМ", "ЧАС", "СТОИМОСТЬ"]);
+        foreach ($lines as $line) {
+            $columns[] = [
+                $line['title'],
+                "<f>=".implode("+", $line['hours']),
+                "<f>=".implode("+", $line['cost'])
+            ];
+        }
+
+        array_push($columns, [], ['КОМПАНИИ', 'ЧЕЛ-ЧАС']);
         foreach ($companies as $company) {
             $columns[] = [
                 $company['title'],

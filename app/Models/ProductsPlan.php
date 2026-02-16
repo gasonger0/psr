@@ -23,7 +23,8 @@ class ProductsPlan extends Model
         'isDay',
         'delay',
         'colon',
-        'parent'
+        'parent',
+        'hardware'
     ];
     public $timestamps = false;
 
@@ -33,6 +34,11 @@ class ProductsPlan extends Model
     }
 
     public function line() {
-        return $this->hasManyThrough(Lines::class, ProductsSlots::class,'plan_product_id','slot_id');
+        return $this->through('slot')->has('line');
+    }
+
+    public function product()
+    {
+        return $this->through('slot')->has('product');
     }
 }
