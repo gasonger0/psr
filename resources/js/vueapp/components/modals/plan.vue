@@ -176,6 +176,10 @@ const handleHardware = () => {
             state.perfomance = state.slot.perfomance;
         }
 
+        if ([4,5,6].includes(state.hardware)) {
+            state.perfomance = (state.hardware === 4 || state.hardware === 5) ? 143.5 : 287;
+        }
+
         // // Коррекция производительности для упаковки на ЗМ
         // if (state.slot?.type_id === 2) {
         //     // Без Завёрток должно быть как у слота по умолчанию
@@ -209,7 +213,7 @@ const getPackOptions = async () => {
     if (!state.product) return;
 
     try {
-        const packSlots = slotsStore.getPack(state.product.product_id);
+        const packSlots = slotsStore.getPack(state.product.product_id).filter(el => el.line_id != state.line.line_id);
         state.packOptions = packSlots
             .map((el: ProductSlot) => {
                 const slot = slotsStore.getById(el.product_slot_id);
@@ -549,9 +553,8 @@ onUnmounted(() => {
                         </RadioGroup>
                     </div>
                 </div>
-
                 <!-- Настройки упаковки -->
-                <div v-if="state.slot.type_id !== 2 && (state.packOptions.length || state.zmOptions.length)"
+                <div v-if="(state.slot.type_id !== 2 || state.line.line_id == 31) && (state.packOptions.length || state.zmOptions.length)"
                     class="form-section">
                     <Checkbox v-model:checked="state.showPack" :disabled="state.isLoading">
                         Сгенерировать план упаковки

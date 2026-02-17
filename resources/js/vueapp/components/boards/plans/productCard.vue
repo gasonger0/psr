@@ -25,13 +25,6 @@ const slotsReceieved: Ref<boolean> = ref(false);
 
 const activeSlots: Array<number> = usePlansStore().getActiveSlots(props.product.product_id);
 
-const highlight = (stage_id: number) => {
-    return slots[stage_id].filter(
-        (el: ProductSlot) => activeSlots.includes(el.product_slot_id)
-    ).length > 0 ?
-        "background: #50bb50;padding: 5px; color: white;" :
-        "";
-}
 const amountFact = (stage_id: number) => {
     return usePlansStore().getAmountFact(activeSlots, stage_id);
 }
@@ -58,12 +51,12 @@ defineExpose(props);
                 <span>Этапы изготовления по линиям:</span>
                 <ol>
                     <li v-if="slots[1].length > 0">
-                        <span :style="highlight(1)">
+                        <span :style="amountFact(1) > 0 ? 'background: #50bb50;padding: 5px; color: white;' : ''">
                             {{ stages[1] }} ({{ amountFact(1) }})
                         </span>
                     </li>
                     <li v-if="slots[2].length > 0">
-                        <span :style="highlight(2)">
+                        <span :style="amountFact(2) > 0 ? 'background: #50bb50;padding: 5px; color: white;' : ''">
                             {{ stages[2] }} ({{ amountFact(2) }})
                         </span>
                     </li>

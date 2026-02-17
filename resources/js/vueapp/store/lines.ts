@@ -145,7 +145,7 @@ export const useLinesStore = defineStore('lines', () => {
             ended_at: dayjs.default(line.ended_at)
         });
         line.detector = ref({
-            has_detector: line.has_detector,
+            has_detector: Boolean(line.has_detector),
             detector_start: line.detector_start,
             detector_end: line.detector_end
         });
@@ -159,6 +159,8 @@ export const useLinesStore = defineStore('lines', () => {
         const item = JSON.parse(JSON.stringify(line));
         item.started_at = line.work_time.started_at.format(format);
         item.ended_at = line.work_time.ended_at.format(format);
+
+        item.has_detector = line.detector.has_detector;
         item.detector_start = line.detector.detector_start?.format(format);
         item.detector_end = line.detector.detector_end?.format(format);
         item.date = line.date.format('YYYY-MM-DD');

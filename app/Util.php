@@ -227,7 +227,7 @@ class Util
                 $array[ $line_id ]['amount'] = $amount;
                 $array[ $line_id ]['amountByPeopleHours'] = 
                     $amount
-                    / $pl->slot->perfomance
+                    // / $pl->slot->perfomance
                     * $pl->slot->people_count;
             });
             return $array;

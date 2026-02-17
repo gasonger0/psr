@@ -76,6 +76,7 @@ return [
     [
         'line_id' => 8,
         'title' => 'Первая фис машина',
+        'perfomance' => '19 отсадок для зефира с начинкой, 23 отсадки',
         'started_at' => '8:00',
         'ended_at' => '18:00',
         'workers_count' => 4,
@@ -85,6 +86,7 @@ return [
     [
         'line_id' => 9,
         'title' => 'Вторая фис машина',
+        'perfomance' => '19 отсадок для зефира с начинкой, 23 отсадки',
         'started_at' => '8:00',
         'ended_at' => '18:00',
         'workers_count' => 4,
@@ -94,6 +96,7 @@ return [
     [
         'line_id' => 10,
         'title' => 'Третья фис машина',
+        'perfomance' => '19 отсадок для зефира с начинкой, 23 отсадки',
         'started_at' => '8:00',
         'ended_at' => '18:00',
         'workers_count' => 4,
@@ -103,6 +106,7 @@ return [
     [
         'line_id' => 11,
         'title' => 'Непрерывная линия №1',
+        'perfomance' => '27 отсадок для зефира с начинкой, 30 отсадок',
         'started_at' => '8:00',
         'ended_at' => '18:30',
         'workers_count' => 3,
@@ -112,6 +116,7 @@ return [
     [
         'line_id' => 12,
         'title' => 'НЕПРЕРЫВНАЯ ЛИНИЯ №2',
+        'perfomance' => '27 отсадок для зефира с начинкой, 31 отсадка',
         'started_at' => '8:00',
         'ended_at' => '18:30',
         'workers_count' => 3,
@@ -353,3 +358,4 @@ return [
         'after_time' => 10
     ]
 ];
+

@@ -333,7 +333,7 @@ class ProductsPlanController extends Controller
                 );
 
                 $start = Carbon::parse($plan->started_at);
-                // Если опудривани, обсыпка или упаковка, но не сборка ящиков - добавляем задержку
+                // Если опудривани,  или упаковка, но не сборка ящиков - добавляем задержку
                 if (
                     ($slot->type_id == 2 || $slot->type_id == 5 || $slot->type_id == 3)
                     && $slot->line_id != 37
@@ -346,6 +346,12 @@ class ProductsPlanController extends Controller
                 $d = Carbon::parse($plan->ended_at)->addMinutes(15)->addMinutes($delay);
                 if ($ended_at < $d) {   // TODO возмодно, такая штука не нужна для сборки ящиков
                     $ended_at = $d;
+                }
+
+                if ($slot->type_id == 4) {
+                    // обсыпка идёт ровно столько, сколько и варка
+                    $start = Carbon::parse($plan->started_at);
+                    $ended_at = Carbon::parse($plan->ended_at);
                 }
 
                 $packPlan = ProductsPlan::create(

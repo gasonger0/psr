@@ -319,6 +319,7 @@ class TableController extends Controller
             $dateCountNew = [];
             $returnMassCells = [];
             $globalZ = 0;
+            $globalB = 0;
             // Обработка линий на листе
             foreach ($lines as &$line) {
                 // Получаем планы со всех смен (пока хз как исправить)
@@ -390,7 +391,7 @@ class TableController extends Controller
                 }
 
                 // Ответственные
-                if (($line['master'] || $line['engineer']) && $line['type_id'] == 2) {
+                if ($line['master'] || $line['engineer']) {
                     $array[] = self::makeRow([
                         1 =>
                             "<style bgcolor=\"#B7DEE8\"><b>" .
@@ -402,6 +403,7 @@ class TableController extends Controller
                 if ($line['prep_time'] != 0) {
                     $array[] = self::makeRow([
                         1 => '<style bgcolor="#FFC263"><b><i>Подготовительное время</i></b></style>',
+                        11 => $line['workers_count'],
                         12 => $line['started_at']->format("H:i"),
                         13 => $line['started_at']
                             ->addMinutes($line['prep_time'])
@@ -438,13 +440,6 @@ class TableController extends Controller
                     foreach ($hw['items'] as $product) {
                         $row_index = count($array) + 1;
 
-                        // Чекаем, что реестр не из пустых значений
-                        $product['amount2parts'] ??= 1;
-                        $product['parts2kg'] ??= 1;
-                        $product['kg2boil'] ??= 1;
-                        $product['cars'] ??= 1;
-                        $product['cars2plates'] ??= 1;
-
                         // Расчёты
 
                         /*$counts = [
@@ -464,10 +459,10 @@ class TableController extends Controller
                             $crates = intval($product['amount']);
                             $parts = ceil(eval ("return $crates*$product[amount2parts];"));
                             $kg = ceil(eval ("return $parts*$product[parts2kg];"));
-                            $boils = ceil(eval ("return $kg*$product[kg2boil];"));
-                            $prec = eval ("return $boils*$product[cars];");
+                            $boils = isset($product['kg2boil']) ? ceil(eval ("return $kg*$product[kg2boil];")) : 0;
+                            $prec = isset($product['cars']) ? eval ("return $boils*$product[cars];") : 0;
                             $cars = floor($prec);
-                            $plates = eval ("return ($prec - $cars)*$product[cars2plates];");
+                            $plates = isset($product['cars2plates']) ? eval ("return ($prec - $cars)*$product[cars2plates];") : 0;
                         } catch (Exception $e) {
                             return Util::errorMsg("Проверьте формулы для " . $product['title']);
                         }
@@ -534,6 +529,7 @@ class TableController extends Controller
                     $lastTime = Carbon::parse($line['ended_at']);
                     $array[] = self::makeRow([
                         1 => '<style bgcolor="#FFC263"><b><i>Заключительное время</i></b></style>',
+                        11 => $line['workers_count'],
                         12 => $lastTime->addMinutes(-$line['after_time'])->format('H:i:s'),
                         13 => $lastTime->addMinutes($line['after_time'])->format('H:i:s')
                     ]);
@@ -569,6 +565,7 @@ class TableController extends Controller
                 $array[] = ['', '<b>Итого конфет</b>', '', '', $sum['k'][0], $sum['k'][1]];
                 $array[] = ['', '<b>Отходы</b>'];
                 $globalZ += $sum['z'][0];
+                $globalB += $sum['z'][1];
                 $sum = [
                     'z' => [0, 0],
                     's' => [0, 0],
@@ -598,13 +595,22 @@ class TableController extends Controller
             $array[] = [];
             $array[] = self::makeRow([
                 1 => "ИТОГО ЗЕФИРА",
-                4 => $globalZ
+                4 => $globalZ,
+                5 => $globalB
 
             ]);
             $array[] = self::makeRow([
                 1 => "ИТОГО ВОЗВРАТНОЙ МАССЫ",
                 4 => "<f>=" . implode(" + ", $returnMassCells)
             ]);
+
+            array_push(
+                $array,
+                [],
+                [],
+                ['', "<b><i>ЗАДАНИЕ СОСТАВИЛ</i></b>"],
+                ['', "<b><i>ЗАДАНИЕ ПОЛУЧИЛ</i></b>"]
+            );
             $arr[$sheet] = $array;
             $globalZ = 0;
             $returnMassCells = [];
@@ -799,6 +805,12 @@ class TableController extends Controller
                 }
             }
         }
+
+        $columns[3][7] = "ТОННАЖ ПЛАН";
+        $columns[4][7] = array_sum(array_map(fn($i) => $i['amount'], $times));
+        $columns[5][7] = "ТОННАЖ ФАКТ";
+        $columns[7][7] = "ОТКЛОНЕНИЕ";
+        $columns[8][7] = "<f>=H5-H7";
         $columns[] = [''];
         $sumByLines = array_map(fn($i) => "<f>=" . implode(" + ", $i), $sumByLines);
         $columns[] = ["ИТОГО ПО ЗАДАНИЮ", ...$sumByLines];
@@ -816,16 +828,14 @@ class TableController extends Controller
             "Тоннаж"
         ];
 
-        $counter = count($columns);
-
         foreach ($companies as $company) {
             $amount = [];
             if (isset($company['lines'])) {
                 foreach ($company['lines'] as $line_id => $people_count) {
                     if (isset($times[$line_id])) {
                         // var_dump($times[$line_id], $people_count);
-                        $amount[] = $times[$line_id]['amount'] . "/" . 
-                            $times[$line_id]['totalPeople']."*".
+                        $amount[] = $times[$line_id]['amount'] . "/" .
+                            $times[$line_id]['totalPeople'] . "*" .
                             $people_count;
                     }
                 }
@@ -843,6 +853,16 @@ class TableController extends Controller
                 count($amount) > 0 ? "<f>=" . implode("+", $amount) : ''
             ];
         }
+
+        array_push(
+            $columns,
+            [],
+            [],
+            ["Заместитель генерального директора", '', '', '', '', '', "Корнилова Л.А."],
+            ["Начальник производства"],
+            ["Начальник смены"],
+            ["Мастер варки"]
+        );
         // Тоннаж: масса по линии * кол-во человек по компаниям (count($company['indexes']) / сумму)
 
         // for ( $i = $counter; $i < count($columns); $i++) {

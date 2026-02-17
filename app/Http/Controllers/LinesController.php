@@ -73,19 +73,21 @@ class LinesController extends Controller
 
     public function update(Request $request)
     {
-        $line = LinesExtra::find($request->post('line_extra_id'))->first();
+        $line = LinesExtra::find($request->post('line_extra_id'));
         if (!$line) {
             return Util::errorMsg(self::LINE_NOT_FOUND, 404);
         }
 
         $old = $line->toArray();
 
-        $line->update($request->only((new LinesExtra)->getFillable()));
-        $line->lines->update($request->only((new Lines)->getFillable()));
+        $line->update(
+            $request->only((new LinesExtra)->getFillable())
+            );
+        Lines::find($line->line_id)->update($request->only((new Lines)->getFillable()));
 
         $log = null;
         if ($request->post('cancel_reason')) {
-            // Ищем старый лог с такой причиной
+            // TODO Ищем старый лог с такой причиной
             $log = LogsController::create([
                 'line_id' => $line->line_id,
                 'action' => 'Перенос начала работы линии по причине: ' . $request->post('cancel_reason_string'),
