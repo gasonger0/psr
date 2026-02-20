@@ -73,6 +73,7 @@ export const useWorkerSlotsStore = defineStore('workersSlots', () => {
             delete: del
         }, (response: AxiosResponse) => {
             if (del){
+                // let index = slots.value.findIndex((el: WorkerSlot) => el.slot_id == rec.current_slot_id);
                 splice(rec.current_slot_id);
             } else {
                 let index = slots.value.findIndex(el => el.slot_id == rec.current_slot_id);
@@ -130,7 +131,6 @@ export const useWorkerSlotsStore = defineStore('workersSlots', () => {
         },
             (r: AxiosResponse) => {
                 slots.value.push(serialize(r.data));
-                console.log(slots.value);
                 let old = slots.value.find(el => el.slot_id == worker.current_slot_id);
                 old.ended_at = dayjs.default(r.data.started_at, format);
                 worker.current_line_id = r.data.line_id;

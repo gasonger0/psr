@@ -101,8 +101,6 @@ const monitor = async () => {
         }
         worker.on_break = workersStore.calcBreak(worker).value;
     });
-
-    console.log(current);
 };
 
 const handleEditMode = (check: boolean) => {

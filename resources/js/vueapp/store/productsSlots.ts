@@ -34,6 +34,7 @@ export const useProductsSlotsStore = defineStore('productsSlots', () => {
             (r: AxiosResponse) => {
                 let sls = r.data.map(el => {
                     el.isEditing = false;
+                    el.hardware = el.hardware ? Number(el.hardware) : null;
                     return el as ProductSlot;
                 });
                 console.log("slots processed:", sls);
@@ -56,6 +57,7 @@ export const useProductsSlotsStore = defineStore('productsSlots', () => {
             (r: AxiosResponse) => {
                 slot.product_id = r.data.product_slot_id;
                 notify("success", "Этап сохранён");
+                return r.data.product_slot_id;
             }
         )
     }
@@ -100,7 +102,7 @@ export const useProductsSlotsStore = defineStore('productsSlots', () => {
             people_count: 0,
             perfomance: 0,
             type_id: type_id,
-            hardware: 1,
+            hardware: null,
             isEditing: true
         } as ProductSlot;
         slots.value.push(newSlot);

@@ -16,9 +16,9 @@ return new class extends Migration
         // });
         Schema::table('products_dictionary', function (Blueprint $table) {
             $table->string('amount2parts')->nullable();
-            $table->string('parts2kg')->nullable();
-            $table->string('kg2boil')->nullable();
-            $table->string('cars')->nullable();
+            $table->string('parts2kg')->nullable());
+            $table->string('kg2boil')->nullable()->default(0);
+            $table->string('cars')->nullable()->default(0);
         });
 
         Schema::table('logs', function(Blueprint $table) {

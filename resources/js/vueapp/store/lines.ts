@@ -168,7 +168,6 @@ export const useLinesStore = defineStore('lines', () => {
             item.cancel_reason_string = cancelReasons[item.cancel_reason-1]['label'];
         }
         delete item.detector, item.work_time, item.version;
-        console.log(item);
         return item;
     }
 

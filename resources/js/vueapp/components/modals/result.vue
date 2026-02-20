@@ -20,8 +20,6 @@ const getWorkers = () => {
             ktu: 1
         };
     });
-
-    console.log(workers.value, active);
 }
 
 const close = async (get: boolean) => {

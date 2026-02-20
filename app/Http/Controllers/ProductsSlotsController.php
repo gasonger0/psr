@@ -63,10 +63,15 @@ class ProductsSlotsController extends Controller
     public function update(Request $request) {
         $data = $request->post();
         foreach ($data as $slot) {
-            unset ($slot['isEditing']);
-            ProductsSlots::find($slot['product_slot_id'])->first()->update(
-                $slot
-            );
+            unset($slot['isEditing']);
+            $s = ProductsSlots::find($slot['product_slot_id']);
+            if ($s) {
+                $s->update(
+                    $slot
+                );
+            } else {
+                echo "slot doesn't exists";
+            }
         }
 
         return Util::successMsg('Данные обновлены');

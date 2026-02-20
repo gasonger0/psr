@@ -22,7 +22,7 @@ return new class extends Migration
         });
 
         Schema::table('products_dictionary', function(Blueprint $table) {
-            $table->string('cars2plates')->nullable();
+            $table->string('cars2plates')->nullable()->default(0);
         });
     }
 

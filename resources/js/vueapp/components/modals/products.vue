@@ -45,7 +45,6 @@ const handleProductSelect = async (key: number) => {
 
     if (sls != null) {
         sls.forEach((el: ProductSlot) => {
-            // console.log(el);
             slots.value[el.type_id].push(el);
         });
     }
@@ -71,11 +70,12 @@ const deleteProduct = (product: ProductInfo) => {
 /* SLOTS */
 const addSlot = () => slots.value[activeTab.value].push(slotsStore.add(activeProduct.value, Number(activeTab.value), linesStore.lines.at(0).line_id));
 const editSlot = (slot: ProductSlot) => slot.isEditing = true;
-const saveSlot = (slot: ProductSlot) => {
+const saveSlot = async (slot: ProductSlot) => {
     if (slot.product_slot_id) {
-        slotsStore._update([slot]);
+        await slotsStore._update([slot]);
     } else {
-        slotsStore._create(slot);
+        await slotsStore._create(slot);
+        handleProductSelect(activeProduct.value.product_id);
     }
     slot.isEditing = false;
 };
@@ -87,16 +87,22 @@ const deleteSlot = (slot: ProductSlot) => {
     }
 }
 
-const saveSlots = () => {
+const saveSlots = async () => {
+    let res = [];
     for (let i in slots.value) {
-        slots.value[i].forEach((el: ProductSlot) => {
-            console.log(el);
+        slots.value[i].forEach(async (el: ProductSlot) => {
             if (el.isEditing) {
-                saveSlot(el);
+                if (el.product_slot_id) {
+                    res.push(el);
+                } else {
+                    await slotsStore._create(el);
+                }
                 el.isEditing = false;
             }
         });
     }
+    await slotsStore._update(res);
+    handleProductSelect(activeProduct.value.product_id);
 }
 
 const getClass = (item: ProductInfo) => {

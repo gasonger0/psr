@@ -22,8 +22,8 @@ const calcBreak = computed(() : string => {
     return store.calcBreak(props.cardData).value ? 'break' : '';
 });
 
-const deleteWorker = (del: boolean) =>  {
-    slotsStore._delete(props.cardData, del);
+const deleteWorker = async (del: boolean) =>  {
+    await slotsStore._delete(props.cardData, del);
 };
 const replaceWorker = async (v: RawValueType | LabelInValueType, ev: DefaultOptionType) => {
     if (ev.key == props.cardData.worker_id) {

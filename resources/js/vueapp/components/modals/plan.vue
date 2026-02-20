@@ -319,7 +319,6 @@ const initializeData = async () => {
 
         state.perfomance = slot.perfomance;
 
-        console.log('slot!', slot);
         // Устанавливаем оборудование если есть
         if (slot.hardware && slot.hardware > 0) {
             state.hardware = Number(slot.hardware);

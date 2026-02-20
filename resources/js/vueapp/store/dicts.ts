@@ -26,6 +26,42 @@ export const cancelReasons = [{
 }, {
     label: 'Иное',
     value: 8
+},{ 
+    label: 'Замерзла/не застывает глазурь', 
+    value: 9
+}, { 
+    label: 'Заблокировали технологи', 
+    value: 10
+}, { 
+    label: 'Плохая масса, влажная, мягкая продукция', 
+    value: 11
+}, { 
+    label: 'Настройка оборудования', 
+    value: 12
+}, { 
+    label: 'Не выдали зефир (технологи', 
+    value: 13
+}, { 
+    label: 'Нет продукции', 
+    value: 14
+}, { 
+    label: 'Нарушение технологического процесса', 
+    value: 15
+}, { 
+    label: 'Отсутствие пара', 
+    value: 16
+}, { 
+    label: 'Разморозка ШЛ№1', 
+    value: 17
+}, { 
+    label: 'Разморозка ШЛ№2', 
+    value: 18
+}, { 
+    label: 'Ремонт апликатора', 
+    value: 19
+}, { 
+    label: 'Настройка веса, форм', 
+    value: 20
 }] as DefaultOptionType[];
 
 // export type CancelReasonValue = typeof cancelReasons[number];

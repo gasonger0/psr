@@ -10,7 +10,7 @@ import { PlusCircleOutlined, PlusOutlined } from '@ant-design/icons-vue';
 import { Button, Modal, Switch, Table, TimeRangePicker } from 'ant-design-vue';
 import { ColumnType } from 'ant-design-vue/es/table';
 import { DataIndex } from 'ant-design-vue/es/vc-table/interface';
-import { computed, onMounted, onUpdated, Ref, ref, watch } from 'vue';
+import { computed, nextTick, onMounted, onUpdated, Ref, ref, watch } from 'vue';
 import TimePicker from '../common/timePicker.vue';
 
 const modal = useModalsStore();
@@ -70,8 +70,9 @@ const exit = () => {
     modal.close('graph');
 }
 
-const processCells = () => {
+const processCells = async () => {
     columnsReset();
+
     lines.lines.filter(el => el.has_plans == true).forEach(i => {
         columns.value.push({
             title: i.title,
@@ -81,6 +82,7 @@ const processCells = () => {
         });
     });
 
+    cells.value = [];
     cells.value = workers.workers.map((el: WorkerInfo) => {
         slots.getByWorker(el.worker_id).forEach((sl: WorkerSlot) => {
             if (!el[sl.line_id]) {
@@ -102,6 +104,9 @@ const processCells = () => {
         });
         return el;
     });
+    console.log('cells:', cells.value);
+
+    await nextTick();
 }
 
 const columnsReset = () => {
@@ -128,8 +133,7 @@ watch(
         processCells();
     },
     {
-        deep: true,
-        immediate: true
+        deep: true
     }
 );
 
@@ -139,16 +143,23 @@ watch(
         processCells();
     },
     {
-        deep: true,
-        immediate: true
+        deep: true
     }
+);
+
+watch(
+    () => modal.visibility['graph'],
+    () => {
+        processCells();
+    },
+    { deep: true }
 );
 </script>
 <template>
     <Modal v-model:open="modal.visibility['graph']" cancelText="Закрыть" title="Редактировать график" @ok="exit"
         @cancel="exit" wrap-class-name="modal graph" class="modal graph">
         <div class="table-container">
-            <Table :data-source="cells" :columns="columns" small :scroll="scroll" :pagination="{ pageSize: 8 }">
+            <Table :data-source="cells" :columns="columns" small :scroll="scroll" :pagination="{ pageSize: 8 }" row-key="worker_id">
                 <template #headerCell="{ title, column }">
                     <div class="centered-cell">
                         <span style="width:160px">{{ title }}</span>

@@ -427,13 +427,15 @@ class TableController extends Controller
                         ];
                     }
                     // Выделяем колонки
-                    $colons = array_map(fn($i) => $i['colon'], $hw['items']);
+                    if ($line['type_id'] == 1) {
+                        $colons = array_map(fn($i) => $i['colon'], $hw['items']);
 
-                    $colons = array_filter(array_unique($colons));
-                    if (count($colons) > 1 || array_search(3, $colons) !== false) {
-                        $array[] = ['', '<b>' . self::$colons[3] . '</b>'];
-                    } else {
-                        $array[] = ['', '<b>' . self::$colons[array_shift($colons)] . '</b>'];
+                        $colons = array_filter(array_unique($colons));
+                        if (count($colons) > 1 || array_search(3, $colons) !== false) {
+                            $array[] = ['', '<b>' . self::$colons[3] . '</b>'];
+                        } else {
+                            $array[] = ['', '<b>' . self::$colons[array_shift($colons)] . '</b>'];
+                        }
                     }
 
                     // Обработка продукции
