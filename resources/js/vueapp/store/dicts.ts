@@ -111,6 +111,10 @@ export const companiesDictColumns = [{
 }, {
     title: 'Наименование',
     dataIndex: 'title',
+    width: '80%'
+}, {
+    title: 'Стоимость простоя',
+    dataIndex: 'stay_cost',
     width: '10%'
 }]
 

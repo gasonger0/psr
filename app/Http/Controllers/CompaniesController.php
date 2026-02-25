@@ -26,7 +26,7 @@ class CompaniesController extends Controller
         return Util::successMsg(
             Companies::create(
                 $request->post()
-            ),
+            )->toArray(),
             201
         );
     }

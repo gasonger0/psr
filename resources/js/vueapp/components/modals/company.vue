@@ -6,7 +6,7 @@ import { useWorkersStore, WorkerInfo } from '@stores/workers';
 import { responsibleDictColumns, positions, workerDictColumns, companiesDictColumns } from '@stores/dicts';
 import { ResponsibleInfo, useResponsiblesStore } from '@stores/responsibles';
 import { useModalsStore } from '@stores/modal';
-import { useCompaniesStore } from '@/store/companies';
+import { CompanyInfo, useCompaniesStore } from '@/store/companies';
 
 const workers = useWorkersStore();
 const responsibles = useResponsiblesStore();
@@ -64,7 +64,13 @@ const addNewFront = (): void => {
  * Сохрнанение данных - создание/редактирование
  */
 const save = (rec: Record<string, any>): void => {
-    if ("company_id" in rec) {
+    if ("stay_cost" in rec) {
+        if (!rec.company_id) {
+            companies._create(rec as CompanyInfo);
+        } else {
+            companies._update(rec as CompanyInfo);
+        }
+    } else if ("company_id" in rec) {
         if (!rec.worker_id) {
             workers._create(rec as WorkerInfo);
         } else {
@@ -83,7 +89,9 @@ const save = (rec: Record<string, any>): void => {
  * Удалить сотрудника
  */
 const del = (rec: Record<string, any>): void => {
-    if ("worker_id" in rec) {
+    if ("stay_cost" in rec) {
+        companies._delete(rec as CompanyInfo);
+    } else if ("worker_id" in rec) {
         workers._delete(rec as WorkerInfo);
     } else {
         responsibles._delete(rec as ResponsibleInfo);

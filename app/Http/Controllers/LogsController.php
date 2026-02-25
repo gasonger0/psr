@@ -58,12 +58,12 @@ class LogsController extends Controller
             - Берём список сотрудников простоя и по компаниям перемножаем на длительности
          */
 
-        $columns = [[
-            'Стоимость простоя',
-            '220'
-        ], []];
-        $columns[] =
-            [
+        // $columns = [[
+        //     'Стоимость простоя',
+        //     '220'
+        // ], []];
+        $columns =
+            [[
                 'Линия',
                 'Начат',
                 'Окончен',
@@ -71,7 +71,7 @@ class LogsController extends Controller
                 'Итого часов простоев',
                 'Стоимость',
                 'Причина'
-        ];
+        ]];
         $companies = [];
         $lines = [];
         Logs::withSession($request)
@@ -97,17 +97,17 @@ class LogsController extends Controller
                     ];
                 }
                 $lines[ $el->line_id]['hours'][] = "E$count";
-                $lines[ $el->line_id]['cost'][] = "F$count";
+                // $lines[ $el->line_id]['cost'][] = "F$count";
 
                 $durationByLine = Carbon::parse($el->started_at)->diffInHours(Carbon::parse($el->ended_at));
                 if ($el->workers == '' || $el->workers == null) {
                     return;
                 }
 
-                $workerSlots = Slots::where('line_id', $el->line_id)
+                Slots::where('line_id', $el->line_id)
                     ->withSession($request)
                     ->whereIn('worker_id', explode(',', $el->workers))
-                    ->each(function ($slot) use (&$companies, $el, $durationByLine) {
+                    ->each(function ($slot) use (&$companies, $el, $durationByLine, &$lines) {
                         $worker = Workers::find($slot->worker_id);
                         $company = Companies::where('company_id', $worker->company_id)->first();
 
@@ -127,14 +127,19 @@ class LogsController extends Controller
                         */
                         if ($slot->started_at >= $el->ended_at) {
                             return;
-                        } else if ($slot->started_at <= $el->started_at && $slot->ended_at >= $el->ended_at) {
-                            $companies[$company->company_id]['hours'] += $durationByLine;
+                        // } else if ($slot->started_at <= $el->started_at && $slot->ended_at >= $el->ended_at) {
+                        //     // $durationByLine = $durationByLine;
                         } else if ($slot->started_at >= $el->started_at && $slot->ended_at >= $el->ended_at) {
-                            $companies[$company->company_id]['hours'] += abs(Carbon::parse($slot->started_at)->diffInHours(Carbon::parse($el->ended_at)));
+                            $durationByLine = abs(Carbon::parse($slot->started_at)->diffInHours(Carbon::parse($el->ended_at)));
                         } else if ($slot->started_at <= $el->started_at && $slot->ended_at < $el->ended_at) {
-                            $companies[$company->company_id]['hours'] += abs(Carbon::parse($slot->ended_at)->diffInHours(Carbon::parse($el->started_at)));
+                            $durationByLine = abs(Carbon::parse($slot->ended_at)->diffInHours(Carbon::parse($el->started_at)));
                         }
+
+                        $companies[$company->company_id]['hours'] += $durationByLine;
                         $companies[$company->company_id]['people'] += 1;
+                        
+                        // Простой на линии = сумма простоев 
+                        $lines[ $el->line_id]['cost'][] = "$company->stay_cost * $durationByLine";
                     });
             });
 

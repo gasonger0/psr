@@ -6,7 +6,8 @@ import { compileScript } from "vue/compiler-sfc";
 
 export type CompanyInfo = {
     company_id?: number,
-    title: string
+    title: string,
+    stay_cost?: number
 };
 
 export const useCompaniesStore = defineStore("companies", () => {

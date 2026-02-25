@@ -11,7 +11,8 @@ class Companies extends Model
     protected $primaryKey = 'company_id';
     public $incrementing = true;
     public $fillable = [
-        'title'
+        'title',
+        'stay_cost'
     ];
     public $timestamps = false;
 

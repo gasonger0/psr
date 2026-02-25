@@ -382,7 +382,12 @@ class TableController extends Controller
                 ]);
 
                 // Ставим детектор
-                if ($line['has_detector'] && $line['type_id'] == 2) {
+                if (
+                    $line['has_detector'] && 
+                    $line['type_id'] == 2 && 
+                    $line['detector_start'] && 
+                    $line['detector_end']
+                ) {
                     $array[] = self::makeRow([
                         1 => '<style bgcolor="#FC8C03"><b><i>МЕТАЛЛОДЕТЕКТОР</i></b></style>',
                         12 => $line['detector_start'],
