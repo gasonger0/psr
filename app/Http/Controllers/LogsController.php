@@ -139,7 +139,7 @@ class LogsController extends Controller
                         $companies[$company->company_id]['people'] += 1;
                         
                         // Простой на линии = сумма простоев 
-                        $lines[ $el->line_id]['cost'][] = "$company->stay_cost * $durationByLine";
+                        $lines[ $el->line_id]['cost'][] = ($company->stay_cost ?? 1) . " * $durationByLine";
                     });
             });
 
