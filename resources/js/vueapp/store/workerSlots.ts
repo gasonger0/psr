@@ -73,8 +73,9 @@ export const useWorkerSlotsStore = defineStore('workersSlots', () => {
             delete: del
         }, (response: AxiosResponse) => {
             if (del){
-                // let index = slots.value.findIndex((el: WorkerSlot) => el.slot_id == rec.current_slot_id);
-                splice(rec.current_slot_id);
+                const index = slots.value.findIndex((el: WorkerSlot) => el.slot_id == rec.current_slot_id);
+                slots.value.splice(index, 1);
+                // splice(rec.current_slot_id);
             } else {
                 let index = slots.value.findIndex(el => el.slot_id == rec.current_slot_id);
                 slots.value[index].ended_at = getTimeString();

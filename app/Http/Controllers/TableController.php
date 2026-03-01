@@ -383,9 +383,9 @@ class TableController extends Controller
 
                 // Ставим детектор
                 if (
-                    $line['has_detector'] && 
-                    $line['type_id'] == 2 && 
-                    $line['detector_start'] && 
+                    $line['has_detector'] &&
+                    $line['type_id'] == 2 &&
+                    $line['detector_start'] &&
                     $line['detector_end']
                 ) {
                     $array[] = self::makeRow([
@@ -732,8 +732,7 @@ class TableController extends Controller
                 'Итого часов',
                 'КТУ',
                 'Итого часов с КТУ',
-                'Примечание',
-                'Тоннаж (чел-часы)'
+                'Примечание'
             ]
         ];
 
@@ -753,7 +752,6 @@ class TableController extends Controller
                     '',
                     '',
                     '',
-                    isset($times[$line['line_id']]) ? $times[$line['line_id']]['amountByPeopleHours'] : ''
                 ];
 
                 $count = count($columns) + 1;
@@ -814,7 +812,17 @@ class TableController extends Controller
         }
 
         $columns[3][7] = "ТОННАЖ ПЛАН";
-        $columns[4][7] = array_sum(array_map(fn($i) => $i['amount'], $times));
+        $columns[4][7] = array_sum(
+            array_map(
+                function ($i) {
+
+                    return $i['amount']['s'] +
+                        $i['amount']['z'] +
+                        $i['amount']['k'];
+                },
+                $times
+            )
+        );
         $columns[5][7] = "ТОННАЖ ФАКТ";
         $columns[7][7] = "ОТКЛОНЕНИЕ";
         $columns[8][7] = "<f>=H5-H7";
@@ -832,18 +840,25 @@ class TableController extends Controller
             "Итого часов",
             "КТУ",
             "Итого часов с КТУ",
-            "Тоннаж"
+            "Тоннаж (зефир)",
+            "Тоннаж (конфеты)",
+            "Тоннаж (суфле)"
         ];
 
         foreach ($companies as $company) {
-            $amount = [];
+            $amount = [
+                's' => [],
+                'z' => [],
+                'k' => []
+            ];
             if (isset($company['lines'])) {
                 foreach ($company['lines'] as $line_id => $people_count) {
                     if (isset($times[$line_id])) {
-                        // var_dump($times[$line_id], $people_count);
-                        $amount[] = $times[$line_id]['amount'] . "/" .
-                            $times[$line_id]['totalPeople'] . "*" .
-                            $people_count;
+                        foreach (['s', 'z', 'k'] as $index) {
+                            $amount[$index][] = $times[$line_id]['amount'][$index] . "/" .
+                                $times[$line_id]['totalPeople'] . "*" .
+                                $people_count;
+                        }
                     }
                 }
             }
@@ -857,7 +872,9 @@ class TableController extends Controller
                 '',
                 // self::summarize($company['indexes'], 'F'),
                 self::summarize($company['indexes'], 'G'),
-                count($amount) > 0 ? "<f>=" . implode("+", $amount) : ''
+                count($amount['z']) > 0 ? "<f>=" . implode("+", $amount['z']) : '',
+                count($amount['k']) > 0 ? "<f>=" . implode("+", $amount['k']) : '',
+                count($amount['s']) > 0 ? "<f>=" . implode("+", $amount['s']) : '',
             ];
         }
 

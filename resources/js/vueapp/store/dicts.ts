@@ -277,6 +277,11 @@ export const productsTableColumns = {
     ]
 };
 
+export const categoriesTableColumns = [
+    { title: 'Действия', dataIndex: 'actions', width: '15%' },
+    { title: 'Категория', dataIndex: 'title' },
+]
+
 /**
  * Список оборудования
  */

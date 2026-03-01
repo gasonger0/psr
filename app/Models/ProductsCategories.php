@@ -12,7 +12,7 @@ class ProductsCategories extends Model
     public $timestamps = false;
     public $fillable = [
         'title',
-        'parent'
+        'parent_category'
     ];
 
     public function products() {
@@ -21,7 +21,7 @@ class ProductsCategories extends Model
 
     public function children() 
     {
-        return $this->hasMany(ProductsCategories::class, 'parent');
+        return $this->hasMany(ProductsCategories::class, 'parent_category');
     }
 
     public function childrenRecursive()

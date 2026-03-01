@@ -212,24 +212,39 @@ class Util
             ->with(['slot', 'line', 'product'])
             ->each(function (ProductsPlan $pl) use (&$array) {
                 $line_id = $pl->line->line_id;
-                if (!isset($array[ $line_id ])) {
-                    $array[ $line_id ] = [
-                        'amount' => 0,
-                        'amountByPeopleHours' => 0,
+                if (!isset($array[$line_id])) {
+                    $array[$line_id] = [
+                        'amount' => [
+                            'z' => 0,
+                            's' => 0,
+                            'k' => 0
+                        ],
+                        // 'amountByPeopleHours' => 0,
                         'totalPeople' => 0
                     ];
                 }
-                $amount = 
-                    $pl->amount * 
-                    $pl->product->amount2parts * 
+
+                $amount =
+                    $pl->amount *
+                    $pl->product->amount2parts *
                     $pl->product->parts2kg;
 
-                $array[ $line_id ]['amount'] = $amount;
-                $array[ $line_id ]['amountByPeopleHours'] = 
-                    $amount
-                    // / $pl->slot->perfomance
-                    * $pl->slot->people_count;
+                if (mb_strpos(mb_strtolower($pl->product->title), 'зефир') !== false) {
+                    $array[$line_id]['amount']['z'] += $amount;
+                } else if (mb_strpos(mb_strtolower($pl->product->title), 'суфле') !== false) {
+                    $array[$line_id]['amount']['s'] += $amount;
+                } else if (mb_strpos(mb_strtolower($pl->product->title), 'конфет') !== false) {
+                    $array[$line_id]['amount']['k'] += $amount;
+                } else {
+                    // Если не сработал ни один паттерн, считаем, что это зефир
+                    $array[$line_id]['amount']['z'] += $amount;
+                }
+
+                // $array[$line_id]['amountByPeopleHours'] =
+                //     $amount
+                //     // / $pl->slot->perfomance
+                //     * $pl->slot->people_count;
             });
-            return $array;
+        return $array;
     }
 }

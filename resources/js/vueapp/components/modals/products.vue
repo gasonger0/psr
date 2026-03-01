@@ -6,8 +6,8 @@ import { ProductSlot, useProductsSlotsStore } from '@/store/productsSlots';
 import { Modal, Divider, Tree, List, ListItem, Input, Tabs, TabPane, Empty, Button, InputNumber, Select, SelectOption, Checkbox, Table, TableSummary, TableSummaryRow, TableSummaryCell } from 'ant-design-vue';
 import { Key } from 'ant-design-vue/es/_util/type';
 import { computed, ref, Ref } from 'vue';
-import { EditOutlined, DeleteOutlined, SaveOutlined } from '@ant-design/icons-vue';
-import { hardwares, productsTableColumns, productsTabs } from '@/store/dicts';
+import { EditOutlined, DeleteOutlined, SaveOutlined, ForkOutlined, PullRequestOutlined, PlusCircleOutlined, ArrowRightOutlined } from '@ant-design/icons-vue';
+import { categoriesTableColumns, hardwares, productsTableColumns, productsTabs } from '@/store/dicts';
 import { useLinesStore } from '@/store/lines';
 
 const modal = useModalsStore();
@@ -24,6 +24,16 @@ const slotsKey: Ref<number> = ref(1);
 
 const activeProduct: Ref<ProductInfo> = ref();
 const activeTab: Ref<string> = ref('1');
+const activeProductTab: Ref<string> = ref('1');
+
+
+const newCat: Ref<CategoryInfo> = ref({
+    title: '',
+    type_id: 1,
+    parent_category: null
+});
+const openModal: Ref<boolean> = ref(false);
+
 
 const handleCategorySelect = async (key: Key[]) => {
     activeCategory.value = categoriesStore.getByID(Number(key[0]));
@@ -51,6 +61,32 @@ const handleProductSelect = async (key: number) => {
     return;
 }
 
+/* CATEGORIES */
+const addCategory = (parent?: CategoryInfo) => {
+    console.log(parent, newCat);
+    newCat.value.parent_category = parent.category_id;
+    newCat.value.type_id = categoriesStore.getByID(parent.category_id)?.type_id;
+    openModal.value = true;
+}
+const editCategory = (cat: CategoryInfo) => cat.isEditing = true;
+const saveCategory = (cat: CategoryInfo) => {
+    if (cat.category_id) {
+        categoriesStore._update(cat);
+    } else {
+        categoriesStore._create(cat);
+        newCat.value = {
+            title: '',
+            type_id: 1,
+            parent_category: null
+        };
+        openModal.value = false;
+    }
+    cat.isEditing = false;
+};
+const deleteCategory = (cat: CategoryInfo) => {
+    categoriesStore._delete(cat);
+}
+
 /* PRODUCTS */
 const addProduct = () => products.value.push(productsStore.add(activeCategory.value));
 const editProduct = (product: ProductInfo) => product.isEditing = true;
@@ -68,7 +104,7 @@ const deleteProduct = (product: ProductInfo) => {
 }
 
 /* SLOTS */
-const addSlot = () => slots.value[activeTab.value].push(slotsStore.add(activeProduct.value, Number(activeTab.value), linesStore.lines.at(0).line_id));
+const addSlot = () => slots.value[activeProductTab.value].push(slotsStore.add(activeProduct.value, Number(activeProductTab.value), linesStore.lines.at(0).line_id));
 const editSlot = (slot: ProductSlot) => slot.isEditing = true;
 const saveSlot = async (slot: ProductSlot) => {
     if (slot.product_slot_id) {
@@ -122,125 +158,175 @@ const showExtra = computed(() => {
 const exit = () => {
     // TODO сообщение о несохранённых изменениях
     modal.close('products');
+    console.log(categoriesStore.categories);
 }
-
 </script>
 <template>
     <Modal v-model:open="modal.visibility['products']" title="Реестр продукции" :closable="true"
         wrap-class-name="modal products" class="modal products" @close="exit">
-        <div class="products">
-            <section class="products">
-                <Tree :tree-data="categoriesStore.asTree()" @select="handleCategorySelect" />
-            </section>
-            <Divider type="vertical" style="height:unset;" />
-            <section class="products">
-                <List :data-source="products" v-if="products.length != 0" class="product_list">
-                    <template #renderItem="{ item }">
-                        <ListItem v-if="!item.isEditing" class="product_list-item" :class="getClass(item)">
-                            <a href="#" @click="handleProductSelect(item.product_id)">{{ item.title }}</a>
-                            <div class="icons-container">
-                                <EditOutlined @click="editProduct(item)" class="icon edit" />
-                                <DeleteOutlined @click="deleteProduct(item)" class="icon delete" />
-                            </div>
-                        </ListItem>
-                        <ListItem v-else class="product_list-item" style="display: flex;">
-                            <Input v-model:value="item.title" style="max-width:88%" />
-                            <SaveOutlined @click="saveProduct(item)" class="icon save" />
-                        </ListItem>
-                    </template>
-                    <template #footer>
-                        <Button @click="addProduct" type="primary" class="footer-button">+</Button>
-                    </template>
-                </List>
-                <template v-else>
-                    <Empty description="Выберите категорию" style="max-width:100%;" />
-                </template>
-            </section>
-            <Divider type="vertical" style="height:unset;" />
-            <section style="width: 60%;" :key="slotsKey">
-                <Tabs v-model:activeKey="activeTab">
-                    <TabPane v-for="(v, k) in productsTabs" :key="k" :tab="v">
-                        <template v-if="k == 6">
-                            <div style="display:flex; flex-direction: column; gap: 10px;">
-                                <div v-for="(v) in productsTableColumns[k]" style="display: flex;">
-                                    <span style="width:20%;padding-right:5%;">{{ v.title }}</span>
-                                    <div v-if="v.addon !== false">
-                                        <Input v-model:value="activeProduct[v.dataIndex]" style="max-width:300px;"
-                                            :addon-before="v.addon" />
+        <Tabs v-model:active-key="activeTab">
+            <TabPane key="1" tab="Продукция">
+                <div class="products">
+                    <section class="products">
+                        <Tree :tree-data="categoriesStore.asTree()" @select="handleCategorySelect" />
+                    </section>
+                    <Divider type="vertical" style="height:unset;" />
+                    <section class="products">
+                        <List :data-source="products" v-if="products.length != 0" class="product_list">
+                            <template #renderItem="{ item }">
+                                <ListItem v-if="!item.isEditing" class="product_list-item" :class="getClass(item)">
+                                    <a href="#" @click="handleProductSelect(item.product_id)">{{ item.title }}</a>
+                                    <div class="icons-container">
+                                        <EditOutlined @click="editProduct(item)" class="icon edit" />
+                                        <DeleteOutlined @click="deleteProduct(item)" class="icon delete" />
                                     </div>
-                                    <div v-else>
-                                        <Checkbox v-model:checked="activeProduct[v.dataIndex]" />
+                                </ListItem>
+                                <ListItem v-else class="product_list-item" style="display: flex;">
+                                    <Input v-model:value="item.title" style="max-width:88%" />
+                                    <SaveOutlined @click="saveProduct(item)" class="icon save" />
+                                </ListItem>
+                            </template>
+                            <template #footer>
+                                <Button @click="addProduct" type="primary" class="footer-button">+</Button>
+                            </template>
+                        </List>
+                        <template v-else>
+                            <Empty description="Выберите категорию" style="max-width:100%;" />
+                        </template>
+                    </section>
+                    <Divider type="vertical" style="height:unset;" />
+                    <section style="width: 60%;" :key="slotsKey">
+                        <Tabs v-model:activeKey="activeProductTab">
+                            <TabPane v-for="(v, k) in productsTabs" :key="k" :tab="v">
+                                <template v-if="k == 6">
+                                    <div style="display:flex; flex-direction: column; gap: 10px;">
+                                        <div v-for="(v) in productsTableColumns[k]" style="display: flex;">
+                                            <span style="width:20%;padding-right:5%;">{{ v.title }}</span>
+                                            <div v-if="v.addon !== false">
+                                                <Input v-model:value="activeProduct[v.dataIndex]"
+                                                    style="max-width:300px;" :addon-before="v.addon" />
+                                            </div>
+                                            <div v-else>
+                                                <Checkbox v-model:checked="activeProduct[v.dataIndex]" />
+                                            </div>
+                                        </div>
+                                        <Button @click="saveProduct(activeProduct)" type="primary">Сохранить</Button>
                                     </div>
-                                </div>
-                                <Button @click="saveProduct(activeProduct)" type="primary">Сохранить</Button>
-                            </div>
+                                </template>
+                                <template v-else>
+                                    <Empty v-if="!activeProduct || !slots" description="Выберите продукцию" />
+                                    <Table :columns="productsTableColumns[k]" bordered small :data-source="slots[k]"
+                                        :pagination="false" v-else style="max-width: 100%;">
+                                        <template #emptyText>
+                                            <Empty description="Для данной продукции пока нет слотов изготовления" />
+                                        </template>
+                                        <template #bodyCell="{ record, column, text }">
+                                            <template v-if="record.isEditing">
+                                                <template
+                                                    v-if="['people_count', 'perfomance'].find(el => el == column.dataIndex)">
+                                                    <InputNumber v-model:value="record[String(column.dataIndex)]" />
+                                                </template>
+                                                <template v-else-if="column.dataIndex == 'hardware' && k == 1">
+                                                    <Select v-model:value="record[column.dataIndex]"
+                                                        style="width: 100%;" :options="hardwares">
+                                                    </Select>
+                                                </template>
+                                                <template v-else-if="column.dataIndex == 'actions'">
+                                                    <SaveOutlined @click="saveSlot(record as ProductSlot)"
+                                                        class="icon save" />
+                                                    <DeleteOutlined @click="deleteSlot(record as ProductSlot)"
+                                                        class="icon delete" />
+                                                </template>
+                                                <template v-else>
+                                                    <Select v-model:value="record[String(column.dataIndex)]"
+                                                        style="width:100%; max-width:23vw;">
+                                                        <SelectOption v-for="i in linesStore.lines" :key="i.line_id"
+                                                            :value="i.line_id">
+                                                            {{ i.title }}
+                                                        </SelectOption>
+                                                    </Select>
+                                                </template>
+                                            </template>
+                                            <template v-else>
+                                                <template v-if="column.dataIndex == 'actions'">
+                                                    <EditOutlined @click="editSlot(record as ProductSlot)"
+                                                        class="icon edit" />
+                                                    <DeleteOutlined @click="deleteSlot(record as ProductSlot)"
+                                                        class="icon delete" />
+                                                </template>
+                                                <template v-if="column.dataIndex == 'line_id'">
+                                                    {{ linesStore.getByID(text)!.title }}
+                                                </template>
+                                                <template v-if="column.dataIndex == 'hardware' && text">
+                                                    {{ hardwares[text]!.label }}
+                                                </template>
+                                            </template>
+                                        </template>
+                                        <template #summary>
+                                            <TableSummary v-if="activeProduct != null">
+                                                <TableSummaryRow>
+                                                    <TableSummaryCell :col-span="5" style="padding:0;">
+                                                        <Button type="primary" @click="addSlot"
+                                                            style="width: 100%;border-top-left-radius: 0; border-top-right-radius: 0;">+</Button>
+                                                    </TableSummaryCell>
+                                                </TableSummaryRow>
+                                            </TableSummary>
+                                        </template>
+                                    </Table>
+                                </template>
+                            </TabPane>
+                            <template #rightExtra v-if="showExtra">
+                                <Button @click="saveSlots" type="primary">Сохранить изменения</Button>
+                            </template>
+                        </Tabs>
+                    </section>
+                </div>
+            </TabPane>
+            <TabPane key="2" tab="Категории продукции">
+                <div style="overflow-y: auto;max-height:85vh;border-bottom: 1px solid #f0f0f0;">
+                <Table :columns="categoriesTableColumns" bordered small
+                    :default-expand-all-rows="true"
+                    :data-source="categoriesStore.asTree()" :pagination="false"
+                    childrenColumnName="children"
+                    style="max-width: 100%">
+                    <template #expandIcon="{record}">
+                        <span v-if="record.children && record.children.length > 0">
+                            [{{ record.children.length }}]
+                        </span>
+                    </template>
+                    <template #bodyCell="{ record, column, text }">
+                        <template v-if="record.isEditing">
+                            <template v-if="column.dataIndex == 'title'">
+                                <Input v-model:value="record[String(column.dataIndex)]" />
+                            </template>
+                            <template v-else-if="column.dataIndex == 'actions'">
+                                <SaveOutlined @click="saveCategory(record as CategoryInfo)" class="icon save" />
+                                <DeleteOutlined @click="deleteCategory(record as CategoryInfo)" class="icon delete" />
+                            </template>
                         </template>
                         <template v-else>
-                            <Empty v-if="!activeProduct || !slots" description="Выберите продукцию" />
-                            <Table :columns="productsTableColumns[k]" bordered small :data-source="slots[k]"
-                                :pagination="false" v-else style="max-width: 100%;">
-                                <template #emptyText>
-                                    <Empty description="Для данной продукции пока нет слотов изготовления" />
-                                </template>
-                                <template #bodyCell="{ record, column, text }">
-                                    <template v-if="record.isEditing">
-                                        <template
-                                            v-if="['people_count', 'perfomance'].find(el => el == column.dataIndex)">
-                                            <InputNumber v-model:value="record[String(column.dataIndex)]" />
-                                        </template>
-                                        <template v-else-if="column.dataIndex == 'hardware' && k == 1">
-                                            <Select v-model:value="record[column.dataIndex]" style="width: 100%;"
-                                                :options="hardwares">
-                                            </Select>
-                                        </template>
-                                        <template v-else-if="column.dataIndex == 'actions'">
-                                            <SaveOutlined @click="saveSlot(record as ProductSlot)" class="icon save" />
-                                            <DeleteOutlined @click="deleteSlot(record as ProductSlot)"
-                                                class="icon delete" />
-                                        </template>
-                                        <template v-else>
-                                            <Select v-model:value="record[String(column.dataIndex)]"
-                                                style="width:100%; max-width:23vw;">
-                                                <SelectOption v-for="i in linesStore.lines" :key="i.line_id"
-                                                    :value="i.line_id">
-                                                    {{ i.title }}
-                                                </SelectOption>
-                                            </Select>
-                                        </template>
-                                    </template>
-                                    <template v-else>
-                                        <template v-if="column.dataIndex == 'actions'">
-                                            <EditOutlined @click="editSlot(record as ProductSlot)" class="icon edit" />
-                                            <DeleteOutlined @click="deleteSlot(record as ProductSlot)"
-                                                class="icon delete" />
-                                        </template>
-                                        <template v-if="column.dataIndex == 'line_id'">
-                                            {{ linesStore.getByID(text)!.title }}
-                                        </template>
-                                        <template v-if="column.dataIndex == 'hardware' && text">
-                                            {{ hardwares[text]!.label }}
-                                        </template>
-                                    </template>
-                                </template>
-                                <template #summary>
-                                    <TableSummary v-if="activeProduct != null">
-                                        <TableSummaryRow>
-                                            <TableSummaryCell :col-span="5" style="padding:0;">
-                                                <Button type="primary" @click="addSlot"
-                                                    style="width: 100%;border-top-left-radius: 0; border-top-right-radius: 0;">+</Button>
-                                            </TableSummaryCell>
-                                        </TableSummaryRow>
-                                    </TableSummary>
-                                </template>
-                            </Table>
+                            <template v-if="column.dataIndex == 'actions'">
+                                <EditOutlined @click="editCategory(record as CategoryInfo)" class="icon edit" />
+                                <DeleteOutlined @click="deleteCategory(record as CategoryInfo)" class="icon delete" />
+                                <PullRequestOutlined @click="addCategory(record as CategoryInfo)" class="icon edit" />
+                                <!-- {{ record.children.length }} -->
+                            </template>
+                            <template v-if="column.dataIndex == 'parent_category' && text">
+                                {{ categoriesStore.getByID(text)?.title }}
+                            </template>
                         </template>
-                    </TabPane>
-                    <template #rightExtra v-if="showExtra">
-                        <Button @click="saveSlots" type="primary">Сохранить изменения</Button>
                     </template>
-                </Tabs>
-            </section>
-        </div>
+                </Table>
+                </div>
+                <Modal v-model:open="openModal" @ok="saveCategory(newCat)">
+                    <template #title>
+                        Родительская категория: {{ categoriesStore.getByID(newCat.parent_category)?.title }}
+                    </template>
+                    Наименование <Input v-model:value="newCat.title" />
+                </Modal>
+            </TabPane>
+        </Tabs>
         <template #footer></template>
+
     </Modal>
 </template>

@@ -7,12 +7,11 @@ import { notify, SelectOption } from '@/functions';
 import { DefaultOptionType, LabelInValueType, RawValueType } from 'ant-design-vue/es/vc-select/Select';
 import { useWorkerSlotsStore } from '@stores/workerSlots';
 
-const props = defineProps({
-    cardData: {
-        type: Object as () => WorkerInfo,
-        required: true
-    }
-});
+const props = defineProps<{
+    cardData: WorkerInfo,
+    editMode?: boolean
+}>();
+
 const store = useWorkersStore();
 const workerSelect = store.toSelectOptions();
 const slotsStore = useWorkerSlotsStore();
@@ -23,7 +22,14 @@ const calcBreak = computed(() : string => {
 });
 
 const deleteWorker = async (del: boolean) =>  {
-    await slotsStore._delete(props.cardData, del);
+    if (del == true && props.editMode) {
+        const slot = slotsStore.getByWorker(props.cardData.worker_id);
+        if (slot.length > 0) {
+            await slotsStore._remove(slot[0]);
+        }
+    } else {
+        await slotsStore._delete(props.cardData, del);
+    }
 };
 const replaceWorker = async (v: RawValueType | LabelInValueType, ev: DefaultOptionType) => {
     if (ev.key == props.cardData.worker_id) {
@@ -93,6 +99,11 @@ const getBreak = computed(() => {
                         <UserSwitchOutlined class="worker-icon yellow" />
                     </Tooltip>
                 </Popover>
+            </div>
+            <div class="tools" v-show="props.editMode">
+                <Tooltip title="Удалить">
+                    <UserDeleteOutlined class="worker-icon red" @click="deleteWorker(true)"/>
+                </Tooltip>
             </div>
         </section>
     </Card>

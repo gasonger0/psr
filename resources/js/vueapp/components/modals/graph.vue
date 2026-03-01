@@ -59,11 +59,11 @@ const addSlot = async (lineCol: ColumnType, rec: Record<string, any>) => {
     // rec[newSlot.line_id].push(newSlot);
 };
 const deleteSlot = async (slot: WorkerSlot) => {
-    let index = cells.value.findIndex(el => el.worker_id == slot.worker_id);
+    // let index = cells.value.findIndex(el => el.worker_id == slot.worker_id);
     await slots._remove(slot);
-    let slotIndex = cells.value[index][slot.line_id].indexOf(slot);
-    delete cells.value[index][slot.line_id][slotIndex];
-    cells.value[index][slot.line_id] = cells.value[index][slot.line_id].filter(i => i != null)
+    // let slotIndex = cells.value[index][slot.line_id].indexOf(slot);
+    // delete cells.value[index][slot.line_id][slotIndex];
+    // cells.value[index][slot.line_id] = cells.value[index][slot.line_id].filter(i => i != null)
 }
 
 const exit = () => {
@@ -84,15 +84,16 @@ const processCells = async () => {
 
     cells.value = [];
     cells.value = workers.workers.map((el: WorkerInfo) => {
+        const workerCopy = { ...el }; // копия
         slots.getByWorker(el.worker_id).forEach((sl: WorkerSlot) => {
-            if (!el[sl.line_id]) {
-                el[sl.line_id] = [];
+            if (!workerCopy[sl.line_id]) {
+                workerCopy[sl.line_id] = [];
             }
-            if (!el[sl.line_id].find((i) => i.slot_id == sl.slot_id)) {
-                el[String(sl.line_id)].push(sl);
+            if (!workerCopy[sl.line_id].find((i) => i.slot_id == sl.slot_id)) {
+                workerCopy[String(sl.line_id)].push(sl);
             }
 
-            if (columns.value.find((el) => el.dataIndex == sl.line_id) === undefined) {
+            if (columns.value.find((workerCopy) => workerCopy.dataIndex == sl.line_id) === undefined) {
                 let line = lines.getByID(sl.line_id);
                 columns.value.push({
                     title: line.title,
@@ -102,7 +103,7 @@ const processCells = async () => {
                 });
             }
         });
-        return el;
+        return workerCopy;
     });
     console.log('cells:', cells.value);
 
@@ -129,7 +130,8 @@ onUpdated(() => {
 
 watch(
     () => slots.slots,
-    (ev) => {
+    (newSlots, oldSlots) => {
+        console.debug("slots изменился: ", oldSlots, newSlots);
         processCells();
     },
     {

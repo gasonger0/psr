@@ -105,7 +105,9 @@ Route::group(['middleware' => ['web', ParseSession::class]], function () {
         ->middleware(ForceJsonResponse::class)
         ->group(function () {
             Route::get('/get', 'get');
-            Route::get('/get_tree', 'getTree');
+            Route::post('/create', 'create');
+            Route::put('/update', 'update');
+            Route::delete('/delete', 'delete');
         });
 
 

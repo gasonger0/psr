@@ -5,6 +5,7 @@ import { AxiosError, AxiosResponse } from "axios";
 import { format, Slot } from "./dicts";
 import { computed, reactive, Ref, ref } from "vue";
 import { CompanyInfo, useCompaniesStore } from "./companies";
+import { useWorkerSlotsStore, WorkerSlot } from "./workerSlots";
 
 // Информация о сотруднике
 export type WorkerInfo = {
@@ -168,7 +169,12 @@ export const useWorkersStore = defineStore('workers', () => {
      * @param {number} line_id идентификатор линии
      * @returns {WorkerInfo[] | undefined} найденные сотрудник для данной линии 
      */
-    function getByLine(line_id: number | null): WorkerInfo[] | undefined {
+    function getByLine(line_id: number | null, isEdit: boolean = false): WorkerInfo[] | undefined {
+        if (isEdit) {
+            return useWorkerSlotsStore().slots
+                .filter((el: WorkerSlot) => el.line_id == line_id)
+                .map((i: WorkerSlot) => getByID(i.worker_id));
+        }
         return workers.value.filter((el: WorkerInfo) => el.current_line_id == line_id);
     };
     /**

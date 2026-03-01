@@ -186,32 +186,6 @@ onUpdated(async () => {
             }
 
             line.append(activeElement as HTMLElement);
-            // const nextElement = getNextElement(
-            //     Number(
-            //         (ev.target as Element).getAttribute('clientY')
-            //     ),
-            //     currentElement as Element
-            // );
-            // // Проверяем, нужно ли менять элементы местами
-            // if (
-            //     nextElement &&
-            //     activeElement === nextElement.previousElementSibling ||
-            //     activeElement === nextElement
-            // ) {
-            //     // Если нет, выходим из функции, чтобы избежать лишних изменений в DOM
-            //     return;
-            // }
-
-            // const lastElement = line.lastElementChild;
-            // if (nextElement == null) {
-            //     line.append(activeElement as HTMLElement);
-            // } else {
-            //     if (nextElement.parentElement != line) {
-            //         line.append(activeElement as HTMLElement);
-            //     } else {
-            //         line.insertBefore(activeElement as HTMLElement, nextElement);
-            //     }
-            // }
         })
     });
     document.querySelector('.lines-container')!.scrollTo({ left: 0 });
@@ -259,8 +233,8 @@ const emit = defineEmits(['ready']);
             :key="`line-${line.line_id}-${line.version}`">
             <LineForm :data="line" />
             <section class="line_items">
-                <ItemCard v-for="(v, k) in workersStore.getByLine(line.line_id!)" :cardData="v"
-                    :ref="(el) => setWorkerRef(el, v.worker_id)" />
+                <ItemCard v-for="(v, k) in workersStore.getByLine(line.line_id!, editMode)" :cardData="v"
+                    :ref="(el) => setWorkerRef(el, v.worker_id)" :editMode="editMode"/>
             </section>
         </div>
     </div>
