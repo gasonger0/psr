@@ -18,7 +18,7 @@ return new class extends Migration
         Schema::create('products_categories', function(Blueprint $table) {
             $table->id('category_id')->primary()->autoIncrement();
             $table->string('title');
-            $table->integer('parent')->nullable();
+            $table->integer('parent_category')->nullable();
         });
     }
 
