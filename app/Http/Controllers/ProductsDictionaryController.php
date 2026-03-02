@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\ProductsCategories;
 use App\Models\ProductsDictionary;
 use App\Models\ProductsOrder;
+use App\Models\ProductsPlan;
 use App\Util;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -24,10 +25,38 @@ class ProductsDictionaryController extends Controller
             return ProductsDictionary::where('category_id', $category_id)->get()->toArray();
         }
 
+        $session = Util::getSessionAsArray($request);
+
         return
             array_values(
-                ProductsDictionary::all()->map(function ($el) use ($request) {
-                    $el->order = ProductsOrder::where('product_id', $el['product_id'])->withSession($request)->get()->first();
+                ProductsDictionary::all()->map(function ($el) use ($session) {
+                    $el->order = ProductsOrder::where('product_id', $el['product_id'])->where('date', $session['date'])->get()->first();
+
+                    // Если есть заказ, получаем планы с другой смены
+                    if ($el->order) {
+                        $backed = [
+                            1 => [],
+                            2 => []
+                        ];
+
+                        $slots = $el->slots()->get()->map(function($el) {
+                            return $el->product_slot_id;
+                        })->toArray();
+                        $session['isDay'] = !$session['isDay'];
+                        // var_dump($slots);
+                        ProductsPlan::where('date', $session['date'])
+                            ->with('line')
+                            ->where('isDay', $session['isDay'])
+                            ->whereIn('slot_id', $slots)
+                            ->each(function ($plan) use(&$backed) {
+                                $index = $plan->line->type_id;
+                                $backed[$index][] = $plan->amount;
+                            });
+                        
+                        $backed[1] = array_sum(array_unique($backed[1]));
+                        $backed[2] = array_sum(array_unique($backed[2]));
+                        $el->order->amount -=  max($backed);
+                    }
                     return $el;
                 })->filter(function ($product) {
                     return $product->order || $product->always_show;
