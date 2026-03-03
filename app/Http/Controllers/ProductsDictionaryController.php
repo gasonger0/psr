@@ -32,6 +32,10 @@ class ProductsDictionaryController extends Controller
                 ProductsDictionary::all()->map(function ($el) use ($session) {
                     $el->order = ProductsOrder::where('product_id', $el['product_id'])->where('date', $session['date'])->get()->first();
 
+                    $slots = $el->slots()->get()->map(function($el) {
+                            return $el->product_slot_id;
+                        })->toArray();
+
                     // Если есть заказ, получаем планы с другой смены
                     if ($el->order) {
                         $backed = [
@@ -39,9 +43,6 @@ class ProductsDictionaryController extends Controller
                             2 => []
                         ];
 
-                        $slots = $el->slots()->get()->map(function($el) {
-                            return $el->product_slot_id;
-                        })->toArray();
                         $session['isDay'] = !$session['isDay'];
                         // var_dump($slots);
                         ProductsPlan::where('date', $session['date'])
@@ -57,9 +58,12 @@ class ProductsDictionaryController extends Controller
                         $backed[2] = array_sum(array_unique($backed[2]));
                         $el->order->amount -=  max($backed);
                     }
+                    $el->plans = ProductsPlan::withSession($session)
+                        ->whereIn('slot_id', $slots)
+                        ->get()->count();
                     return $el;
                 })->filter(function ($product) {
-                    return $product->order || $product->always_show;
+                    return $product->order || $product->always_show || $product->plans;
                 })->toArray()
             );
     }
