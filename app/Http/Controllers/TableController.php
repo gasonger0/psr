@@ -45,7 +45,7 @@ class TableController extends Controller
         6 => 'Завёрточные машины №1, №2'
     ];
 
-    private static function makeArrayHeader($session)
+    private static function makeArrayHeader($session, $type)
     {
         return
             [
@@ -178,7 +178,7 @@ class TableController extends Controller
                     self::$MCS . '<b>ящ</b>' . self::$MCE,
                     self::$MCS . '<b>шт</b>' . self::$MCE,
                     self::$MCS . '<b>кг</b>' . self::$MCE,
-                    self::$MCS . '<b>Варка</b>' . self::$MCE,
+                    self::$MCS . ($type == 1 ? '<b>Варка</b>' : '') . self::$MCE,
                     self::$MCS . '<b>Телеги</b>' . self::$MCE,
                     '',
                     '',
@@ -193,7 +193,7 @@ class TableController extends Controller
                     self::$MCS . '<b>ящ</b>' . self::$MCE,
                     self::$MCS . '<b>шт</b>' . self::$MCE,
                     self::$MCS . '<b>кг</b>' . self::$MCE,
-                    self::$MCS . '<b>Варка</b>' . self::$MCE,
+                    self::$MCS . ($type == 1 ?'<b>Варка</b>' : '') . self::$MCE,
                     self::$MCS . '<b>Телеги</b>' . self::$MCE,
                     '',
                     '',
@@ -296,8 +296,8 @@ class TableController extends Controller
 
         // Создаём шапки листов
         $arr = [
-            1 => self::makeArrayHeader($session),
-            2 => self::makeArrayHeader($session)
+            1 => self::makeArrayHeader($session, 1),
+            2 => self::makeArrayHeader($session, 2)
         ];
 
         // Распределяем линии по листам
@@ -318,8 +318,16 @@ class TableController extends Controller
             $dateCount = 0;
             $dateCountNew = [];
             $returnMassCells = [];
-            $globalZ = 0;
-            $globalB = 0;
+            $globalKG = [
+                'z' => 0,
+                'k' => 0,
+                's' => 0
+            ];
+            $globalB = [
+                'z' => 0,
+                'k' => 0,
+                's' => 0
+            ];
             // Обработка линий на листе
             foreach ($lines as &$line) {
                 // Получаем планы со всех смен (пока хз как исправить)
@@ -352,6 +360,7 @@ class TableController extends Controller
                             $line['items'][$p->hardware]['items'][] =
                                 $p->toArray() +
                                 $p->slot->product->toArray() +
+                                ['category' => $p->slot->product->category->toArray()] +
                                 ['slot' => $p->slot];
                         }
                     });
@@ -425,7 +434,7 @@ class TableController extends Controller
 
                 // Обрабатываем оборудование
                 foreach ($line['items'] as &$hw) {
-                    if (isset($hw['hwTitle'])) {
+                    if (isset($hw['hwTitle']) && $line['type_id'] == 1) {
                         $array[] = [
                             '',
                             '<style bgcolor="#D8E4BC"><b>' . mb_strtoupper($hw['hwTitle']) . '</b></style>'
@@ -464,9 +473,9 @@ class TableController extends Controller
                         }*/
                         try {
                             $crates = intval($product['amount']);
-                            $parts = ceil(eval ("return $crates*$product[amount2parts];"));
-                            $kg = ceil(eval ("return $parts*$product[parts2kg];"));
-                            $boils = isset($product['kg2boil']) ? ceil(eval ("return $kg*$product[kg2boil];")) : 0;
+                            $parts = eval ("return $crates*$product[amount2parts];");
+                            $kg = eval ("return $parts*$product[parts2kg];");
+                            $boils = isset($product['kg2boil']) ? eval ("return $kg*$product[kg2boil];") : 0;
                             $prec = isset($product['cars']) ? eval ("return $boils*$product[cars];") : 0;
                             $cars = floor($prec);
                             $plates = isset($product['cars2plates']) ? eval ("return ($prec - $cars)*$product[cars2plates];") : 0;
@@ -474,13 +483,22 @@ class TableController extends Controller
                             return Util::errorMsg("Проверьте формулы для " . $product['title']);
                         }
 
-                        if (mb_strpos(mb_strtolower($product['title']), 'зефир') !== false) {
+                        $category = $product['category']['title'];
+
+                        if (
+                            mb_strpos(mb_strtolower($category), 'зефир') !== false || 
+                            mb_strpos(mb_strtolower($product['title']), 'зефир') !== false) {
                             $sum['z'][0] += $kg;
                             $sum['z'][1] += $boils;
-                        } else if (mb_strpos(mb_strtolower($product['title']), 'суфле') !== false) {
+                        } else if (
+                            mb_strpos(mb_strtolower($category), 'суфле') !== false || 
+                            mb_strpos(mb_strtolower($product['title']), 'суфле') !== false 
+                            ) {
                             $sum['s'][0] += $kg;
                             $sum['s'][1] += $boils;
-                        } else if (mb_strpos(mb_strtolower($product['title']), 'конфет') !== false) {
+                        } else if (
+                            mb_strpos(mb_strtolower($category), 'конфет') !== false ||
+                            mb_strpos(mb_strtolower($product['title']), 'конфет') !== false) {
                             $sum['k'][0] += $kg;
                             $sum['k'][1] += $boils;
                         } else {
@@ -512,12 +530,12 @@ class TableController extends Controller
                             2 => self::$MCS . $crates . self::$MCE,
                             3 => self::$MCS . $parts . self::$MCE,
                             4 => self::$MCS . $kg . self::$MCE,
-                            5 => self::$MCS . $boils . self::$MCE,
-                            6 => self::$MCS . $cars . self::$MCE,
+                            5 => self::$MCS . ($line['type_id'] == 1 ? $boils : '') . self::$MCE,
+                            6 => self::$MCS . ($line['type_id'] == 1 ? $cars : '') . self::$MCE,
                             7 => '<b>т</b>',
-                            8 => self::$MCS . ceil($plates) . self::$MCE,
+                            8 => self::$MCS . ($line['type_id'] == 1 ? ceil($plates) : '') . self::$MCE,
                             9 => '<b>под</b>',
-                            10 => self::$MCS . '<b>' . $prec . '</b>' . self::$MCE,
+                            10 => self::$MCS . '<b>' . ($line['type_id'] == 1 ? $prec : '') . '</b>' . self::$MCE,
                             11 => $product['slot']['people_count'],
                             12 => Carbon::parse($product['started_at'])->format('H:i'),
                             13 => Carbon::parse($product['ended_at'])->format('H:i'),
@@ -567,12 +585,16 @@ class TableController extends Controller
                     $returnMassCells[] = "E" . count($array);
                 }
 
-                $array[] = ['', '<b>Итого зефира</b>', '', '', $sum['z'][0], $sum['z'][1]];
-                $array[] = ['', '<b>Итого суфле</b>', '', '', $sum['s'][0], $sum['s'][1]];
-                $array[] = ['', '<b>Итого конфет</b>', '', '', $sum['k'][0], $sum['k'][1]];
+                $array[] = ['', '<b>Итого зефира</b>', '', '', $sum['z'][0], ($line['type_id'] == 1 ? $sum['z'][1] : '')];
+                $array[] = ['', '<b>Итого суфле</b>', '', '', $sum['s'][0], ($line['type_id'] == 1 ? $sum['s'][1] : '')];
+                $array[] = ['', '<b>Итого конфет</b>', '', '', $sum['k'][0], ($line['type_id'] == 1 ? $sum['k'][1] : '')];
                 $array[] = ['', '<b>Отходы</b>'];
-                $globalZ += $sum['z'][0];
-                $globalB += $sum['z'][1];
+                $globalKG ['z'] += $sum['z'][0];
+                $globalKG ['k'] += $sum['k'][0];
+                $globalKG ['s'] += $sum['s'][0];
+                $globalB ['z'] += $sum['z'][1];
+                $globalB ['k'] += $sum['k'][1];
+                $globalB ['s'] += $sum['s'][1];
                 $sum = [
                     'z' => [0, 0],
                     's' => [0, 0],
@@ -602,10 +624,19 @@ class TableController extends Controller
             $array[] = [];
             $array[] = self::makeRow([
                 1 => "ИТОГО ЗЕФИРА",
-                4 => $globalZ,
-                5 => $globalB
-
+                4 => $globalKG ['z'],
+                5 => $line['type_id'] == 1 ? $globalB ['z'] : ''
             ]);
+            if ($line['type_id'] == 2) {
+                $array[] = self::makeRow([
+                    1 => "ИТОГО КОНФЕТ",
+                    4 => $globalKG ['k'],
+                ]);
+                $array[] = self::makeRow([
+                    1 => "ИТОГО СУФЛЕ",
+                    4 => $globalKG ['s'],
+                ]);
+            }
             $array[] = self::makeRow([
                 1 => "ИТОГО ВОЗВРАТНОЙ МАССЫ",
                 4 => "<f>=" . implode(" + ", $returnMassCells)
