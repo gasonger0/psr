@@ -54,7 +54,7 @@ class ProductsPlanController extends Controller
         $order[$line_id] = self::getByLine($line_id, $request);
 
         // Если задана упаковка... 
-        if (($pack = $request->post('packs'))) {
+        if ($pack = $request->post('packs')) {
             $this->processPacks($request, $pack, $plan, $order);
         }
 
@@ -88,6 +88,8 @@ class ProductsPlanController extends Controller
         if (($pack = $request->post('packs'))) {
             $this->processPacks($request, $pack, $plan, $order);
         }
+
+        $this->checkPlans($request, $line_id, $order);
 
         LinesController::updateLinesTime($order);
         return Util::successMsg($plan->toArray() + [
@@ -131,7 +133,7 @@ class ProductsPlanController extends Controller
     /**
      * Проверка планов на коллизию и автоматический сдвиг
      */
-    public static function checkPlans(Request $request, int $lineId)
+    public static function checkPlans(Request $request, int $lineId, ?array &$order)
     {
         $allPlans = ProductsPlan::whereHas('slot', function ($query) use ($lineId) {
             $query->where('line_id', $lineId);
@@ -147,7 +149,7 @@ class ProductsPlanController extends Controller
         }
 
         // Считаем длительности для контроля и ищем налезания
-         $prevPlan = null;
+        $prevPlan = null;
 
         for ($i = 0; $i < count($allPlans); $i++) {
             $pl = $allPlans[$i];
@@ -162,17 +164,16 @@ class ProductsPlanController extends Controller
 
             // Считаем сдвиги
             if (
-                !$topShift && (
-                $pl->ended_at > $prevPlan->started_at && 
-                $prevPlan->started_at > $pl->started_at 
-                )
-            ) { 
+                !$topShift &&
+                $pl->ended_at > $prevPlan->started_at &&
+                $prevPlan->started_at > $pl->started_at
+            ) {
                 $topShift = Carbon::parse($prevPlan->started_at)->diffInMinutes($pl->ended_at);
             } else if (Carbon::parse($prevPlan->started_at)->diffInMinutes($pl->started_at) < 1) {
                 $topShift = abs(Carbon::parse($prevPlan->started_at)->diffInMinutes($prevPlan->ended_at));
-            } else if($pl->started_at < $prevPlan->ended_at && $pl->started_at > $prevPlan->started_at) {
+            } else if ($pl->started_at < $prevPlan->ended_at && $pl->started_at > $prevPlan->started_at) {
                 $topShift = abs(Carbon::parse($prevPlan->ended_at)->diffInMinutes($pl->started_at));
-            } 
+            }
 
 
             // Применяем сдвиги, если они посчитаны
@@ -184,6 +185,21 @@ class ProductsPlanController extends Controller
             }
 
             $allPlans[$i] = $pl;
+
+            if (isset($order)) {
+                ProductsPlan::where('parent', $pl->plan_product_id)
+                    ->whereHas('slot', function ($query) use ($lineId) {
+                        $query->where('line_id', $lineId);
+                    })->withSession($request)
+                    ->orderBy('started_at', 'ASC')
+                    ->orderBy('plan_product_id', 'DESC')
+                    ->each(function($p) use(&$order, $request) {
+                        self::checkPlans($request, $p->slot->line_id, $order);
+                    });
+            }
+        }
+        if (isset($order)) {
+            $order[$lineId] = $allPlans;
         }
     }
 
@@ -426,7 +442,7 @@ class ProductsPlanController extends Controller
 
                         $line_id = $p->slot->line_id;
 
-                        $this->checkPlans($request, $line_id);
+                        $this->checkPlans($request, $line_id, $order);
 
                         $order[$line_id] = self::getByLine($line_id, $request);
                     }
