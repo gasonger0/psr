@@ -4,7 +4,7 @@ import { ProductInfo } from '@/store/products';
 import { ProductSlot, SlotsByStages, useProductsSlotsStore } from '@/store/productsSlots';
 import { Card } from 'ant-design-vue';
 import { ExclamationCircleOutlined, InfoCircleOutlined } from '@ant-design/icons-vue';
-import { computed, onBeforeMount, onBeforeUpdate, onMounted, onUpdated, ref, Ref, watch } from 'vue';
+import { computed, onBeforeMount, ref, Ref } from 'vue';
 import { usePlansStore } from '@/store/productsPlans';
 
 
@@ -13,6 +13,8 @@ const props = defineProps<{
 }>();
 
 const slotsStore = useProductsSlotsStore();
+const plansStore = usePlansStore();
+
 /**
  * Слоты данной продукции
  */
@@ -23,10 +25,16 @@ const slots: SlotsByStages = {
 
 const slotsReceieved: Ref<boolean> = ref(false);
 
-const activeSlots: Array<number> = usePlansStore().getActiveSlots(props.product.product_id);
+/**
+ * activeSlots теперь вычисляемое свойство, которое автоматически обновляется
+ * при изменении планов в store
+ */
+const activeSlots = computed(() => {
+    return plansStore.getActiveSlots(props.product.product_id);
+});
 
 const amountFact = (stage_id: number) => {
-    return usePlansStore().getAmountFact(activeSlots, stage_id);
+    return plansStore.getAmountFact(activeSlots.value, stage_id);
 }
 
 onBeforeMount(async () => {
