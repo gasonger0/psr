@@ -37,6 +37,7 @@ export const usePlansStore = defineStore("productsPlans", () => {
 
     async function _delete(plan: ProductPlan) {
         useModalsStore().boils[plan.plan_product_id] = 0;
+        // TODO добавить обработку полученных с бэкенда планов
         await deleteRequest('/api/plans/delete', plan,
             (r: AxiosResponse) => {
                 splice(plan.plan_product_id);
