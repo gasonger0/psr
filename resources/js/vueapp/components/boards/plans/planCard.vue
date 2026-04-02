@@ -6,6 +6,7 @@ import { Card, Tooltip } from 'ant-design-vue';
 import { computed, onBeforeMount, onUpdated, Ref, ref } from 'vue';
 import { ClockCircleOutlined, DeleteOutlined, EditOutlined, WarningOutlined } from '@ant-design/icons-vue';
 import { useModalsStore } from '@/store/modal';
+import { productsTabs } from '@/store/dicts';
 
 const props = defineProps({
     data: {
@@ -74,9 +75,11 @@ const emit = defineEmits<{
                 </Tooltip>
             </div>
         </template>
+        <span style="color: grey;">{{ productsTabs[slot?.type_id] ?? 'Неопределено'}}</span>
+        <br>
         <b v-if="slot.type_id == 1">Количество варок: {{ boils.toFixed(2) }}<br></b>
         <b style="margin-bottom: 10px;display: block;">Объём изготовления: {{ data.amount }}</b>
-        <br>
+        <!-- <br> -->
         <span style="white-space: break-spaces;">{{ product.title }}</span>
     </Card>
 </template>

@@ -56,21 +56,21 @@ export const usePlansStore = defineStore("productsPlans", () => {
                 started_at: el.started_at.format(format),
                 ended_at: el.ended_at.format(format),
             }
-        }), 
-    (r: AxiosResponse) => {
-        data.forEach((el: ProductPlan) => {
-            let slot = useProductsSlotsStore().getById(el.slot_id);
-            let line = useLinesStore().getByID(slot.line_id);
-            useLinesStore().updateVersion(line.line_id);
-        });      
-    });
+        }),
+            (r: AxiosResponse) => {
+                data.forEach((el: ProductPlan) => {
+                    let slot = useProductsSlotsStore().getById(el.slot_id);
+                    let line = useLinesStore().getByID(slot.line_id);
+                    useLinesStore().updateVersion(line.line_id);
+                });
+            });
     }
 
     async function _create(data: ProductPlan, packs: Array<number>) {
         return await postRequest('/api/plans/create', unserialize(data, packs),
             (r: AxiosResponse) => {
                 data.plan_product_id = r.data.plan_product_id;
-                
+
                 let line = useLinesStore().getByID(
                     useProductsSlotsStore().getById(Number(data.slot_id)).line_id
                 );
@@ -86,10 +86,14 @@ export const usePlansStore = defineStore("productsPlans", () => {
                     for (let i in r.data.plansOrder) {
                         let pls = r.data.plansOrder[i].filter(el => el.date == date && el.isDay == isDay);
                         line = useLinesStore().getByID(Number(i));
-                        line.has_plans = ref(true);
-                        plans.value = plans.value.filter(el => useProductsSlotsStore().getById(el.slot_id).line_id != line.line_id);
-                        updateTimes(pls);
-                        useLinesStore().updateVersion(line.line_id);                        
+                        if (line) {
+                            line.has_plans = ref(true);
+                            plans.value = plans.value.filter(el => useProductsSlotsStore().getById(el.slot_id).line_id != line.line_id);
+                            updateTimes(pls);
+                            useLinesStore().updateVersion(line.line_id);
+                        } else {
+                            console.log("Can't find line for id" + i, line);
+                        }
                     }
                 }
             }
@@ -108,7 +112,7 @@ export const usePlansStore = defineStore("productsPlans", () => {
                         line.has_plans = ref(true);
                         plans.value = plans.value.filter(el => useProductsSlotsStore().getById(el.slot_id).line_id != line.line_id);
                         updateTimes(pls);
-                        useLinesStore().updateVersion(line.line_id);                      
+                        useLinesStore().updateVersion(line.line_id);
                     }
                 }
             });
@@ -190,7 +194,7 @@ export const usePlansStore = defineStore("productsPlans", () => {
         return;
     }
     function removeLast(): void {
-        plans.value.splice(plans.value.length-1, 1);
+        plans.value.splice(plans.value.length - 1, 1);
     }
     function serialize(plan: any) {
         plan.started_at = dayjs.default(plan.started_at),

@@ -30,7 +30,7 @@ const slotsReceieved: Ref<boolean> = ref(false);
  * при изменении планов в store
  */
 const activeSlots = computed(() => {
-    return plansStore.getActiveSlots(props.product.product_id);
+    return plansStore.getActiveSlots(props.product.product_id!);
 });
 
 const amountFact = (stage_id: number) => {
@@ -39,8 +39,8 @@ const amountFact = (stage_id: number) => {
 
 onBeforeMount(async () => {
     if (!slotsReceieved.value && slots[1].length + slots[2].length == 0) {
-        slots[1] = slotsStore.getByTypeAndProductID(props.product.product_id, 1)
-        slots[2] = slotsStore.getPack(props.product.product_id)
+        slots[1] = slotsStore.getByTypeAndProductID(props.product.product_id!, 1)
+        slots[2] = slotsStore.getPack(props.product.product_id!)
         slotsReceieved.value = true
     } 
 });

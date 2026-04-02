@@ -47,10 +47,10 @@ class ProductsPlanController extends Controller
         $plan = ProductsPlan::create($request->only((new ProductsPlan)->getFillable()));
 
         $line_id = $plan->slot->line_id;
-        $order = [
-            ...$this->checkPlans($request, $line_id),
-            ...[$line_id => self::getByLine($line_id, $request)],
-        ];
+        $order = array_replace(
+            $this->checkPlans($request, $line_id),
+            [$line_id => self::getByLine($line_id, $request)]
+        );
 
         // Если задана упаковка... 
         if ($pack = $request->post('packs')) {
@@ -347,15 +347,31 @@ class ProductsPlanController extends Controller
         $amount = $request->post('amount');
         $order = [];
 
-        $packsCheck = [];
+        $packsGlazCheck = [];
+
         if (count($pack_ids) > 0) {
             foreach ($pack_ids as $pack_id) {
+                /**
+                 * Правила:
+                 * 1) Обсыпка идёт параллельно варке
+                 * 2) Глазировка - через интервал от варки
+                 * 3) Опудривание - через интервал от варки
+                 * 4) Упаковка - Параллельно глазировке/опудриванию.
+                 *    Упаковка не может закончиться ранне любого другого этапа.
+                 *    Если заканчивает раньше - pack.ended_at = glaz.ended_at || pudra.ended_at.
+                 * 
+                 * 5) НИ ОДИН ИЗ ЭТАПОВ НЕ МОЖЕТ КОНЧИТЬСЯ РАНЬШЕ, ЧЕМ boil.ended_at + delay + 15
+                 * 6) 
+                 */
+
+
                 // Конец упаковки должен быть:
                 // 1. Не раньше конца варки 
                 // 2. Если раньше конца варки, то не раньше конца варки + delay
                 // 3. Упаковка не позже обсыпки
                 // 4. Флоу паки должны без задержки начинаться
                 // 5. Обсыпка и упаковка через $delay минут, а глазировка и варка - юез задержки
+
                 $slot = ProductsSlots::find($pack_id);
 
                 $duration = Util::calcDuration(
@@ -365,23 +381,23 @@ class ProductsPlanController extends Controller
                 );
 
                 $start = Carbon::parse($plan->started_at);
-                // Если опудривани,  или упаковка, но не сборка ящиков - добавляем задержку
-                if (
-                    ($slot->type_id == 2 || $slot->type_id == 5 || $slot->type_id == 3)
-                    && $slot->line_id != 37
-                    // && !str_contains($slot->line->title, 'FLOY')
-                ) {
+
+                // Если не варка, не обсыпка и не упаковка ящиков - доюавляем задержку
+                if ($slot->type_id != 1 && $slot->type_id != 4 && $slot->line_id != 37) {
                     $start->addMinutes($delay);
                 }
+
+                // Считаем время окончания с учётом времени на переход
                 $ended_at = $start->copy();
                 $ended_at->addHours($duration)->addMinutes(15);
-                $d = Carbon::parse($plan->ended_at)->addMinutes(15)->addMinutes($delay);
-                if ($ended_at < $d) {   // TODO возмодно, такая штука не нужна для сборки ящиков
-                    $ended_at = $d;
+
+                $boil_end = Carbon::parse($plan->ended_at)->addMinutes(15)->addMinutes($delay);
+                if ($ended_at < $boil_end) {
+                    $ended_at = $boil_end;
                 }
 
+                // Обсыпка идёт ровно столько, сколько и варка
                 if ($slot->type_id == 4) {
-                    // обсыпка идёт ровно столько, сколько и варка
                     $start = Carbon::parse($plan->started_at);
                     $ended_at = Carbon::parse($plan->ended_at);
                 }
@@ -397,12 +413,11 @@ class ProductsPlanController extends Controller
                     ] + Util::getSessionAsArray($request)
                 );
 
-                if ($slot->type_id == 2) {
-                    $packsCheck[] = $packPlan;
-                    // Если упаковка, запоминаем ИД и потом будем по другим позициям чекать
+                // Если упаковка, запоминаем ИД для проверки глазировки
+                if ($slot->type_id == 2 && $slot->line_id != 37) {
+                    $packsGlazCheck[] = $packPlan;
                 } else {
                     $line_id = $packPlan->slot->line_id;
-
                     $order = array_replace(
                         $order,
                         $this->checkPlans($request, $line_id),
@@ -412,7 +427,7 @@ class ProductsPlanController extends Controller
             }
         }
 
-        // Проверка, что упаковываем не раньше глазировки
+        // Проверка, что упаковываем не раньше глазировки/опудривания
         $glazPlans = ProductsPlan::where('parent', $plan->plan_product_id)
             ->whereHas('slot', function ($query) {
                 $query->whereIn('type_id', [3, 5]);
@@ -425,10 +440,12 @@ class ProductsPlanController extends Controller
             });
             $glaz_end = Carbon::parse($latestGlazEnd);
         }
-        foreach ($packsCheck as $p) {
+        foreach ($packsGlazCheck as $p) {
             $packEnd = Carbon::parse($p->ended_at);
+
+            // Если поставили глазировку/обсыпку и она оканчивается позже упаковки
             if (isset($glaz_end) && $packEnd < $glaz_end) {
-                // Сдвигаем упаковку так, чтобы она КОНЧАЛАСЬ НЕ РАНЬШЕ глазировки
+                // Сдвигаем упаковку так, чтобы она КОНЧАЛАСЬ НЕ РАНЬШЕ
                 $p->update([
                     'ended_at' => $glaz_end
                 ]);
@@ -444,17 +461,24 @@ class ProductsPlanController extends Controller
 
         }
 
-        // Сборка ящиков
+        // Получаем все планы
         $plans = ProductsPlan::whereHas('slot', function ($query) use ($plan) {
             $query->where('product_id', $plan->plan_product_id);
-        })->withSession($request)->get();
-        if ($plans->isNotEmpty()) {
+        })->withSession($request);
+
+        if ($plans->get()->isNotEmpty()) {
             // Находим самое позднее окончание планов
-            $latest = $plans->max(function ($plan) {
+            $latest = $plans->get()->max(function ($plan) {
                 return Carbon::parse($plan->ended_at);
             });
-            ProductsPlan::where('product_id', $plan->plan_product_id)->whereHas('slot', fn($p) => $p->line_id == 37)
-                ->withSession($request)->get()->each(function ($p) use ($latest, $request, &$order) {
+
+            // Находим упаковку по данной продукции
+            $plans->whereHas('slot', fn($p) => $p->line_id == 37)
+                ->get()->each(function ($p) use ($latest, $request, &$order) {
+
+                    // Если заканчиваем упаковывать ящики раньше,
+                    // чем заканчиваем любой другой этап,
+                    // ставим окончание ящиков как самое позднее окончание 
                     if (Carbon::parse($p->ended_at)->diffInMinutes($latest) < 0) {
                         $p->update([
                             'ended_at' => Carbon::parse($latest)

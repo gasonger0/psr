@@ -9,7 +9,6 @@ import LineForm from '@/components/common/lineForm.vue';
 import PlanCard from './planCard.vue';
 import { ProductPlan, usePlansStore } from '@/store/productsPlans';
 import ScrollButtons from '@/components/common/scrollButtons.vue';
-import DragScrollZones from '@/components/common/dragScrollZones.vue';
 import { getNextElement, scrollToTop } from '@/functions';
 import { ProductSlot, useProductsSlotsStore } from '@/store/productsSlots';
 import { alwaysShowLines, format } from '@/store/dicts';
@@ -138,14 +137,9 @@ onUpdated(async () => {
             if (target.classList.contains('selected') && target == active.value) {
                 target.classList.remove(`selected`);
                 let childs = Array.from(target.parentNode.children);
-                
-                // КРИТИЧНО: Получаем линию из ТЕКУЩЕЙ позиции target, а не из исходного контейнера
-                // Это важно при перетаскивании между линиями
-                let lineElement = target.closest('.line');
-                if (!lineElement) {
-                    return;
-                }
-                let curLine = linesStore.getByID(Number(lineElement.getAttribute('data-id')));
+                let curLine = linesStore.getByID(Number(
+                    line.parentElement!.dataset.id
+                ));
 
                 document.querySelectorAll('.line').forEach(el => {
                     el.classList.remove('hidden-hard');
@@ -156,30 +150,22 @@ onUpdated(async () => {
                 }
                 if (isNewPlan.value) {
                     let product = productsStore.getByID(Number(target.dataset.id)),
+                        position = childs.indexOf(target),
                         slots = slotsStore.getByLineId(curLine.line_id),
                         plans = plansStore.getByLine(curLine.line_id),
+                        lastProd = null,
                         started_at = dayjs.default();
 
-                    // Определяем started_at на основе фактического порядка в DOM, а не на основе временного порядка
-                    // Ищем предыдущий план в DOM (в visual порядке)
-                    let prevSibling = target.previousElementSibling as HTMLElement | null;
-                    
-                    if (prevSibling && prevSibling.getAttribute('data-id')) {
-                        // Если есть предыдущий элемент, его конец = наше начало
-                        let prevPlanId = Number(prevSibling.getAttribute('data-id'));
-                        let prevPlan = plansStore.getById(prevPlanId);
-                        if (prevPlan) {
-                            started_at = prevPlan.ended_at;
+                    if (plans.length > 0 && position > 0) {
+                        if (position < plans.length) {
+                            started_at = plans[position - 1].ended_at;
+                        } else {
+                            lastProd = plans.reduce((latest, current) => {
+                                return current.ended_at.isAfter(latest.ended_at) ? current : latest;
+                            }, plans[0]);
+                            started_at = dayjs.default(lastProd.ended_at, format);
                         }
-                    } else if (plans.length > 0) {
-                        // Элемент первый, но есть другие планы на линии
-                        // Новый план должен начаться ПОСЛЕ всех существующих
-                        let lastProd = plans.reduce((latest, current) => {
-                            return current.ended_at.isAfter(latest.ended_at) ? current : latest;
-                        }, plans[0]);
-                        started_at = lastProd.ended_at;
                     } else if (curLine.work_time.started_at != null) {
-                        // На линии нет планов, начинаем со времени начала работы
                         started_at = curLine.work_time.started_at;
                         if (curLine.prep_time) {
                             started_at = started_at.add(curLine.prep_time, 'minute');
@@ -237,14 +223,6 @@ onUpdated(async () => {
             ev.preventDefault();
             const activeElement = document.querySelector('.selected');
             const currentElement = (ev.target as Element).closest('.ant-card');
-            
-            // КРИТИЧНО: Получаем контейнер из ТЕКУЩЕЙ позиции события, а не из исходного контейнера
-            // Это необходимо для правильной работы при перетаскивании между линиями
-            const targetLineContainer = (ev.target as Element).closest('.line_items.products');
-            if (!targetLineContainer) {
-                return;
-            }
-            
             // const isMoveable = activeElement !== currentElement;
             // if (!isMoveable) {
             //     return;
@@ -265,9 +243,9 @@ onUpdated(async () => {
                 return;
             }
 
-            const lastElement = targetLineContainer.lastElementChild;
+            const lastElement = line.lastElementChild;
             if (nextElement == null) {
-                targetLineContainer.append(activeElement as HTMLElement);
+                line.append(activeElement as HTMLElement);
             } else {
                 // if (!line) {
                 //     return;
@@ -275,7 +253,7 @@ onUpdated(async () => {
                 // if (nextElement.parentElement != line) {
                 //     line.append(activeElement as HTMLElement);
                 // } else {
-                targetLineContainer.insertBefore(activeElement as HTMLElement, nextElement);
+                line.insertBefore(activeElement as HTMLElement, nextElement);
                 // }
             }
         })
@@ -327,6 +305,5 @@ onUpdated(async () => {
         </div>
     </section>
     <ScrollButtons :containerRef="linesContainer" :speed="280" />
-    <DragScrollZones :containerRef="linesContainer" :speed="15" :zoneHeight="100" />
     <PlanModal :data="activePlan" @save="handleCardChange(true)" @cancel="handleCardChange(false)" />
 </template>
