@@ -431,17 +431,24 @@ class ProductsPlanController extends Controller
         $glazPlans = ProductsPlan::where('parent', $plan->plan_product_id)
             ->whereHas('slot', function ($query) {
                 $query->whereIn('type_id', [3, 5]);
-            })->withSession($request)->get();
+            })->withSession($request)->latest('ended_at')->get();
 
         if ($glazPlans->isNotEmpty()) {
-            // Находим самое позднее окончание глазировки
-            $latestGlazEnd = $glazPlans->max(function ($plan) {
-                return Carbon::parse($plan->ended_at);
-            });
-            $glaz_end = Carbon::parse($latestGlazEnd);
+            $glaz_end = Carbon::parse($glazPlans->first()->ended_at);
+            $glaz_start = Carbon::parse($glazPlans->first()->ended_at);
         }
         foreach ($packsGlazCheck as $p) {
             $packEnd = Carbon::parse($p->ended_at);
+            $packStart = Carbon::parse($p->started_at);
+            
+            // Если упаковываем раньше глазировки/обсыпки, двигаем
+            if (isset($glaz_start) && $packStart < $glaz_start){
+                $diff = $glaz_start->diffInMinutes($packStart);
+                $p->update([
+                    'started_at' => $packStart->addMinutes($diff),
+                    'ended_at' => $packEnd->addMinutes($diff),
+                ]);
+            }
 
             // Если поставили глазировку/обсыпку и она оканчивается позже упаковки
             if (isset($glaz_end) && $packEnd < $glaz_end) {
