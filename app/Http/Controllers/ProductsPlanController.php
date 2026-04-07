@@ -435,7 +435,7 @@ class ProductsPlanController extends Controller
 
         if ($glazPlans->isNotEmpty()) {
             $glaz_end = Carbon::parse($glazPlans->first()->ended_at);
-            $glaz_start = Carbon::parse($glazPlans->first()->ended_at);
+            $glaz_start = Carbon::parse($glazPlans->first()->started_at);
         }
         foreach ($packsGlazCheck as $p) {
             $packEnd = Carbon::parse($p->ended_at);
@@ -443,7 +443,7 @@ class ProductsPlanController extends Controller
             
             // Если упаковываем раньше глазировки/обсыпки, двигаем
             if (isset($glaz_start) && $packStart < $glaz_start){
-                $diff = $glaz_start->diffInMinutes($packStart);
+                $diff = $packStart->diffInMinutes($glaz_start);
                 $p->update([
                     'started_at' => $packStart->addMinutes($diff),
                     'ended_at' => $packEnd->addMinutes($diff),
