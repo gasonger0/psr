@@ -26,7 +26,7 @@ let isDragging: Ref<boolean> = ref(false);
 
 const topZoneStyle = computed(() => ({
     position: 'fixed',
-    top: '0',
+    // top: '0',
     left: '0',
     right: '0',
     height: `${props.zoneHeight}px`,
@@ -104,7 +104,7 @@ defineExpose({ scroll });
         @dragleave="scroll('UP', false)"
         @dragend="scroll('UP', false)"
         @drop="scroll('UP', false)"
-    />
+    ></div>
 
     <!-- Нижняя зона прокрутки -->
     <div 
@@ -115,13 +115,13 @@ defineExpose({ scroll });
         @dragleave="scroll('DOWN', false)"
         @dragend="scroll('DOWN', false)"
         @drop="scroll('DOWN', false)"
-    />
+    ></div>
 </template>
 
 <style scoped>
 .drag-scroll-zone {
     /* Можно раскомментировать для отладки: */
-    /* background: rgba(59, 130, 246, 0.1); */
+    background: rgba(59, 130, 246, 0.1);
     transition: background-color 0.2s ease;
 }
 

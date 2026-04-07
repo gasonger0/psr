@@ -15,6 +15,7 @@ import { alwaysShowLines, format } from '@/store/dicts';
 import * as dayjs from 'dayjs';
 import PlanModal from '@modals/plan.vue';
 import { useModalsStore } from '@/store/modal';
+import DragScrollZones from '@/components/common/dragScrollZones.vue';
 
 const productsStore = useProductsStore();
 const linesStore = useLinesStore();
@@ -25,10 +26,10 @@ const modal = useModalsStore();
 const showList: Ref<boolean> = ref(false);
 const hideEmpty: Ref<boolean> = ref(false);
 const categorySwitch: Ref<boolean> = ref(false);
-let linesContainer: Ref<HTMLElement | null> = ref();
+let linesContainer: Ref<HTMLElement | undefined> = ref();
 let active: Ref<HTMLElement | null> = ref(null);
 let isNewPlan: Ref<boolean> = ref(false);
-const activePlan: Ref<ProductPlan | null> = ref();
+const activePlan: Ref<ProductPlan | undefined> = ref();
 const prodLine: Ref<number> = ref(1);
 
 const handleCardChange = (success: boolean) => {
@@ -303,6 +304,8 @@ onUpdated(async () => {
                 <PlanCard v-for="plan in plansStore.getByLine(line.line_id)" :data="plan" @edit="editPlan" />
             </div>
         </div>
+    <DragScrollZones :containerRef="linesContainer" :speed="20" />
+
     </section>
     <ScrollButtons :containerRef="linesContainer" :speed="280" />
     <PlanModal :data="activePlan" @save="handleCardChange(true)" @cancel="handleCardChange(false)" />
