@@ -392,7 +392,8 @@ class ProductsPlanController extends Controller
                 $ended_at->addHours($duration)->addMinutes(15);
 
                 $boil_end = Carbon::parse($plan->ended_at)->addMinutes(15)->addMinutes($delay);
-                if ($ended_at < $boil_end) {
+
+                if ($ended_at < $boil_end && $slot->line_id != 37) {
                     $ended_at = $boil_end;
                 }
 
@@ -426,6 +427,7 @@ class ProductsPlanController extends Controller
                 }
             }
         }
+
 
         // Проверка, что упаковываем не раньше глазировки/опудривания
         $glazPlans = ProductsPlan::where('parent', $plan->plan_product_id)
@@ -469,44 +471,44 @@ class ProductsPlanController extends Controller
         }
 
         // Получаем все планы
-        $plans = ProductsPlan::whereHas('slot', function ($query) use ($plan) {
-            $query->where('parent', $plan->plan_product_id);
-        })->withSession($request);
+        $plans = ProductsPlan::where('parent', $plan->plan_product_id)
+            ->with('slot')
+            ->withSession($request)
+            ->orderBy('ended_at', 'DESC')
+            ->get();
 
-        // echo count($plans->get());
-
-        if ($plans->get()->isNotEmpty()) {
+        if ($plans->isNotEmpty()) {
             // Находим самое позднее окончание планов
             // Можем закончить раннее упаковки, но не можем закончить позже 
             // варки, обсыпки, глазировки или опудривания
             $latest = Carbon::parse(
-                $plans->latest('ended_at')
-                    ->get()
+                $plans
+                    ->filter(fn($q) => $q->slot->line_id != 37)
                     ->first()
                     ->ended_at
             );
 
             // Находим упаковку ящиков по данной продукции
-            $plans->whereHas('slot', function ($query) {
-                $query->where('line_id', 37);
-            })->get()->each(function ($p) use ($latest, $request, &$order) {
-                // Если заканчиваем упаковывать ящики ПОЗЖЕ,
-                // чем заканчиваем любой этап (кроме варки),
-                // ставим окончание ящиков как самое позднее окончание 
-                if (Carbon::parse($p->ended_at)->diffInMinutes($latest) > 0) {
-                    $p->update([
-                        'ended_at' => $latest
-                    ]);
+            $plans->filter(fn($q) => $q->slot->line_id == 37)
+                ->each(function ($p) use ($latest, $request, &$order) {
+                    // Если заканчиваем упаковывать ящики ПОЗЖЕ,
+                    // чем заканчиваем любой этап (кроме варки),
+                    // ставим окончание ящиков как самое позднее окончание 
+    
+                    if (Carbon::parse($latest)->diffInMinutes($p->ended_at) > 0) {
+                        $p->update([
+                            'ended_at' => $latest
+                        ]);
 
-                    $line_id = $p->slot->line_id;
+                        $line_id = $p->slot->line_id;
 
-                    $order = array_replace(
-                        $order,
-                        $this->checkPlans($request, $line_id),
-                        [$line_id => self::getByLine($line_id, $request)],
-                    );
-                }
-            });
+                        $order = array_replace(
+                            $order,
+                            $this->checkPlans($request, $line_id),
+                            [$line_id => self::getByLine($line_id, $request)],
+                        );
+                    }
+                });
         }
 
         return $order;

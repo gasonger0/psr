@@ -125,7 +125,7 @@ class Util
             if (mb_strpos($title, "телевизор") !== false) {
                 $newAmount += $amount;
             }
-            return eval ("return $amount / $slot->perfomance;");
+            return eval ("return $newAmount / $slot->perfomance;");
         }
         return
             eval ("return $product->parts2kg*$amount*$product->amount2parts;") /
