@@ -72,37 +72,126 @@ class ProductsPlanController extends Controller
         Util::appendSessionToData($request);
         $plan = ProductsPlan::find($request->post('plan_product_id'));
 
-        $plan->update($request->only((new ProductsPlan)->getFillable()));
+        $order = [];
+        $fields = $request->only((new ProductsPlan)->getFillable());
 
-        $line_id = $plan->slot->line_id;
-        $order = $this->checkPlans($request, $line_id);
-        // Обновляем данные модели, проверяем упаковку
+        switch ($plan->slot->type_id) {
+            // Варка
+            case 1:
+                $plan->update($fields);
 
-        $order[$line_id] = self::getByLine($line_id, $request);
+                $line_id = $plan->slot->line_id;
+                $order = $this->checkPlans($request, $line_id);
 
-        // Удаляем упаковки по данной продукции
-        ProductsPlan::where('parent', $plan->plan_product_id)
-            ->each(function ($el) {
-                $el->delete();
-            });
+                // Удаляем упаковки по данной продукции
+                ProductsPlan::where('parent', $plan->plan_product_id)
+                    ->each(function ($el) {
+                        $el->delete();
+                    });
 
-        $order = array_replace(
-            $order,
-            $this->checkPlans($request, $line_id)
-        );
+                $order = array_replace(
+                    $order,
+                    $this->checkPlans($request, $line_id)
+                );
 
-        if (($pack = $request->post('packs'))) {
-            $order = array_replace(
-                $order,
-                $this->processPacks($request, $pack, $plan)
-            );
+                if (($pack = $request->post('packs'))) {
+                    $order = array_replace(
+                        $order,
+                        $this->processPacks($request, $pack, $plan)
+                    );
+                }
+                break;
+            case 2:
+                // Упаковка
+                if ($plan->slot->line_id == 37) {
+                    DB::beginTransaction();
+                    $plan->update($fields);
+                    $line_plans = self::checkPlans($request, 37, true);
+
+                    /**
+                     * 1) Получаем все, у кого parent и line_id != 37
+                     *      (Варка не интересует, у неё parent = null, удобно)
+                     * 2) Получаем 
+                     */
+                    foreach ($line_plans[37] as $crate) {
+                        $plans = ProductsPlan::where('parent', $crate->parent)
+                            ->get();
+
+                        $latest = [
+                            'start' => $plans->max('started_at'),
+                            'end' => $plans->max('ended_at')
+                        ];
+
+                        // Проверяем, что для каждого из них время 
+                        // начинается не позже начала других этапов
+                        if ($crate->start->isAfter($latest['start'])) {
+                            DB::rollBack();
+                            return Util::successMsg([
+                                37 => ProductsPlan::whereHas('slot', fn($q) => $q->line_id == 37)
+                                    ->withSession($request)
+                                    ->get()->toArray()
+                            ]);
+                        }
+
+                        $duration = Util::calcDuration(
+                            $crate->product,
+                            $crate->amount,
+                            $crate->slot
+                        );
+
+                        $ended_at = $crate->start->copy();
+                        $ended_at->addHours($duration)->addMinutes(15);
+
+                        if ($ended_at->isAfter($latest['end'])) {
+                            $ended_at = $latest['end'];
+                        }
+
+                        $crate->update([
+                            'started_at' => $crate->start,
+                            'ended_at' => $ended_at
+                        ]);
+                    }
+                    DB::commit();
+                    $order = $this->checkPlans($request, 37);
+                } else {
+                    $plan->update($fields);
+                    $order = $this->checkPlans($request, $plan->slot->line_id);
+                }
+                break;
+            case 3:
+            case 5:
+                // Обновляем глазировку и последующую упаковку
+                $plan->update($fields);
+                $order = $this->checkPlans($request, $plan->slot->line_id);
+
+                $packs = ProductsPlan::where('parent', $plan->parent)
+                    ->whereHas('slot', fn($q) => $q->type_id == 2)
+                    ->with('slot')
+                    ->get();
+
+                foreach ($packs as $pack) {
+                    $duration = Util::calcDuration(
+                        $pack->product,
+                        $pack->amount,
+                        $pack->slot
+                    );
+
+                    $start = $plan->started_at;
+                    $end = $start->copy()->addHourse($duration)->addMinutes(15);
+                    if ($end->isAfter($plan->ended_at)) {
+                        $end = $plan->ended_at;
+                    }
+                    $pack->update([
+                        'started_at' => $start,
+                        'ended_at' => $end
+                    ]);
+                    $order = $this->checkPlans($request, $pack->slot->line_id);
+                }
+                break;
         }
-
-
 
         LinesController::updateLinesTime($order);
         return Util::successMsg($plan->toArray() + [
-            'packs' => ProductsPlan::withSession($request)->where('parent', $plan->plan_product_id)->get(),
             'plansOrder' => $order
         ], 200);
     }
@@ -143,7 +232,7 @@ class ProductsPlanController extends Controller
     /**
      * Проверка планов на коллизию и автоматический сдвиг
      */
-    public static function checkPlans(Request $request, int $lineId): array
+    public static function checkPlans(Request $request, int $lineId, bool $as_model = false): array
     {
         $allPlans = ProductsPlan::whereHas('slot', function ($query) use ($lineId) {
             $query->where('line_id', $lineId);
@@ -152,7 +241,7 @@ class ProductsPlanController extends Controller
             ->orderBy('plan_product_id', 'DESC')
             ->get();
 
-        $order = [$lineId => $allPlans->toArray()];
+        $order = [$lineId => ($as_model ? $allPlans : $allPlans->toArray())];
         // Если на линии всего один план, то на нём не может быть коллизий
         if (count($allPlans) == 1) {
             return $order;
@@ -203,10 +292,10 @@ class ProductsPlanController extends Controller
                 })->withSession($request)
                 ->orderBy('started_at', 'ASC')
                 ->orderBy('plan_product_id', 'DESC')
-                ->each(function ($p) use (&$order, $request) {
+                ->each(function ($p) use (&$order, $request, $as_model) {
                     $order = array_replace(
                         $order,
-                        self::checkPlans($request, $p->slot->line_id)
+                        self::checkPlans($request, $p->slot->line_id, $as_model)
                     );
                 });
 
