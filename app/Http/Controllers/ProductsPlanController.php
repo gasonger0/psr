@@ -76,23 +76,35 @@ class ProductsPlanController extends Controller
         $fields = $request->only((new ProductsPlan)->getFillable());
 
         $amount = $fields['amount'];
+
         if ($plan->slot->type_id == 1 || $amount != $plan->amount) {
-            $pack = $fields['packs'];
+            $pack = $request->post('packs');
             if ($plan->slot->type_id == 1) {
                 $plan->update($fields);
             } else {
-                $pack = [];
-                ProductsPlan::withSession($request)
-                    ->where('parent_id', $plan->plan_product_id)
-                    ->orderBy('plan_product_id', 'ASC')
-                    ->get(['slot_id'])
-                    ->each(function ($el) use (&$pack) {
-                        $pack[] = $el->slot_id;
-                    });
+                $pack =
+                    array_map(
+                        fn($p) => $p['slot']['product_slot_id'],
+                        ProductsPlan::withSession($request)
+                            ->with('slot')
+                            ->where('parent', $plan->parent)
+                            ->orderBy('plan_product_id', 'ASC')
+                            ->get()
+                            ->toArray()
+                    );
             }
 
             $line_id = $plan->slot->line_id;
             $order = $this->checkPlans($request, $line_id);
+
+            if ($plan->slot->type_id != 1) {
+                $parent_id = $plan->parent;
+                $plan = ProductsPlan::find($parent_id);
+                $request->merge([
+                    'delay' => $plan->delay,
+                ]);
+                unset($parent_id);
+            }
 
             // Удаляем упаковки по данной продукции
             ProductsPlan::where('parent', $plan->plan_product_id)
@@ -106,6 +118,8 @@ class ProductsPlanController extends Controller
                     $this->processPacks($request, $pack, $plan)
                 );
             }
+
+            // var_dump($pack, $pack);
         } else {
             switch ($plan->slot->type_id) {
                 case 2:
@@ -125,16 +139,16 @@ class ProductsPlanController extends Controller
                                 ->get();
 
                             $latest = [
-                                'start' => $plans->max('started_at'),
-                                'end' => $plans->max('ended_at')
+                                'start' => Carbon::parse($plans->max('started_at')),
+                                'end' => Carbon::parse($plans->max('ended_at'))
                             ];
 
                             // Проверяем, что для каждого из них время 
                             // начинается не позже начала других этапов
-                            if ($crate->start->isAfter($latest['start'])) {
+                            if (Carbon::parse($crate->started_at)->isAfter($latest['start'])) {
                                 DB::rollBack();
                                 return Util::successMsg([
-                                    37 => ProductsPlan::whereHas('slot', fn($q) => $q->line_id == 37)
+                                    37 => ProductsPlan::whereHas('slot', fn($q) => $q->where('line_id', 37))
                                         ->withSession($request)
                                         ->get()->toArray()
                                 ]);
@@ -146,7 +160,7 @@ class ProductsPlanController extends Controller
                                 $crate->slot
                             );
 
-                            $ended_at = $crate->start->copy();
+                            $ended_at = Carbon::parse($crate->start)->copy();
                             $ended_at->addHours($duration)->addMinutes(15);
 
                             if ($ended_at->isAfter($latest['end'])) {
@@ -154,7 +168,7 @@ class ProductsPlanController extends Controller
                             }
 
                             $crate->update([
-                                'started_at' => $crate->start,
+                                'started_at' => $crate->started_at,
                                 'ended_at' => $ended_at
                             ]);
                         }
@@ -172,7 +186,7 @@ class ProductsPlanController extends Controller
                     $order = $this->checkPlans($request, $plan->slot->line_id);
 
                     $packs = ProductsPlan::where('parent', $plan->parent)
-                        ->whereHas('slot', fn($q) => $q->type_id == 2)
+                        ->whereHas('slot', fn($q) => $q->where('type_id', 2))
                         ->with('slot')
                         ->get();
 
@@ -183,8 +197,8 @@ class ProductsPlanController extends Controller
                             $pack->slot
                         );
 
-                        $start = $plan->started_at;
-                        $end = $start->copy()->addHourse($duration)->addMinutes(15);
+                        $start = Carbon::parse($plan->started_at);
+                        $end = $start->copy()->addHours($duration)->addMinutes(15);
                         if ($end->isAfter($plan->ended_at)) {
                             $end = $plan->ended_at;
                         }
@@ -192,7 +206,10 @@ class ProductsPlanController extends Controller
                             'started_at' => $start,
                             'ended_at' => $end
                         ]);
-                        $order = $this->checkPlans($request, $pack->slot->line_id);
+                        $order = array_replace(
+                            $order,
+                            $this->checkPlans($request, $pack->slot->line_id)
+                        );
                     }
                     break;
             }
@@ -324,48 +341,137 @@ class ProductsPlanController extends Controller
             return Util::errorMsg('Нет записей для смены порядка.', 404);
         }
 
-        // ИД связанных линий, на которых нужно проверить коллизии
-        $assocLines = [];
-
         $order = [];
 
         foreach ($request->post() as $item) {
             // Находим план по ИД
-            $prod = ProductsPlan::find($item['plan_product_id']);
-            // Обновляем модель
-            $prod->update($item);
+            $plan = ProductsPlan::find($item['plan_product_id']);
 
-            // Список планов по упаковке, привязанных к текущему плану
-            ProductsPlan::where('parent', $prod->plan_product_id)
-                ->withSession($request)
-                ->each(function ($pack) use ($prod, $request, &$assocLines) {
+            if ($plan->slot->type_id == 1) {
+                // Обновляем модель
+                $plan->update($item);
+                // Список планов по упаковке, привязанных к текущему плану
+                ProductsPlan::where('parent', $plan->plan_product_id)
+                    ->withSession($request)
+                    ->each(function ($pack) use ($plan, $request, &$order) {
 
-                    // Получаем длительность в минутах
-                    $duration = abs(Carbon::parse($pack->ended_at)
-                        ->diffInMinutes(
-                            Carbon::parse($pack->started_at)
-                        ));
+                        // Получаем длительность в минутах
+                        $duration = abs(Carbon::parse($pack->ended_at)
+                            ->diffInMinutes(
+                                Carbon::parse($pack->started_at)
+                            ));
 
-                    $newStart = Carbon::parse($prod->started_at)->addMinutes($prod->delay);
+                        $newStart = Carbon::parse($plan->started_at)->addMinutes($plan->delay);
 
-                    // Обновляем данные в модели
-                    $pack->update([
-                        'started_at' => $newStart,
-                        'ended_at' => ($newStart->copy())->addMinutes($duration)
-                    ]);
-                    // Добавляем для проверки позже 
-                    $assocLines[] = $pack->slot->line_id;
-                });
+                        // Обновляем данные в модели
+                        $pack->update([
+                            'started_at' => $newStart,
+                            'ended_at' => ($newStart->copy())->addMinutes($duration)
+                        ]);
+
+                        $lineId = $pack->slot->line_id;
+                        // Проверка
+                        $order = array_replace(
+                            $order,
+                            self::checkPlans($request, $lineId),
+                            [$lineId => self::getByLine($lineId, $request)]
+                        );
+                    });
+            } else {
+                switch ($plan->slot->type_id) {
+                    case 2:
+                        // Упаковка
+                        if ($plan->slot->line_id == 37) {
+                            DB::beginTransaction();
+                            $plan->update($item);
+                            $line_plans = self::checkPlans($request, 37, true);
+
+                            /**
+                             * 1) Получаем все, у кого parent и line_id != 37
+                             *      (Варка не интересует, у неё parent = null, удобно)
+                             * 2) Получаем 
+                             */
+                            foreach ($line_plans[37] as $crate) {
+                                $plans = ProductsPlan::where('parent', $crate->parent)
+                                    ->get();
+
+                                $latest = [
+                                    'start' => Carbon::parse($plans->max('started_at')),
+                                    'end' => Carbon::parse($plans->max('ended_at'))
+                                ];
+
+                                // Проверяем, что для каждого из них время 
+                                // начинается не позже начала других этапов
+                                if (Carbon::parse($crate->started_at)->isAfter($latest['start'])) {
+                                    DB::rollBack();
+                                    return Util::successMsg([
+                                        37 => ProductsPlan::whereHas('slot', fn($q) => $q->where('line_id', 37))
+                                            ->withSession($request)
+                                            ->get()->toArray()
+                                    ]);
+                                }
+
+                                $duration = Util::calcDuration(
+                                    $crate->product,
+                                    $crate->amount,
+                                    $crate->slot
+                                );
+
+                                $ended_at = Carbon::parse($crate->start)->copy();
+                                $ended_at->addHours($duration)->addMinutes(15);
+
+                                if ($ended_at->isAfter($latest['end'])) {
+                                    $ended_at = $latest['end'];
+                                }
+
+                                $crate->update([
+                                    'started_at' => $crate->started_at,
+                                    'ended_at' => $ended_at
+                                ]);
+                            }
+                            DB::commit();
+                            $order = $this->checkPlans($request, 37);
+                        } else {
+                            $plan->update($item);
+                            $order = $this->checkPlans($request, $plan->slot->line_id);
+                        }
+                        break;
+                    case 3:
+                    case 5:
+                        // Обновляем глазировку и последующую упаковку
+                        $plan->update($item);
+                        $order = $this->checkPlans($request, $plan->slot->line_id);
+
+                        $packs = ProductsPlan::where('parent', $plan->parent)
+                            ->whereHas('slot', fn($q) => $q->where('type_id', 2))
+                            ->with('slot')
+                            ->get();
+
+                        foreach ($packs as $pack) {
+                            $duration = Util::calcDuration(
+                                $pack->product,
+                                $pack->amount,
+                                $pack->slot
+                            );
+
+                            $start = Carbon::parse($plan->started_at);
+                            $end = $start->copy()->addHours($duration)->addMinutes(15);
+                            if ($end->isAfter($plan->ended_at)) {
+                                $end = $plan->ended_at;
+                            }
+                            $pack->update([
+                                'started_at' => $start,
+                                'ended_at' => $end
+                            ]);
+                            $order = array_replace(
+                                $order,
+                                $this->checkPlans($request, $pack->slot->line_id)
+                            );
+                        }
+                        break;
+                }
+            }
         }
-
-        // Проверка
-        array_map(function ($lineId) use ($request, &$order) {
-            $order = array_replace(
-                $order,
-                self::checkPlans($request, $lineId),
-                [$lineId => self::getByLine($lineId, $request)]
-            );
-        }, array_unique($assocLines));
 
         LinesController::updateLinesTime($order);
         // Обновляённый порядок
@@ -578,11 +684,11 @@ class ProductsPlanController extends Controller
             // Находим самое позднее окончание планов
             // Можем закончить раннее упаковки, но не можем закончить позже 
             // варки, обсыпки, глазировки или опудривания
+            $latestPlan = $plans
+                ->filter(fn($q) => $q->slot->line_id != 37)
+                ->first();
             $latest = Carbon::parse(
-                $plans
-                    ->filter(fn($q) => $q->slot->line_id != 37)
-                    ->first()
-                    ->ended_at
+                $latestPlan->ended_at
             );
 
             // Находим упаковку ящиков по данной продукции

@@ -58,11 +58,23 @@ export const usePlansStore = defineStore("productsPlans", () => {
             }
         }),
             (r: AxiosResponse) => {
-                data.forEach((el: ProductPlan) => {
-                    let slot = useProductsSlotsStore().getById(el.slot_id);
-                    let line = useLinesStore().getByID(slot.line_id);
-                    useLinesStore().updateVersion(line.line_id);
-                });
+                if (r.data) {
+                    let date = sessionStorage.getItem('date'),
+                        isDay = sessionStorage.getItem('isDay');
+                    for (let i in r.data) {
+                        let pls = r.data[i].filter(el => el.date == date && el.isDay == isDay);
+                        let line = useLinesStore().getByID(Number(i))!;
+                        line.has_plans = ref(true);
+                        plans.value = plans.value.filter(el => useProductsSlotsStore().getById(el.slot_id).line_id != line.line_id);
+                        updateTimes(pls);
+                        useLinesStore().updateVersion(line.line_id);
+                    }
+                }
+                // data.forEach((el: ProductPlan) => {
+                //     let slot = useProductsSlotsStore().getById(el.slot_id);
+                //     let line = useLinesStore().getByID(slot!.line_id);
+                //     useLinesStore().updateVersion(line!.line_id!);
+                // });
             });
     }
 
