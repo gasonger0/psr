@@ -75,119 +75,127 @@ class ProductsPlanController extends Controller
         $order = [];
         $fields = $request->only((new ProductsPlan)->getFillable());
 
-        switch ($plan->slot->type_id) {
-            // Варка
-            case 1:
+        $amount = $fields['amount'];
+        if ($plan->slot->type_id == 1 || $amount != $plan->amount) {
+            $pack = $fields['packs'];
+            if ($plan->slot->type_id == 1) {
                 $plan->update($fields);
-
-                $line_id = $plan->slot->line_id;
-                $order = $this->checkPlans($request, $line_id);
-
-                // Удаляем упаковки по данной продукции
-                ProductsPlan::where('parent', $plan->plan_product_id)
-                    ->each(function ($el) {
-                        $el->delete();
+            } else {
+                $pack = [];
+                ProductsPlan::withSession($request)
+                    ->where('parent_id', $plan->plan_product_id)
+                    ->orderBy('plan_product_id', 'ASC')
+                    ->get(['slot_id'])
+                    ->each(function ($el) use (&$pack) {
+                        $pack[] = $el->slot_id;
                     });
+            }
 
+            $line_id = $plan->slot->line_id;
+            $order = $this->checkPlans($request, $line_id);
+
+            // Удаляем упаковки по данной продукции
+            ProductsPlan::where('parent', $plan->plan_product_id)
+                ->each(function ($el) {
+                    $el->delete();
+                });
+
+            if ($pack) {
                 $order = array_replace(
                     $order,
-                    $this->checkPlans($request, $line_id)
+                    $this->processPacks($request, $pack, $plan)
                 );
+            }
+        } else {
+            switch ($plan->slot->type_id) {
+                case 2:
+                    // Упаковка
+                    if ($plan->slot->line_id == 37) {
+                        DB::beginTransaction();
+                        $plan->update($fields);
+                        $line_plans = self::checkPlans($request, 37, true);
 
-                if (($pack = $request->post('packs'))) {
-                    $order = array_replace(
-                        $order,
-                        $this->processPacks($request, $pack, $plan)
-                    );
-                }
-                break;
-            case 2:
-                // Упаковка
-                if ($plan->slot->line_id == 37) {
-                    DB::beginTransaction();
-                    $plan->update($fields);
-                    $line_plans = self::checkPlans($request, 37, true);
+                        /**
+                         * 1) Получаем все, у кого parent и line_id != 37
+                         *      (Варка не интересует, у неё parent = null, удобно)
+                         * 2) Получаем 
+                         */
+                        foreach ($line_plans[37] as $crate) {
+                            $plans = ProductsPlan::where('parent', $crate->parent)
+                                ->get();
 
-                    /**
-                     * 1) Получаем все, у кого parent и line_id != 37
-                     *      (Варка не интересует, у неё parent = null, удобно)
-                     * 2) Получаем 
-                     */
-                    foreach ($line_plans[37] as $crate) {
-                        $plans = ProductsPlan::where('parent', $crate->parent)
-                            ->get();
+                            $latest = [
+                                'start' => $plans->max('started_at'),
+                                'end' => $plans->max('ended_at')
+                            ];
 
-                        $latest = [
-                            'start' => $plans->max('started_at'),
-                            'end' => $plans->max('ended_at')
-                        ];
+                            // Проверяем, что для каждого из них время 
+                            // начинается не позже начала других этапов
+                            if ($crate->start->isAfter($latest['start'])) {
+                                DB::rollBack();
+                                return Util::successMsg([
+                                    37 => ProductsPlan::whereHas('slot', fn($q) => $q->line_id == 37)
+                                        ->withSession($request)
+                                        ->get()->toArray()
+                                ]);
+                            }
 
-                        // Проверяем, что для каждого из них время 
-                        // начинается не позже начала других этапов
-                        if ($crate->start->isAfter($latest['start'])) {
-                            DB::rollBack();
-                            return Util::successMsg([
-                                37 => ProductsPlan::whereHas('slot', fn($q) => $q->line_id == 37)
-                                    ->withSession($request)
-                                    ->get()->toArray()
+                            $duration = Util::calcDuration(
+                                $crate->product,
+                                $crate->amount,
+                                $crate->slot
+                            );
+
+                            $ended_at = $crate->start->copy();
+                            $ended_at->addHours($duration)->addMinutes(15);
+
+                            if ($ended_at->isAfter($latest['end'])) {
+                                $ended_at = $latest['end'];
+                            }
+
+                            $crate->update([
+                                'started_at' => $crate->start,
+                                'ended_at' => $ended_at
                             ]);
                         }
-
-                        $duration = Util::calcDuration(
-                            $crate->product,
-                            $crate->amount,
-                            $crate->slot
-                        );
-
-                        $ended_at = $crate->start->copy();
-                        $ended_at->addHours($duration)->addMinutes(15);
-
-                        if ($ended_at->isAfter($latest['end'])) {
-                            $ended_at = $latest['end'];
-                        }
-
-                        $crate->update([
-                            'started_at' => $crate->start,
-                            'ended_at' => $ended_at
-                        ]);
+                        DB::commit();
+                        $order = $this->checkPlans($request, 37);
+                    } else {
+                        $plan->update($fields);
+                        $order = $this->checkPlans($request, $plan->slot->line_id);
                     }
-                    DB::commit();
-                    $order = $this->checkPlans($request, 37);
-                } else {
+                    break;
+                case 3:
+                case 5:
+                    // Обновляем глазировку и последующую упаковку
                     $plan->update($fields);
                     $order = $this->checkPlans($request, $plan->slot->line_id);
-                }
-                break;
-            case 3:
-            case 5:
-                // Обновляем глазировку и последующую упаковку
-                $plan->update($fields);
-                $order = $this->checkPlans($request, $plan->slot->line_id);
 
-                $packs = ProductsPlan::where('parent', $plan->parent)
-                    ->whereHas('slot', fn($q) => $q->type_id == 2)
-                    ->with('slot')
-                    ->get();
+                    $packs = ProductsPlan::where('parent', $plan->parent)
+                        ->whereHas('slot', fn($q) => $q->type_id == 2)
+                        ->with('slot')
+                        ->get();
 
-                foreach ($packs as $pack) {
-                    $duration = Util::calcDuration(
-                        $pack->product,
-                        $pack->amount,
-                        $pack->slot
-                    );
+                    foreach ($packs as $pack) {
+                        $duration = Util::calcDuration(
+                            $pack->product,
+                            $pack->amount,
+                            $pack->slot
+                        );
 
-                    $start = $plan->started_at;
-                    $end = $start->copy()->addHourse($duration)->addMinutes(15);
-                    if ($end->isAfter($plan->ended_at)) {
-                        $end = $plan->ended_at;
+                        $start = $plan->started_at;
+                        $end = $start->copy()->addHourse($duration)->addMinutes(15);
+                        if ($end->isAfter($plan->ended_at)) {
+                            $end = $plan->ended_at;
+                        }
+                        $pack->update([
+                            'started_at' => $start,
+                            'ended_at' => $end
+                        ]);
+                        $order = $this->checkPlans($request, $pack->slot->line_id);
                     }
-                    $pack->update([
-                        'started_at' => $start,
-                        'ended_at' => $end
-                    ]);
-                    $order = $this->checkPlans($request, $pack->slot->line_id);
-                }
-                break;
+                    break;
+            }
         }
 
         LinesController::updateLinesTime($order);
