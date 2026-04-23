@@ -311,13 +311,29 @@ class ProductsPlanController extends Controller
 
             $allPlans[$i] = $pl;
 
+            // Если есть дочерние продукции - мы их обновляем через processPacks
+            // Удаляем упаковки по данной продукции
+            $pack = [];
+            ProductsPlan::where('parent', $plan->plan_product_id)
+                ->each(function ($el) use(&$pack) {
+                    $pack[] = $el->slot->product_slot_id;
+                    $el->delete();
+                });
+
+            if ($pack) {
+                $order = array_replace(
+                    $order,
+                    $this->processPacks($request, $pack, $plan)
+                );
+            }
+
             ProductsPlan::where('parent', $pl->plan_product_id)
                 ->whereHas('slot', function ($query) use ($lineId) {
                     $query->where('line_id', $lineId);
                 })->withSession($request)
                 ->orderBy('started_at', 'ASC')
                 ->orderBy('plan_product_id', 'DESC')
-                ->each(function ($p) use (&$order, $request, $as_model) {
+                ->each(function ($p) use (&$order, $request, $as_model) {                                  
                     $order = array_replace(
                         $order,
                         self::checkPlans($request, $p->slot->line_id, $as_model)
