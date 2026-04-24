@@ -334,7 +334,7 @@ class ProductsPlanController extends Controller
                 })->withSession($request)
                 ->orderBy('started_at', 'ASC')
                 ->orderBy('plan_product_id', 'DESC')
-                ->each(function ($p) use (&$order, $request, $as_model) {
+                ->each(function ($p) use (&$order, $request, $as_model) {                                  
                     $order = array_replace(
                         $order,
                         self::checkPlans($request, $p->slot->line_id, $as_model)
