@@ -311,6 +311,23 @@ class ProductsPlanController extends Controller
 
             $allPlans[$i] = $pl;
 
+            // Если есть дочерние продукции - мы их обновляем через processPacks
+            // Удаляем упаковки по данной продукции
+            $pack = [];
+
+            ProductsPlan::where('parent', $pl->plan_product_id)
+                ->each(function ($el) use (&$pack) {
+                    $pack[] = $el->slot->product_slot_id;
+                    $el->delete();
+                });
+
+            if ($pack) {
+                $order = array_replace(
+                    $order,
+                    self::processPacks($request, $pack, $pl)
+                );
+            }
+
             ProductsPlan::where('parent', $pl->plan_product_id)
                 ->whereHas('slot', function ($query) use ($lineId) {
                     $query->where('line_id', $lineId);
@@ -540,7 +557,7 @@ class ProductsPlanController extends Controller
         return Response($lines, 200);
     }
 
-    private function processPacks(Request $request, array $pack_ids, ProductsPlan $plan): array
+    private static function processPacks(Request $request, array $pack_ids, ProductsPlan $plan): array
     {
         // Задержка от начала варки
         $delay = $request->post('delay');
@@ -624,7 +641,7 @@ class ProductsPlanController extends Controller
                     $line_id = $packPlan->slot->line_id;
                     $order = array_replace(
                         $order,
-                        $this->checkPlans($request, $line_id),
+                        self::checkPlans($request, $line_id),
                         [$line_id => self::getByLine($line_id, $request)]
                     );
                 }
@@ -667,7 +684,7 @@ class ProductsPlanController extends Controller
 
             $order = array_replace(
                 $order,
-                $this->checkPlans($request, $line_id),
+                self::checkPlans($request, $line_id),
                 [$line_id => self::getByLine($line_id, $request)],
             );
 
@@ -680,13 +697,14 @@ class ProductsPlanController extends Controller
             ->orderBy('ended_at', 'DESC')
             ->get();
 
-        if ($plans->isNotEmpty()) {
-            // Находим самое позднее окончание планов
-            // Можем закончить раннее упаковки, но не можем закончить позже 
-            // варки, обсыпки, глазировки или опудривания
-            $latestPlan = $plans
-                ->filter(fn($q) => $q->slot->line_id != 37)
-                ->first();
+        // Находим самое позднее окончание планов
+        // Можем закончить раннее упаковки, но не можем закончить позже 
+        // варки, обсыпки, глазировки или опудривания
+        $latestPlan = $plans
+            ->filter(fn($q) => $q->slot->type_id == 5 || $q->slot->type_id == 3)
+            ->first();
+
+        if ($latestPlan) {
             $latest = Carbon::parse(
                 $latestPlan->ended_at
             );
@@ -707,7 +725,7 @@ class ProductsPlanController extends Controller
 
                         $order = array_replace(
                             $order,
-                            $this->checkPlans($request, $line_id),
+                            self::checkPlans($request, $line_id),
                             [$line_id => self::getByLine($line_id, $request)],
                         );
                     }
@@ -717,7 +735,7 @@ class ProductsPlanController extends Controller
         return $order;
     }
 
-    private function getByLine(int $line_id, Request $request): array
+    private static function getByLine(int $line_id, Request $request): array
     {
         return ProductsPlan::whereHas('slot', function ($query) use ($line_id) {
             $query->where('line_id', $line_id);

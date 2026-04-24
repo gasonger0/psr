@@ -116,6 +116,15 @@ export const usePlansStore = defineStore("productsPlans", () => {
         await putRequest('/api/plans/update', unserialize(data, packs),
             (r: AxiosResponse) => {
                 if (r.data.plansOrder) {
+                    // Удаляем старые слоты 
+                    const oldSlots = plans.value.filter(el => el.parent == r.data.plan_product_id);
+                    plans.value = plans.value.filter(el => !oldSlots.includes(el));
+                    oldSlots.forEach(el => {
+                        const slot = useProductsSlotsStore().getById(el.slot_id);
+                        const line = useLinesStore().getByID(slot.line_id);
+                        line.has_plans = ref(true);
+                        useLinesStore().updateVersion(line.line_id);
+                    })
                     let date = sessionStorage.getItem('date'),
                         isDay = sessionStorage.getItem('isDay');
                     for (let i in r.data.plansOrder) {
