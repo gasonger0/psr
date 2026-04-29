@@ -56,7 +56,7 @@ class ProductsPlanController extends Controller
         if ($pack = $request->post('packs')) {
             $order = array_replace(
                 $order,
-                $this->processPacks($request, $pack, $plan)
+                $this->processPacks($request, $pack, $plan, $request->post('delay'), $request->post('amount'))
             );
         }
 
@@ -115,7 +115,7 @@ class ProductsPlanController extends Controller
             if ($pack) {
                 $order = array_replace(
                     $order,
-                    $this->processPacks($request, $pack, $plan)
+                    $this->processPacks($request, $pack, $plan, $request->post('delay'), $request->post('amount'))
                 );
             }
 
@@ -324,7 +324,7 @@ class ProductsPlanController extends Controller
             if ($pack) {
                 $order = array_replace(
                     $order,
-                    self::processPacks($request, $pack, $pl)
+                    self::processPacks($request, $pack, $pl, $pl->delay, $pl->amount)
                 );
             }
 
@@ -334,7 +334,7 @@ class ProductsPlanController extends Controller
                 })->withSession($request)
                 ->orderBy('started_at', 'ASC')
                 ->orderBy('plan_product_id', 'DESC')
-                ->each(function ($p) use (&$order, $request, $as_model) {                                  
+                ->each(function ($p) use (&$order, $request, $as_model) {
                     $order = array_replace(
                         $order,
                         self::checkPlans($request, $p->slot->line_id, $as_model)
@@ -367,11 +367,14 @@ class ProductsPlanController extends Controller
             if ($plan->slot->type_id == 1) {
                 // Обновляем модель
                 $plan->update($item);
+                $order = array_replace(
+                    $order,
+                    $this->checkPlans($request, $plan->slot->line_id)
+                );
                 // Список планов по упаковке, привязанных к текущему плану
                 ProductsPlan::where('parent', $plan->plan_product_id)
                     ->withSession($request)
                     ->each(function ($pack) use ($plan, $request, &$order) {
-
                         // Получаем длительность в минутах
                         $duration = abs(Carbon::parse($pack->ended_at)
                             ->diffInMinutes(
@@ -457,10 +460,13 @@ class ProductsPlanController extends Controller
                     case 5:
                         // Обновляем глазировку и последующую упаковку
                         $plan->update($item);
-                        $order = $this->checkPlans($request, $plan->slot->line_id);
+                        $order = array_replace(
+                            $order,
+                            $this->checkPlans($request, $plan->slot->line_id)
+                        );
 
                         $packs = ProductsPlan::where('parent', $plan->parent)
-                            ->whereHas('slot', fn($q) => $q->where('type_id', 2))
+                            ->whereHas('slot', fn($q) => $q->where('type_id', 2)->where('line_id', '!=', 37))
                             ->with('slot')
                             ->get();
 
@@ -557,14 +563,15 @@ class ProductsPlanController extends Controller
         return Response($lines, 200);
     }
 
-    private static function processPacks(Request $request, array $pack_ids, ProductsPlan $plan): array
+    private static function processPacks(
+        Request $request, 
+        array $pack_ids, 
+        ProductsPlan $plan,
+        int $delay,
+        int $amount): array
     {
-        // Задержка от начала варки
-        $delay = $request->post('delay');
         // Продукция
         $product = ProductsDictionary::find($plan->slot->product_id);
-        // И объём
-        $amount = $request->post('amount');
         $order = [];
 
         $packsGlazCheck = [];

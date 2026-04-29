@@ -553,7 +553,7 @@ onUnmounted(() => {
                     </div>
                 </div>
                 <!-- Настройки упаковки -->
-                <div v-if="(state.slot.type_id !== 2 || state.line.line_id == 31) && (state.packOptions.length || state.zmOptions.length)"
+                <div v-if="state.slot.type_id == 1 && state.line.line_id == 31 && (state.packOptions.length || state.zmOptions.length)"
                     class="form-section">
                     <Checkbox v-model:checked="state.showPack" :disabled="state.isLoading">
                         Сгенерировать план упаковки

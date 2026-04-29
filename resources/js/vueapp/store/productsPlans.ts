@@ -36,17 +36,23 @@ export const usePlansStore = defineStore("productsPlans", () => {
     }
 
     async function _delete(plan: ProductPlan) {
-        useModalsStore().boils[plan.plan_product_id] = 0;
-        // TODO добавить обработку полученных с бэкенда планов
-        await deleteRequest('/api/plans/delete', plan,
-            (r: AxiosResponse) => {
-                splice(plan.plan_product_id);
-                plans.value.filter(el => el.parent == plan.plan_product_id).forEach(i => {
-                    splice(i.plan_product_id)
-                    useLinesStore().updateVersion(useProductsSlotsStore().getById(i.slot_id).line_id);
-                });
-            }
-        )
+        if (plan.plan_product_id === undefined) {
+            console.log("Попытка удалить план без ИД")
+            return;
+        } else {
+            useModalsStore().boils[plan.plan_product_id] = 0;
+            // TODO добавить обработку полученных с бэкенда планов
+            await deleteRequest('/api/plans/delete', plan,
+                (r: AxiosResponse) => {
+                    splice(plan.plan_product_id!);
+                    plans.value.filter(el => el.parent == plan.plan_product_id).forEach(i => {
+                        splice(i.plan_product_id!)
+                        const { line_id } = useProductsSlotsStore().getById(i.slot_id)!;
+                        useLinesStore().updateVersion(line_id);
+                    });
+                }
+            )
+        }
     }
 
     async function _change(data: ProductPlan[]) {
@@ -61,13 +67,18 @@ export const usePlansStore = defineStore("productsPlans", () => {
                 if (r.data) {
                     let date = sessionStorage.getItem('date'),
                         isDay = sessionStorage.getItem('isDay');
+                    console.log(r.data);
                     for (let i in r.data) {
-                        let pls = r.data[i].filter(el => el.date == date && el.isDay == isDay);
+                        console.log(i, r.data[i]);
+                        let pls = r.data[i].filter((el: any) => el.date == date && el.isDay == isDay);
                         let line = useLinesStore().getByID(Number(i))!;
+                        console.log(line);
                         line.has_plans = ref(true);
                         plans.value = plans.value.filter(el => useProductsSlotsStore().getById(el.slot_id).line_id != line.line_id);
-                        updateTimes(pls);
-                        useLinesStore().updateVersion(line.line_id);
+                        plans.value.push(...pls.map(el => serialize(el)));
+                        console.log("updated times", plans.value);
+                        useLinesStore().updateVersion(Number(i));
+                        console.log("Plan updated")
                     }
                 }
                 // data.forEach((el: ProductPlan) => {
@@ -101,7 +112,7 @@ export const usePlansStore = defineStore("productsPlans", () => {
                         if (line) {
                             line.has_plans = ref(true);
                             plans.value = plans.value.filter(el => useProductsSlotsStore().getById(el.slot_id).line_id != line.line_id);
-                            updateTimes(pls);
+                            plans.value.push(...pls.map(el => serialize(el)));
                             useLinesStore().updateVersion(line.line_id);
                         } else {
                             console.log("Can't find line for id" + i, line);
@@ -132,7 +143,7 @@ export const usePlansStore = defineStore("productsPlans", () => {
                         let line = useLinesStore().getByID(Number(i));
                         line.has_plans = ref(true);
                         plans.value = plans.value.filter(el => useProductsSlotsStore().getById(el.slot_id).line_id != line.line_id);
-                        updateTimes(pls);
+                        plans.value.push(...pls.map(el => serialize(el)));
                         useLinesStore().updateVersion(line.line_id);
                     }
                 }
@@ -178,22 +189,8 @@ export const usePlansStore = defineStore("productsPlans", () => {
                 return a.started_at.unix() - b.started_at.unix()
             }) : [];
     }
-    function updateTimes(data: Array<any>) {
-        data.forEach(el => {
-            // Пробуем объём и слот вместо ИД, чтобы избежать задвоения
-            let pl = plans.value.find((i: ProductPlan) => i.amount == el.amount && i.slot_id == el.slot_id && el.plan_product_id == i.plan_product_id);
-            let index = plans.value.indexOf(pl);
-            if (index != -1) {
-                plans.value[index] = serialize(el);
-            } else {
-                plans.value.push(serialize(el));
-            }
-            // pl = serialize(el);÷
-            // TODO обновлять линию походу надо
-        });
-    }
     function getActiveSlots(product_id: number): Array<number> {
-        let ids = [];
+        let ids: number[] = [];
         plans.value.forEach((el: ProductPlan) => {
             let product = useProductsSlotsStore().getById(el.slot_id);
             if (product && product.product_id == product_id) {
@@ -207,7 +204,8 @@ export const usePlansStore = defineStore("productsPlans", () => {
     function getAmountFact(slot_ids: Array<number>, stage_id: number): number {
         let pls = plans.value.filter((el: ProductPlan) => slot_ids.includes(el.slot_id));
         return pls.reduce((accum, curVal) => {
-            return accum += useProductsSlotsStore().getById(curVal.slot_id).type_id == stage_id ? curVal.amount : 0
+            const { type_id } = useProductsSlotsStore().getById(curVal.slot_id)!;
+            return accum += (type_id == stage_id ? curVal.amount : 0);
         }, 0);
     }
     function splice(id: number): void {
@@ -221,7 +219,7 @@ export const usePlansStore = defineStore("productsPlans", () => {
         plan.started_at = dayjs.default(plan.started_at),
             plan.ended_at = dayjs.default(plan.ended_at),
             plan.colon = ref(plan.colon);
-        let slot = useProductsSlotsStore().getById(plan.slot_id);
+        let slot = useProductsSlotsStore().getById(plan.slot_id)!;
         let line = useLinesStore().getByID(slot.line_id);
         line.has_plans = ref(true);
         return plan as ProductPlan;
