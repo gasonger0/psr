@@ -6,11 +6,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Производственная система</title>
     <link href="/favicoSokol.png" rel="icon">
-    <!-- <script type="module" src="/build/assets/app-DdKfveFM.js"></script>
+    <script type="module" src="/build/assets/app-C7qa_NxJ.js"></script>
     <link rel="stylesheet" href="/build/assets/app-BRpoSjuE.css">
-    <link rel="stylesheet" href="/build/assets/app-CdDohUVQ.css"> -->
-    <!-- <link rel="manifest" href="/build/manifest.json"> -->
-    @vite(['resources/js/app.js', 'resources/css/app.css'])
+    <link rel="stylesheet" href="/build/assets/app-D4TlJ59c.css">
+    <link rel="manifest" href="/build/manifest.json">
+    <!-- @vite(['resources/js/app.js', 'resources/css/app.css']) -->
 </head>
 
 <body>
