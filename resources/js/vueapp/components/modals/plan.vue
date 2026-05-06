@@ -574,7 +574,7 @@ onUnmounted(() => {
                                 :disabled="state.isLoading" v-if="state.zmOptions.length > 0" />
 
                             <CheckboxGroup v-model:value="state.packs" :options="state.packOptions"
-                                :disabled="state.isLoading" />
+                                :disabled="state.isLoading" class="pack-check"/>
                         </div>
                     </div>
                 </div>

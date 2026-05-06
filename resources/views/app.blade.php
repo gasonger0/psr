@@ -6,9 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Производственная система</title>
     <link href="/favicoSokol.png" rel="icon">
-    <script type="module" src="/build/assets/app-C7qa_NxJ.js"></script>
-    <link rel="stylesheet" href="/build/assets/app-BRpoSjuE.css">
-    <link rel="stylesheet" href="/build/assets/app-D4TlJ59c.css">
+    <script type="module" src="/build/assets/app-7773xq-v.js"></script>
+    <link rel="stylesheet" href="/build/assets/app-BPrQMfss.css">
+    <link rel="stylesheet" href="/build/assets/app-Dc-ju-fW.css">
     <link rel="manifest" href="/build/manifest.json">
     <!-- @vite(['resources/js/app.js', 'resources/css/app.css']) -->
 </head>

@@ -14,6 +14,7 @@ use DateTime;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
+use Log;
 
 class ProductsPlanController extends Controller
 {
@@ -61,6 +62,10 @@ class ProductsPlanController extends Controller
         }
 
         LinesController::updateLinesTime($order);
+
+        Log::info("Create plan request:", $request->post());
+        Log::info("Create plan response:", $order);
+
         return Util::successMsg($plan->toArray() + [
             'packs' => ProductsPlan::withSession($request)->where('parent', $plan->plan_product_id)->get(),
             'plansOrder' => $order
@@ -215,6 +220,9 @@ class ProductsPlanController extends Controller
             }
         }
 
+        Log::info("Update plan request:", $request->post());
+        Log::info("Update plan response:", $order);
+
         LinesController::updateLinesTime($order);
         return Util::successMsg($plan->toArray() + [
             'plansOrder' => $order
@@ -240,6 +248,7 @@ class ProductsPlanController extends Controller
             $line_ids[$pack->slot->line_id] = ProductsPlanController::getByLine($pack->slot->line_id, $request);
         });
 
+        Log::info("Delete plan request:", $request->post());
 
         // TODO
         LinesController::updateLinesTime($line_ids);
@@ -496,6 +505,9 @@ class ProductsPlanController extends Controller
             }
         }
 
+        Log::info("Change plan request:", $request->post());
+        Log::info("Change plan response:", $order);
+
         LinesController::updateLinesTime($order);
         // Обновляённый порядок
         return Util::successMsg($order, 202);
@@ -559,6 +571,8 @@ class ProductsPlanController extends Controller
             $default['line_id'] = $line->line_id;
             $lines[] = $default;
         });
+        
+        Log::info("Cleared plan");
 
         return Response($lines, 200);
     }
