@@ -263,9 +263,6 @@ class ProductsPlanController extends Controller
      * @param \App\Models\ProductsPlan $plan план по изготовлению
      * @return bool
      */
-    /**
-     * Проверка планов на коллизию и автоматический сдвиг
-     */
     public static function checkPlans(Request $request, int $lineId, bool $as_model = false): array
     {
         $allPlans = ProductsPlan::whereHas('slot', function ($query) use ($lineId) {
@@ -367,19 +364,25 @@ class ProductsPlanController extends Controller
             return Util::errorMsg('Нет записей для смены порядка.', 404);
         }
 
+        $baselineId = 0;
         $order = [];
-
+        Log::info("Change plan request:", $request->post());
+        Log::debug("Starting cycle of change");
         foreach ($request->post() as $item) {
             // Находим план по ИД
             $plan = ProductsPlan::find($item['plan_product_id']);
-
+            if ($baselineId == 0) {
+                $baselineId = $plan->slot->line_id;
+            }
             if ($plan->slot->type_id == 1) {
                 // Обновляем модель
                 $plan->update($item);
-                $order = array_replace(
-                    $order,
-                    $this->checkPlans($request, $plan->slot->line_id)
-                );
+                $plan->save();
+                // $order = array_replace(
+                //     $order,
+                //     $this->checkPlans($request, $plan->slot->line_id)
+                // );
+
                 // Список планов по упаковке, привязанных к текущему плану
                 ProductsPlan::where('parent', $plan->plan_product_id)
                     ->withSession($request)
@@ -391,19 +394,23 @@ class ProductsPlanController extends Controller
                             ));
 
                         $newStart = Carbon::parse($plan->started_at)->addMinutes($plan->delay);
-
+                        Log::debug("Changing pack prev:", $pack->toArray());
                         // Обновляем данные в модели
                         $pack->update([
                             'started_at' => $newStart,
                             'ended_at' => ($newStart->copy())->addMinutes($duration)
                         ]);
+                        $pack->save();
+
+                        Log::debug("Changing pack, post:", $pack->toArray());
+
 
                         $lineId = $pack->slot->line_id;
                         // Проверка
                         $order = array_replace(
                             $order,
-                            self::checkPlans($request, $lineId),
-                            [$lineId => self::getByLine($lineId, $request)]
+                            self::checkPlans($request, $lineId)
+                            // [$lineId => self::getByLine($lineId, $request)]
                         );
                     });
             } else {
@@ -505,8 +512,7 @@ class ProductsPlanController extends Controller
             }
         }
 
-        Log::info("Change plan request:", $request->post());
-        Log::info("Change plan response:", $order);
+        $order[$baselineId] = $this->getByLine($baselineId, $request);
 
         LinesController::updateLinesTime($order);
         // Обновляённый порядок
@@ -571,19 +577,19 @@ class ProductsPlanController extends Controller
             $default['line_id'] = $line->line_id;
             $lines[] = $default;
         });
-        
+
         Log::info("Cleared plan");
 
         return Response($lines, 200);
     }
 
     private static function processPacks(
-        Request $request, 
-        array $pack_ids, 
+        Request $request,
+        array $pack_ids,
         ProductsPlan $plan,
         int $delay,
-        int $amount): array
-    {
+        int $amount
+    ): array {
         // Продукция
         $product = ProductsDictionary::find($plan->slot->product_id);
         $order = [];
