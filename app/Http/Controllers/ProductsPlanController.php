@@ -278,10 +278,6 @@ class ProductsPlanController extends Controller
             return $order;
         }
 
-
-        // Считаем длительности для контроля и ищем налезания
-        $prevPlan = null;
-
         for ($i = 0; $i < count($allPlans); $i++) {
             $pl = $allPlans[$i];
 
@@ -294,29 +290,55 @@ class ProductsPlanController extends Controller
             $topShift = null;
 
             // Считаем сдвиги
-            if (
-                !$topShift &&
-                $pl->ended_at > $prevPlan->started_at &&
-                $prevPlan->started_at > $pl->started_at
+            /**
+             * @var Carbon $prev_start
+             */
+            $prev_start = Carbon::parse($prevPlan->started_at);
+            /**
+             * @var Carbon $prev_end
+             */
+            $prev_end = Carbon::parse($prevPlan->ended_at);
+            /**
+             * @var Carbon $cur_start
+             */
+            $cur_start = Carbon::parse($pl->started_at);
+            /**
+             * @var Carbon $cur_end
+             */
+            $cur_end = Carbon::parse($pl->ended_at);
+            
+            if (    
+                $cur_end > $prev_start &&
+                $cur_start < $prev_start
             ) {
-                $topShift = Carbon::parse($prevPlan->started_at)->diffInMinutes($pl->ended_at);
-            } else if (Carbon::parse($prevPlan->started_at)->diffInMinutes($pl->started_at) < 1) {
-                $topShift = abs(Carbon::parse($prevPlan->started_at)->diffInMinutes($prevPlan->ended_at));
-            } else if ($pl->started_at < $prevPlan->ended_at && $pl->started_at > $prevPlan->started_at) {
-                $topShift = abs(Carbon::parse($prevPlan->ended_at)->diffInMinutes($pl->started_at));
+                if ($cur_start < $prev_start) {
+                    $topShift = abs($prev_end->diffInMinutes($cur_start));
+                } else {
+                    Log::info("'ELSE' case:", [
+                        'prev_start' => $prev_start,
+                        'prev_end' => $prev_end,
+                        'cur_start' => $cur_start,
+                        'cur_end' => $cur_end
+                    ]);
+                    $topShift = $prev_start->diffInMinutes($cur_end);
+                }
+            } else if ($prev_start->diffInMinutes($cur_start) < 1) {
+                $topShift = abs($prev_start->diffInMinutes($prev_end));
+            } else if ($cur_start < $prev_end && $cur_start > $prev_start) {
+                $topShift = abs($prev_end->diffInMinutes($cur_start));
             }
 
 
             // Применяем сдвиги, если они посчитаны
             if ($topShift != null) {
                 $pl->update([
-                    'started_at' => Carbon::parse($pl->started_at)->addMinutes($topShift),
-                    'ended_at' => Carbon::parse($pl->ended_at)->addMinutes($topShift)
+                    'started_at' => $cur_start->addMinutes($topShift),
+                    'ended_at' => $cur_end->addMinutes($topShift)
                 ]);
             }
 
             $allPlans[$i] = $pl;
-
+            Log::info("After change of col:", $allPlans->toArray());
             // Если есть дочерние продукции - мы их обновляем через processPacks
             // Удаляем упаковки по данной продукции
             $pack = [];
@@ -349,6 +371,7 @@ class ProductsPlanController extends Controller
 
         }
 
+
         return $order;
     }
 
@@ -367,7 +390,7 @@ class ProductsPlanController extends Controller
         $baselineId = 0;
         $order = [];
         Log::info("Change plan request:", $request->post());
-        Log::debug("Starting cycle of change");
+        Log::info("Starting cycle of change");
         foreach ($request->post() as $item) {
             // Находим план по ИД
             $plan = ProductsPlan::find($item['plan_product_id']);
@@ -394,7 +417,7 @@ class ProductsPlanController extends Controller
                             ));
 
                         $newStart = Carbon::parse($plan->started_at)->addMinutes($plan->delay);
-                        Log::debug("Changing pack prev:", $pack->toArray());
+                        Log::info("Changing pack prev:", $pack->toArray());
                         // Обновляем данные в модели
                         $pack->update([
                             'started_at' => $newStart,
@@ -402,7 +425,7 @@ class ProductsPlanController extends Controller
                         ]);
                         $pack->save();
 
-                        Log::debug("Changing pack, post:", $pack->toArray());
+                        Log::info("Changing pack, post:", $pack->toArray());
 
 
                         $lineId = $pack->slot->line_id;
