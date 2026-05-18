@@ -22,6 +22,7 @@ const linesStore = useLinesStore();
 const plansStore = usePlansStore();
 const slotsStore = useProductsSlotsStore();
 const modal = useModalsStore();
+let draggedProductElement: Ref<HTMLElement | null> = ref(null);
 
 const showList: Ref<boolean> = ref(false);
 const hideEmpty: Ref<boolean> = ref(false);
@@ -37,6 +38,14 @@ const handleCardChange = (success: boolean) => {
         if (isNewPlan.value) {
             plansStore.removeLast();
             isNewPlan.value = false;
+            // Restore the dragged product card to the products line
+            if (draggedProductElement.value) {
+                const productsLine = document.querySelector('.line[data-id="-1"] .line_items.products');
+                if (productsLine && !productsLine.contains(draggedProductElement.value)) {
+                    productsLine.prepend(draggedProductElement.value);
+                }
+                draggedProductElement.value = null;
+            }
         }
         return;
     }
@@ -45,6 +54,8 @@ const handleCardChange = (success: boolean) => {
     linesStore.updateVersion(line_id);
     activePlan.value = null;
     isNewPlan.value = false;
+    draggedProductElement.value = null;
+
 }
 
 const hideProducts = () => {
@@ -91,6 +102,7 @@ onUpdated(async () => {
             active.value = target;
             if (target.closest('.line').getAttribute('data-id') == "-1") {
                 isNewPlan.value = true;
+                draggedProductElement.value = target;
                 document.querySelectorAll('.line').forEach(el => {
                     el.classList.add('hidden-hard');
                 });
