@@ -309,23 +309,16 @@ class ProductsPlanController extends Controller
             
             if (    
                 $cur_end > $prev_start &&
+                $cur_start < $prev_start &&
                 $cur_start < $prev_start
             ) {
-                if ($cur_start < $prev_start) {
-                    $topShift = abs($prev_end->diffInMinutes($cur_start));
-                } else {
-                    Log::info("'ELSE' case:", [
-                        'prev_start' => $prev_start,
-                        'prev_end' => $prev_end,
-                        'cur_start' => $cur_start,
-                        'cur_end' => $cur_end
-                    ]);
-                    $topShift = $prev_start->diffInMinutes($cur_end);
-                }
-            } else if ($prev_start->diffInMinutes($cur_start) < 1) {
-                $topShift = abs($prev_start->diffInMinutes($prev_end));
+                $topShift = abs($prev_end->diffInMinutes($cur_start));
+            } else if ($prev_start > $cur_end && $prev_end > $cur_end) { 
+                $topShift = abs($prev_end->diffInMinutes($cur_start));
             } else if ($cur_start < $prev_end && $cur_start > $prev_start) {
                 $topShift = abs($prev_end->diffInMinutes($cur_start));
+            } else if (abs($prev_start->diffInMinutes($cur_start)) < 1) {
+                $topShift = abs($prev_start->diffInMinutes($prev_end));
             }
 
 
