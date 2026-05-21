@@ -52,12 +52,27 @@ class ProductsPlanController extends Controller
             $this->checkPlans($request, $line_id),
             [$line_id => self::getByLine($line_id, $request)]
         );
+        $previousPlans = [];
+
+        foreach ($order[$line_id] as $pl) {
+            if ($pl["plan_product_id"] == $plan->plan_product_id) {
+                break;
+            }
+            $previousPlans[] = $pl["plan_product_id"];
+        }
 
         // Если задана упаковка... 
         if ($pack = $request->post('packs')) {
             $order = array_replace(
                 $order,
-                $this->processPacks($request, $pack, $plan, $request->post('delay'), $request->post('amount'))
+                $this->processPacks(
+                    $request,
+                    $pack,
+                    $plan,
+                    $request->post('delay'),
+                    $request->post('amount'),
+                    $previousPlans
+                )
             );
         }
 
@@ -306,14 +321,14 @@ class ProductsPlanController extends Controller
              * @var Carbon $cur_end
              */
             $cur_end = Carbon::parse($pl->ended_at);
-            
-            if (    
+
+            if (
                 $cur_end > $prev_start &&
                 $cur_start < $prev_start &&
                 $cur_start < $prev_start
             ) {
                 $topShift = abs($prev_end->diffInMinutes($cur_start));
-            } else if ($prev_start > $cur_end && $prev_end > $cur_end) { 
+            } else if ($prev_start > $cur_end && $prev_end > $cur_end) {
                 $topShift = abs($prev_end->diffInMinutes($cur_start));
             } else if ($cur_start < $prev_end && $cur_start > $prev_start) {
                 $topShift = abs($prev_end->diffInMinutes($cur_start));
@@ -331,7 +346,7 @@ class ProductsPlanController extends Controller
             }
 
             $allPlans[$i] = $pl;
-            Log::info("After change of col:", $allPlans->toArray());
+            Log::info("After change of col: $lineId", $allPlans->toArray());
             // Если есть дочерние продукции - мы их обновляем через processPacks
             // Удаляем упаковки по данной продукции
             $pack = [];
@@ -604,7 +619,8 @@ class ProductsPlanController extends Controller
         array $pack_ids,
         ProductsPlan $plan,
         int $delay,
-        int $amount
+        int $amount,
+        array $previousPlans = []
     ): array {
         // Продукция
         $product = ProductsDictionary::find($plan->slot->product_id);
@@ -666,6 +682,25 @@ class ProductsPlanController extends Controller
                     $ended_at = Carbon::parse($plan->ended_at);
                 }
 
+                if ($slot->type_id != 1 && count($previousPlans) > 0) {
+                    // Получаем планы по переданным ИД
+                    $previousPlan = ProductsPlan::withSession($request)
+                        ->whereHas(
+                            "slot",
+                            fn($q) => $q
+                                ->whereIn('product_id', $previousPlans)
+                                ->where('line_id', $slot->line_id)
+                        )
+                        ->orderBy('started_at', 'DESC')
+                        ->first();
+
+                    if ($previousPlan && $start < Carbon::parse($previousPlan->started_at)) {
+                        $shift = abs(Carbon::parse($previousPlan->started_at)->diffInMinutes($start));
+                        $start->addMinutes($shift);
+                        $ended_at->addMinutes($shift);
+                    }
+
+                }
                 $packPlan = ProductsPlan::create(
                     [
                         'product_id' => $product->product_id,
