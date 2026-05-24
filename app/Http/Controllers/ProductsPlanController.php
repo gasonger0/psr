@@ -52,14 +52,17 @@ class ProductsPlanController extends Controller
             $this->checkPlans($request, $line_id),
             [$line_id => self::getByLine($line_id, $request)]
         );
-        $previousPlans = [];
 
-        foreach ($order[$line_id] as $pl) {
-            if ($pl["plan_product_id"] == $plan->plan_product_id) {
-                break;
-            }
-            $previousPlans[] = $pl["plan_product_id"];
-        }
+        $previousPlans = ProductsPlan::join(
+            'products_slots',
+            'products_plan.slot_id',
+            '=',
+            'products_slots.product_slot_id'
+        )
+            ->withSession($request)
+            ->where('products_plan.started_at', '<', $plan->started_at)
+            ->pluck('products_slots.product_id')
+            ->toArray();
 
         // Если задана упаковка... 
         if ($pack = $request->post('packs')) {
@@ -77,9 +80,6 @@ class ProductsPlanController extends Controller
         }
 
         LinesController::updateLinesTime($order);
-
-        Log::info("Create plan request:", $request->post());
-        Log::info("Create plan response:", $order);
 
         return Util::successMsg($plan->toArray() + [
             'packs' => ProductsPlan::withSession($request)->where('parent', $plan->plan_product_id)->get(),
@@ -132,10 +132,28 @@ class ProductsPlanController extends Controller
                     $el->delete();
                 });
 
+            $previousPlans = ProductsPlan::join(
+                'products_slots',
+                'products_plan.slot_id',
+                '=',
+                'products_slots.product_slot_id'
+            )
+                ->withSession($request)
+                ->where('products_plan.started_at', '<', $plan->started_at)
+                ->pluck('products_slots.product_id')
+                ->toArray();
+
             if ($pack) {
                 $order = array_replace(
                     $order,
-                    $this->processPacks($request, $pack, $plan, $request->post('delay'), $request->post('amount'))
+                    $this->processPacks(
+                        $request, 
+                        $pack, 
+                        $plan, 
+                        $request->post('delay'), 
+                        $request->post('amount'),
+                        $previousPlans
+                    )
                 );
             }
 
@@ -694,12 +712,13 @@ class ProductsPlanController extends Controller
                         ->orderBy('started_at', 'DESC')
                         ->first();
 
+                    Log::info("Check:", [$previousPlans, $previousPlan, $start->toString()]);
                     if ($previousPlan && $start < Carbon::parse($previousPlan->started_at)) {
                         $shift = abs(Carbon::parse($previousPlan->started_at)->diffInMinutes($start));
                         $start->addMinutes($shift);
                         $ended_at->addMinutes($shift);
+                        Log::info("Shifting:", [$previousPlans, $slot->toArray(), $shift]);
                     }
-
                 }
                 $packPlan = ProductsPlan::create(
                     [
