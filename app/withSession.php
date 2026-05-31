@@ -21,7 +21,8 @@ trait withSession
             'isDay' => $request->attributes->get('isDay') ?? null
         ] : $request;
 
-        $query->where('date', $data['date'])->where('isDay', $data['isDay']);
+        $table = $query->getModel()->getTable();
+        $query->where($table . '.date', $data['date'])->where($table . '.isDay', $data['isDay']);
         return $query;
     }
 }

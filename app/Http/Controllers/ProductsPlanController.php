@@ -303,8 +303,11 @@ class ProductsPlanController extends Controller
             $query->where('line_id', $lineId);
         })->withSession($request)
             ->with('slot')
-            ->orderBy('started_at', 'ASC')
-            ->orderBy('plan_product_id', 'DESC')
+            ->leftJoin('products_plan as parent_plan', 'products_plan.parent', '=', 'parent_plan.plan_product_id')
+            ->select('products_plan.*')
+            ->orderBy('products_plan.started_at', 'ASC')
+            ->orderBy('parent_plan.started_at', 'ASC')  // порядок родителя для дочерних планов
+            ->orderBy('products_plan.plan_product_id', 'DESC')
             ->get();
 
         $order = [$lineId => ($as_model ? $allPlans : $allPlans->toArray())];
