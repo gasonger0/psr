@@ -14,15 +14,19 @@ trait withSession
      * @param array $params [ключ => значение]
      * @return Builder
      */
-    public function scopeWithSession($query, Request|array $request)
+    public function scopeWithSession($query, Request|array $request, $useTable = false)
     {
         $data = $request instanceof Request ? [
             'date' => $request->attributes->get('date') ?? null,
             'isDay' => $request->attributes->get('isDay') ?? null
         ] : $request;
 
+        if ($useTable) {
         $table = $query->getModel()->getTable();
         $query->where($table . '.date', $data['date'])->where($table . '.isDay', $data['isDay']);
+        } else {
+            $query->where('date', $data['date'])->where('isDay', $data['isDay']);
+        }
         return $query;
     }
 }

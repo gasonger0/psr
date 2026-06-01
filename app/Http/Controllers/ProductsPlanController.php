@@ -306,7 +306,7 @@ class ProductsPlanController extends Controller
     {
         $allPlans = ProductsPlan::whereHas('slot', function ($query) use ($lineId) {
             $query->where('line_id', $lineId);
-        })->withSession($request)
+        })->withSession($request, true)
             ->with('slot')
             ->leftJoin('products_plan as parent_plan', 'products_plan.parent', '=', 'parent_plan.plan_product_id')
             ->select('products_plan.*')
