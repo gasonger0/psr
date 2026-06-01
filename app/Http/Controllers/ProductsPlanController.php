@@ -9,12 +9,10 @@ use App\Models\ProductsSlots;
 use App\Models\ProductsDictionary;
 use App\Util;
 use Carbon\Carbon;
-use Date;
-use DateTime;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
-use Log;
+use Illuminate\Support\Facades\Log;
 
 class ProductsPlanController extends Controller
 {
@@ -78,6 +76,9 @@ class ProductsPlanController extends Controller
                 )
             );
         }
+
+        // Валидация дочерних планов после перестановок
+        $order = self::validateAndFixChildPlans($request, $order);
 
         LinesController::updateLinesTime($order);
         Log::info("Response:", $order);
@@ -257,7 +258,11 @@ class ProductsPlanController extends Controller
         Log::info("Update plan request:", $request->post());
         Log::info("Update plan response:", $order);
 
+        // Валидация дочерних планов после перестановок
+        $order = self::validateAndFixChildPlans($request, $order);
+
         LinesController::updateLinesTime($order);
+        $plan->refresh();
         return Util::successMsg($plan->toArray() + [
             'plansOrder' => $order
         ], 200);
@@ -556,6 +561,9 @@ class ProductsPlanController extends Controller
 
         $order[$baselineId] = $this->getByLine($baselineId, $request);
 
+        // Валидация дочерних планов после перестановок
+        $order = self::validateAndFixChildPlans($request, $order);
+
         LinesController::updateLinesTime($order);
         // Обновляённый порядок
         return Util::successMsg($order, 202);
@@ -828,6 +836,151 @@ class ProductsPlanController extends Controller
                         );
                     }
                 });
+        }
+
+        return $order;
+    }
+
+    /**
+     * Валидация и исправление дочерних планов согласно правилам после перестановок в checkPlans:
+     * 1) Обсыпка (type_id=4) должна быть такой же длительности, как варка (type_id=1)
+     * 2) Упаковка (type_id=2) не может начаться раньше глазировки/опудривания и закончиться раньше них
+     * 3) Сборка ящиков (line_id=37) не может заканчиваться позже других этапов
+     * 
+     * @return array Обновлённый массив $order с пересчётом конфликтов на изменённых линиях
+     */
+    private static function validateAndFixChildPlans(Request $request, array $order): array
+    {
+        // Отслеживаем изменённые линии (кроме варки)
+        $changedLineIds = [];
+
+        // Получаем все планы варки (type_id = 1) текущей смены
+        $boilPlans = ProductsPlan::whereHas('slot', function ($query) {
+            $query->where('type_id', 1); // Варка
+        })->withSession($request)->get();
+
+        foreach ($boilPlans as $boilPlan) {
+            // Получаем все дочерние планы для этой варки
+            $childPlans = ProductsPlan::where('parent', $boilPlan->plan_product_id)
+                ->with('slot')
+                ->get()
+                ->keyBy(fn($p) => $p->slot->type_id);
+
+            // Правило 1: Обсыпка (type_id = 4) должна быть такой же длительности, как варка
+            if (isset($childPlans[4])) {
+                $boilDuration = abs(Carbon::parse($boilPlan->ended_at)
+                    ->diffInMinutes(Carbon::parse($boilPlan->started_at)));
+                
+                $childPlans[4]->update([
+                    'started_at' => $boilPlan->started_at,
+                    'ended_at' => Carbon::parse($boilPlan->started_at)->addMinutes($boilDuration)
+                ]);
+                $changedLineIds[] = $childPlans[4]->slot->line_id;
+            }
+
+            // Правило 2: Упаковка (type_id = 2) проверка
+            if (isset($childPlans[2])) {
+                $packaging = $childPlans[2];
+                
+                // Ищем глазировку (type_id=3) и опудривание (type_id=5)
+                $glazing = $childPlans[3] ?? null;
+                $spraying = $childPlans[5] ?? null;
+
+                // Берем более позднее из глазировки и опудривания
+                $latestGlazOrSpray = null;
+                $glaz_end = null;
+                $glaz_start = null;
+                
+                if ($glazing && $spraying) {
+                    $glaz_end_time = Carbon::parse($glazing->ended_at);
+                    $spray_end_time = Carbon::parse($spraying->ended_at);
+                    $latestGlazOrSpray = $glaz_end_time->isAfter($spray_end_time) ? $glazing : $spraying;
+                } elseif ($glazing) {
+                    $latestGlazOrSpray = $glazing;
+                } elseif ($spraying) {
+                    $latestGlazOrSpray = $spraying;
+                }
+
+                if ($latestGlazOrSpray) {
+                    $glaz_start = Carbon::parse($latestGlazOrSpray->started_at);
+                    $glaz_end = Carbon::parse($latestGlazOrSpray->ended_at);
+                    $pack_start = Carbon::parse($packaging->started_at);
+                    $pack_end = Carbon::parse($packaging->ended_at);
+
+                    $needsUpdate = false;
+
+                    // Упаковка не может начаться раньше глазировки/опудривания
+                    if ($pack_start->isBefore($glaz_start)) {
+                        $pack_start = $glaz_start->copy();
+                        $needsUpdate = true;
+                    }
+
+                    // Упаковка не может закончиться раньше глазировки/опудривания
+                    if ($pack_end->isBefore($glaz_end)) {
+                        $pack_end = $glaz_end->copy();
+                        $needsUpdate = true;
+                    }
+
+                    if ($needsUpdate) {
+                        $packaging->update([
+                            'started_at' => $pack_start,
+                            'ended_at' => $pack_end
+                        ]);
+                        $changedLineIds[] = $packaging->slot->line_id;
+                    }
+                }
+            }
+
+            // Правило 3: Сборка ящиков (line_id = 37) не может заканчиваться позже других этапов
+            $cratePlans = ProductsPlan::where('parent', $boilPlan->plan_product_id)
+                ->whereHas('slot', fn($q) => $q->where('line_id', 37))
+                ->with('slot')
+                ->get();
+
+            if ($cratePlans->isNotEmpty()) {
+                // Находим самое позднее окончание среди глазировки и опудривания
+                $latestEnd = null;
+                
+                if (isset($childPlans[3])) {
+                    $latestEnd = $childPlans[3]->ended_at;
+                }
+                if (isset($childPlans[5])) {
+                    $spray_end = $childPlans[5]->ended_at;
+                    if ($latestEnd === null || Carbon::parse($spray_end)->isAfter($latestEnd)) {
+                        $latestEnd = $spray_end;
+                    }
+                }
+
+                if ($latestEnd !== null) {
+                    foreach ($cratePlans as $crate) {
+                        $crate_end = Carbon::parse($crate->ended_at);
+                        
+                        if ($crate_end->isAfter($latestEnd)) {
+                            $crate->update([
+                                'ended_at' => $latestEnd
+                            ]);
+                            $changedLineIds[] = $crate->slot->line_id;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Проверяем конфликты на изменённых линиях (только те, что не варка)
+        foreach (array_unique($changedLineIds) as $lineId) {
+            // Проверяем, что это не линия варки (type_id != 1)
+            $lineHasBoil = ProductsPlan::whereHas('slot', function ($query) use ($lineId) {
+                $query->where('line_id', $lineId)->where('type_id', 1);
+            })->withSession($request)->exists();
+
+            if (!$lineHasBoil) {
+                // Вызываем checkPlans для этой линии
+                $order = array_replace(
+                    $order,
+                    self::checkPlans($request, $lineId),
+                    [$lineId => self::getByLine($lineId, $request)],
+                );
+            }
         }
 
         return $order;
