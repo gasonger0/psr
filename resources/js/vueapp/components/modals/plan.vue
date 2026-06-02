@@ -142,7 +142,7 @@ const changeTime = () => {
 
     // Вычисляем время окончания
     const hoursToAdd = time.value || 0;
-    const minutesToAdd = state.slot.type_id === 1 ? 10 : 15;
+    const minutesToAdd = 10;
 
     const newEndTime = startTime
         .add(hoursToAdd, 'hour')

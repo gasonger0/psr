@@ -200,7 +200,7 @@ class ProductsPlanController extends Controller
                             );
 
                             $ended_at = Carbon::parse($crate->start)->copy();
-                            $ended_at->addHours($duration)->addMinutes(15);
+                            $ended_at->addHours($duration)->addMinutes(10);
 
                             if ($ended_at->isAfter($latest['end'])) {
                                 $ended_at = $latest['end'];
@@ -238,7 +238,7 @@ class ProductsPlanController extends Controller
                         );
 
                         $start = Carbon::parse($plan->started_at);
-                        $end = $start->copy()->addHours($duration)->addMinutes(15);
+                        $end = $start->copy()->addHours($duration)->addMinutes(10);
                         if ($end->isAfter($plan->ended_at)) {
                             $end = $plan->ended_at;
                         }
@@ -501,7 +501,7 @@ class ProductsPlanController extends Controller
                                 );
 
                                 $ended_at = Carbon::parse($crate->start)->copy();
-                                $ended_at->addHours($duration)->addMinutes(15);
+                                $ended_at->addHours($duration)->addMinutes(10);
 
                                 if ($ended_at->isAfter($latest['end'])) {
                                     $ended_at = $latest['end'];
@@ -541,7 +541,7 @@ class ProductsPlanController extends Controller
                             );
 
                             $start = Carbon::parse($plan->started_at);
-                            $end = $start->copy()->addHours($duration)->addMinutes(15);
+                            $end = $start->copy()->addHours($duration)->addMinutes(10);
                             if ($end->isAfter($plan->ended_at)) {
                                 $end = $plan->ended_at;
                             }
@@ -658,7 +658,7 @@ class ProductsPlanController extends Controller
                  *    Упаковка не может закончиться ранне любого другого этапа.
                  *    Если заканчивает раньше - pack.ended_at = glaz.ended_at || pudra.ended_at.
                  * 
-                 * 5) НИ ОДИН ИЗ ЭТАПОВ НЕ МОЖЕТ КОНЧИТЬСЯ РАНЬШЕ, ЧЕМ boil.ended_at + delay + 15
+                 * 5) НИ ОДИН ИЗ ЭТАПОВ НЕ МОЖЕТ КОНЧИТЬСЯ РАНЬШЕ, ЧЕМ boil.ended_at + delay + 10
                  * 6) 
                  */
 
@@ -687,9 +687,9 @@ class ProductsPlanController extends Controller
 
                 // Считаем время окончания с учётом времени на переход
                 $ended_at = $start->copy();
-                $ended_at->addHours($duration)->addMinutes(15);
+                $ended_at->addHours($duration)->addMinutes(10);
 
-                $boil_end = Carbon::parse($plan->ended_at)->addMinutes(15)->addMinutes($delay);
+                $boil_end = Carbon::parse($plan->ended_at)->addMinutes(10)->addMinutes($delay);
 
                 if ($ended_at < $boil_end && $slot->line_id != 37) {
                     $ended_at = $boil_end;
@@ -860,73 +860,68 @@ class ProductsPlanController extends Controller
         })->withSession($request)->get();
 
         foreach ($boilPlans as $boilPlan) {
-            // Получаем все дочерние планы для этой варки
+            // Получаем все дочерние планы для этой варки (группируем по type_id,
+            // потому что по одному типу может быть несколько планов)
             $childPlans = ProductsPlan::where('parent', $boilPlan->plan_product_id)
                 ->with('slot')
                 ->get()
-                ->keyBy(fn($p) => $p->slot->type_id);
+                ->groupBy(fn($p) => $p->slot->type_id);
 
             // Правило 1: Обсыпка (type_id = 4) должна быть такой же длительности, как варка
             if (isset($childPlans[4])) {
                 $boilDuration = abs(Carbon::parse($boilPlan->ended_at)
                     ->diffInMinutes(Carbon::parse($boilPlan->started_at)));
-                
-                $childPlans[4]->update([
-                    'started_at' => $boilPlan->started_at,
-                    'ended_at' => Carbon::parse($boilPlan->started_at)->addMinutes($boilDuration)
-                ]);
-                $changedLineIds[] = $childPlans[4]->slot->line_id;
+
+                foreach ($childPlans[4] as $child) {
+                    $child->update([
+                        'started_at' => $boilPlan->started_at,
+                        'ended_at' => Carbon::parse($boilPlan->started_at)->addMinutes($boilDuration)
+                    ]);
+                    $changedLineIds[] = $child->slot->line_id;
+                }
             }
 
             // Правило 2: Упаковка (type_id = 2) проверка
             if (isset($childPlans[2])) {
-                $packaging = $childPlans[2];
-                
-                // Ищем глазировку (type_id=3) и опудривание (type_id=5)
-                $glazing = $childPlans[3] ?? null;
-                $spraying = $childPlans[5] ?? null;
+                // Для каждой упаковки проверяем пересечение с глазировкой/опудриванием
+                $glazingLatest = isset($childPlans[3]) ? collect($childPlans[3])->sortByDesc(fn($x) => $x->ended_at)->first() : null;
+                $sprayingLatest = isset($childPlans[5]) ? collect($childPlans[5])->sortByDesc(fn($x) => $x->ended_at)->first() : null;
 
-                // Берем более позднее из глазировки и опудривания
                 $latestGlazOrSpray = null;
-                $glaz_end = null;
-                $glaz_start = null;
-                
-                if ($glazing && $spraying) {
-                    $glaz_end_time = Carbon::parse($glazing->ended_at);
-                    $spray_end_time = Carbon::parse($spraying->ended_at);
-                    $latestGlazOrSpray = $glaz_end_time->isAfter($spray_end_time) ? $glazing : $spraying;
-                } elseif ($glazing) {
-                    $latestGlazOrSpray = $glazing;
-                } elseif ($spraying) {
-                    $latestGlazOrSpray = $spraying;
+                if ($glazingLatest && $sprayingLatest) {
+                    $latestGlazOrSpray = Carbon::parse($glazingLatest->ended_at)->isAfter(Carbon::parse($sprayingLatest->ended_at)) ? $glazingLatest : $sprayingLatest;
+                } elseif ($glazingLatest) {
+                    $latestGlazOrSpray = $glazingLatest;
+                } elseif ($sprayingLatest) {
+                    $latestGlazOrSpray = $sprayingLatest;
                 }
 
-                if ($latestGlazOrSpray) {
-                    $glaz_start = Carbon::parse($latestGlazOrSpray->started_at);
-                    $glaz_end = Carbon::parse($latestGlazOrSpray->ended_at);
-                    $pack_start = Carbon::parse($packaging->started_at);
-                    $pack_end = Carbon::parse($packaging->ended_at);
+                foreach ($childPlans[2] as $packaging) {
+                    if ($latestGlazOrSpray) {
+                        $glaz_start = Carbon::parse($latestGlazOrSpray->started_at);
+                        $glaz_end = Carbon::parse($latestGlazOrSpray->ended_at);
+                        $pack_start = Carbon::parse($packaging->started_at);
+                        $pack_end = Carbon::parse($packaging->ended_at);
 
-                    $needsUpdate = false;
+                        $needsUpdate = false;
 
-                    // Упаковка не может начаться раньше глазировки/опудривания
-                    if ($pack_start->isBefore($glaz_start)) {
-                        $pack_start = $glaz_start->copy();
-                        $needsUpdate = true;
-                    }
+                        if ($pack_start->isBefore($glaz_start)) {
+                            $pack_start = $glaz_start->copy();
+                            $needsUpdate = true;
+                        }
 
-                    // Упаковка не может закончиться раньше глазировки/опудривания
-                    if ($pack_end->isBefore($glaz_end)) {
-                        $pack_end = $glaz_end->copy();
-                        $needsUpdate = true;
-                    }
+                        if ($pack_end->isBefore($glaz_end)) {
+                            $pack_end = $glaz_end->copy();
+                            $needsUpdate = true;
+                        }
 
-                    if ($needsUpdate) {
-                        $packaging->update([
-                            'started_at' => $pack_start,
-                            'ended_at' => $pack_end
-                        ]);
-                        $changedLineIds[] = $packaging->slot->line_id;
+                        if ($needsUpdate) {
+                            $packaging->update([
+                                'started_at' => $pack_start,
+                                'ended_at' => $pack_end
+                            ]);
+                            $changedLineIds[] = $packaging->slot->line_id;
+                        }
                     }
                 }
             }
@@ -954,7 +949,7 @@ class ProductsPlanController extends Controller
                 if ($latestEnd !== null) {
                     foreach ($cratePlans as $crate) {
                         $crate_end = Carbon::parse($crate->ended_at);
-                        
+
                         if ($crate_end->isAfter($latestEnd)) {
                             $crate->update([
                                 'ended_at' => $latestEnd
