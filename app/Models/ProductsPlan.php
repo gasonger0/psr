@@ -42,7 +42,7 @@ class ProductsPlan extends Model
         return $this->through('slot')->has('product');
     }
 
-    public function parent() 
+    public function parent_plan() 
     {
         return $this->belongsTo(ProductsPlan::class, 'parent', 'plan_product_id');
     }

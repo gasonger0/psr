@@ -77,6 +77,10 @@ class ProductsPlanController extends Controller
             );
         }
 
+        // Обработка конфликтов на фис-машинах
+        $order = self::fixFisMachineConflicts($request, $order);
+
+        Log::info("After fix fix:", $order);
         // Валидация дочерних планов после перестановок
         $order = self::validateAndFixChildPlans($request, $order);
 
@@ -257,6 +261,9 @@ class ProductsPlanController extends Controller
 
         Log::info("Update plan request:", $request->post());
         Log::info("Update plan response:", $order);
+
+        // Обработка конфликтов на фис-машинах
+        $order = self::fixFisMachineConflicts($request, $order);
 
         // Валидация дочерних планов после перестановок
         $order = self::validateAndFixChildPlans($request, $order);
@@ -561,6 +568,9 @@ class ProductsPlanController extends Controller
 
         $order[$baselineId] = $this->getByLine($baselineId, $request);
 
+        // Обработка конфликтов на фис-машинах
+        $order = self::fixFisMachineConflicts($request, $order);
+
         // Валидация дочерних планов после перестановок
         $order = self::validateAndFixChildPlans($request, $order);
 
@@ -760,9 +770,9 @@ class ProductsPlanController extends Controller
             $glaz_end = Carbon::parse($glazPlans->first()->ended_at);
             $glaz_start = Carbon::parse($glazPlans->first()->started_at);
         }
-        
+
         $affectedLineIds = [];
-        
+
         foreach ($packsGlazCheck as $p) {
             $packEnd = Carbon::parse($p->ended_at);
             $packStart = Carbon::parse($p->started_at);
@@ -786,7 +796,7 @@ class ProductsPlanController extends Controller
 
             $affectedLineIds[] = $p->slot->line_id;
         }
-        
+
         // Пересчитать каждую затронутую линию один раз
         foreach (array_unique($affectedLineIds) as $line_id) {
             $order = array_replace(
@@ -840,6 +850,73 @@ class ProductsPlanController extends Controller
 
         return $order;
     }
+
+    /**
+     * Обработка конфликтов на фис-машинах:
+     * Если на одной линии фис-машины несколько планов варки, то их дочерние планы 
+     * глазировки/опудривания не должны пересекаться на одной линии дополнительной обработки.
+     * Сдвигаем последующие глазировки/опудривания, если они конфликтуют с предыдущими.
+     * 
+     * @return array Обновлённый массив $order с пересчётом конфликтов на затронутых линиях
+     */
+    private static function fixFisMachineConflicts(Request $request, array $order): array
+    {
+        $changedLineIds = [];
+
+        // Получаем все варки на фис-машине
+        $boils = ProductsPlan::whereHas('slot', function ($query) {
+            $query->where('type_id', 1) // type_id = 1 это варка
+                ->whereHas('line', fn($q) => $q->whereRaw("LOWER(title) LIKE ?", ['%фис машина%']));
+        })->withSession($request)->with('slot.line')->get();
+
+        $previousEnd = null;
+
+        foreach ($boils as $boil) {
+            $child = ProductsPlan::where('parent', $boil->plan_product_id)
+                ->whereHas('slot', function ($query) {
+                    $query->whereIn('type_id', [3, 5]); // Глазировка и опудривание
+                })->withSession($request)->first();
+
+            if (!$child) {
+                continue;
+            }
+
+            $childStart = Carbon::parse($child->started_at);
+            if ($previousEnd && $childStart->isBefore($previousEnd)) {
+                $shift = abs($childStart->diffInMinutes($previousEnd));
+                $child->update([
+                    'started_at' => Carbon::parse($child->started_at)->addMinutes($shift),
+                    'ended_at' => Carbon::parse($child->ended_at)->addMinutes($shift)
+                ]);
+                $changedLineIds[] = $child->slot->line_id;
+
+                // Находим упаковки
+                ProductsPlan::where('parent', $boil->plan_product_id)
+                    ->whereHas('slot', fn($q) => $q->where('type_id', 2))
+                    ->withSession($request)
+                    ->each(function ($pack) use ($shift, &$changedLineIds) {
+                        $pack->update([
+                            'started_at' => Carbon::parse($pack->started_at)->addMinutes($shift),
+                            'ended_at' => Carbon::parse($pack->ended_at)->addMinutes($shift)
+                        ]);
+                        $changedLineIds[] = $pack->slot->line_id;
+                    });
+            }
+            $previousEnd = Carbon::parse($child->ended_at);
+        }
+
+        // Проверяем конфликты на изменённых линиях через checkPlans
+        foreach (array_unique($changedLineIds) as $lineId) {
+            $order = array_replace(
+                $order,
+                self::checkPlans($request, $lineId),
+                [$lineId => self::getByLine($lineId, $request)],
+            );
+        }
+
+        return $order;
+    }
+
 
     /**
      * Валидация и исправление дочерних планов согласно правилам после перестановок в checkPlans:
@@ -935,12 +1012,12 @@ class ProductsPlanController extends Controller
             if ($cratePlans->isNotEmpty()) {
                 // Находим самое позднее окончание среди глазировки и опудривания
                 $latestEnd = null;
-                
+
                 if (isset($childPlans[3])) {
-                    $latestEnd = $childPlans[3]->ended_at;
+                    $latestEnd = $childPlans[3]->sortByDesc(fn($x) => $x->ended_at)->first()->ended_at;
                 }
                 if (isset($childPlans[5])) {
-                    $spray_end = $childPlans[5]->ended_at;
+                    $spray_end = $childPlans[5]->sortByDesc(fn($x) => $x->ended_at)->first()->ended_at;
                     if ($latestEnd === null || Carbon::parse($spray_end)->isAfter($latestEnd)) {
                         $latestEnd = $spray_end;
                     }
