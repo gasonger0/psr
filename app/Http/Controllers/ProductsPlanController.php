@@ -102,21 +102,23 @@ class ProductsPlanController extends Controller
 
         $amount = $fields['amount'];
 
-        if ($plan->slot->type_id == 1 || $amount != $plan->amount) {
+        if ($plan->slot->type_id == 1 || $amount != $plan->amount || $request->has('packs')) {
             $pack = $request->post('packs');
             if ($plan->slot->type_id == 1) {
                 $plan->update($fields);
             } else {
-                $pack =
-                    array_map(
-                        fn($p) => $p['slot']['product_slot_id'],
-                        ProductsPlan::withSession($request)
-                            ->with('slot')
-                            ->where('parent', $plan->parent)
-                            ->orderBy('plan_product_id', 'ASC')
-                            ->get()
-                            ->toArray()
-                    );
+                if (!$pack) {
+                    $pack =
+                        array_map(
+                            fn($p) => $p['slot']['product_slot_id'],
+                            ProductsPlan::withSession($request)
+                                ->with('slot')
+                                ->where('parent', $plan->parent)
+                                ->orderBy('plan_product_id', 'ASC')
+                                ->get()
+                                ->toArray()
+                        );
+                }
             }
 
             $line_id = $plan->slot->line_id;
@@ -867,7 +869,7 @@ class ProductsPlanController extends Controller
         $boils = ProductsPlan::whereHas('slot', function ($query) {
             $query->where('type_id', 1) // type_id = 1 это варка
                 ->whereHas('line', fn($q) => $q->whereRaw("LOWER(title) LIKE ?", ['%фис машина%']));
-        })->withSession($request)->with('slot.line')->get();
+        })->withSession($request)->with('slot.line')->orderBy('started_at', 'ASC')->get();
 
         $previousEnd = null;
 
@@ -934,7 +936,7 @@ class ProductsPlanController extends Controller
         // Получаем все планы варки (type_id = 1) текущей смены
         $boilPlans = ProductsPlan::whereHas('slot', function ($query) {
             $query->where('type_id', 1); // Варка
-        })->withSession($request)->get();
+        })->withSession($request)->orderBy('started_at', 'ASC')->get();
 
         foreach ($boilPlans as $boilPlan) {
             // Получаем все дочерние планы для этой варки (группируем по type_id,
