@@ -776,6 +776,7 @@ class ProductsPlanController extends Controller
         $affectedLineIds = [];
 
         foreach ($packsGlazCheck as $p) {
+            $p->refresh();
             $packEnd = Carbon::parse($p->ended_at);
             $packStart = Carbon::parse($p->started_at);
 
@@ -896,8 +897,9 @@ class ProductsPlanController extends Controller
                 ProductsPlan::where('parent', $boil->plan_product_id)
                     ->whereHas('slot', fn($q) => $q->where('type_id', 2))
                     ->withSession($request)
-                    ->each(function ($pack) use ($shift, &$changedLineIds) {
-                        $pack->update([
+            ->each(function ($pack) use ($shift, &$changedLineIds) {
+                $pack->refresh();
+                $pack->update([
                             'started_at' => Carbon::parse($pack->started_at)->addMinutes($shift),
                             'ended_at' => Carbon::parse($pack->ended_at)->addMinutes($shift)
                         ]);
@@ -975,12 +977,14 @@ class ProductsPlanController extends Controller
                     $latestGlazOrSpray = $sprayingLatest;
                 }
 
-                foreach ($childPlans[2] as $packaging) {
-                    if ($latestGlazOrSpray) {
-                        $glaz_start = Carbon::parse($latestGlazOrSpray->started_at);
-                        $glaz_end = Carbon::parse($latestGlazOrSpray->ended_at);
-                        $pack_start = Carbon::parse($packaging->started_at);
-                        $pack_end = Carbon::parse($packaging->ended_at);
+            foreach ($childPlans[2] as $packaging) {
+                if ($latestGlazOrSpray) {
+                    $latestGlazOrSpray->refresh();
+                    $packaging->refresh();
+                    $glaz_start = Carbon::parse($latestGlazOrSpray->started_at);
+                    $glaz_end = Carbon::parse($latestGlazOrSpray->ended_at);
+                    $pack_start = Carbon::parse($packaging->started_at);
+                    $pack_end = Carbon::parse($packaging->ended_at);
 
                         $needsUpdate = false;
 
