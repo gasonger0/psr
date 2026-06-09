@@ -77,12 +77,12 @@ class ProductsPlanController extends Controller
             );
         }
 
-        // Обработка конфликтов на фис-машинах
-        $order = self::fixFisMachineConflicts($request, $order);
-
-        Log::info("After fix fix:", $order);
         // Валидация дочерних планов после перестановок
         $order = self::validateAndFixChildPlans($request, $order);
+
+        // Обработка конфликтов на фис-машинах
+        $order = self::fixFisMachineConflicts($request, $order);
+        Log::info("After fix fix:", $order);
 
         LinesController::updateLinesTime($order);
         Log::info("Response:", $order);
@@ -264,11 +264,11 @@ class ProductsPlanController extends Controller
         Log::info("Update plan request:", $request->post());
         Log::info("Update plan response:", $order);
 
-        // Обработка конфликтов на фис-машинах
-        $order = self::fixFisMachineConflicts($request, $order);
-
         // Валидация дочерних планов после перестановок
         $order = self::validateAndFixChildPlans($request, $order);
+
+        // Обработка конфликтов на фис-машинах
+        $order = self::fixFisMachineConflicts($request, $order);
 
         LinesController::updateLinesTime($order);
         $plan->refresh();
@@ -892,14 +892,16 @@ class ProductsPlanController extends Controller
                 ]);
                 $changedLineIds[] = $child->slot->line_id;
 
-                // Находим упаковки
+                // Находим упаковки и пересчитываем от нового положения глазировки
                 ProductsPlan::where('parent', $boil->plan_product_id)
                     ->whereHas('slot', fn($q) => $q->where('type_id', 2))
                     ->withSession($request)
-                    ->each(function ($pack) use ($shift, &$changedLineIds) {
+                    ->each(function ($pack) use ($child, &$changedLineIds) {
+                        $duration = abs(Carbon::parse($pack->started_at)->diffInMinutes(Carbon::parse($pack->ended_at)));
+                        $newStart = Carbon::parse($child->started_at);
                         $pack->update([
-                            'started_at' => Carbon::parse($pack->started_at)->addMinutes($shift),
-                            'ended_at' => Carbon::parse($pack->ended_at)->addMinutes($shift)
+                            'started_at' => $newStart,
+                            'ended_at' => $newStart->copy()->addMinutes($duration)
                         ]);
                         $changedLineIds[] = $pack->slot->line_id;
                     });
