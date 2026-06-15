@@ -76,13 +76,12 @@ class ProductsPlanController extends Controller
                 )
             );
         }
-
-        // Валидация дочерних планов после перестановок
-        $order = self::validateAndFixChildPlans($request, $order);
-
         // Обработка конфликтов на фис-машинах
         $order = self::fixFisMachineConflicts($request, $order);
         Log::info("After fix fix:", $order);
+
+        // Валидация дочерних планов после перестановок
+        $order = self::validateAndFixChildPlans($request, $order);
 
         LinesController::updateLinesTime($order);
         Log::info("Response:", $order);
@@ -261,14 +260,14 @@ class ProductsPlanController extends Controller
             }
         }
 
-        Log::info("Update plan request:", $request->post());
-        Log::info("Update plan response:", $order);
+
+        // Обработка конфликтов на фис-машинах
+        $order = self::fixFisMachineConflicts($request, $order);
 
         // Валидация дочерних планов после перестановок
         $order = self::validateAndFixChildPlans($request, $order);
 
-        // Обработка конфликтов на фис-машинах
-        $order = self::fixFisMachineConflicts($request, $order);
+        Log::info("Update plan response:", $order);
 
         LinesController::updateLinesTime($order);
         $plan->refresh();
@@ -978,14 +977,14 @@ class ProductsPlanController extends Controller
                     $latestGlazOrSpray = $sprayingLatest;
                 }
 
-            foreach ($childPlans[2] as $packaging) {
-                if ($latestGlazOrSpray) {
-                    $latestGlazOrSpray->refresh();
-                    $packaging->refresh();
-                    $glaz_start = Carbon::parse($latestGlazOrSpray->started_at);
-                    $glaz_end = Carbon::parse($latestGlazOrSpray->ended_at);
-                    $pack_start = Carbon::parse($packaging->started_at);
-                    $pack_end = Carbon::parse($packaging->ended_at);
+                foreach ($childPlans[2] as $packaging) {
+                    if ($latestGlazOrSpray) {
+                        $latestGlazOrSpray->refresh();
+                        $packaging->refresh();
+                        $glaz_start = Carbon::parse($latestGlazOrSpray->started_at);
+                        $glaz_end = Carbon::parse($latestGlazOrSpray->ended_at);
+                        $pack_start = Carbon::parse($packaging->started_at);
+                        $pack_end = Carbon::parse($packaging->ended_at);
 
                         $needsUpdate = false;
 
