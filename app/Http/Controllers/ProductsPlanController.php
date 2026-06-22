@@ -50,6 +50,7 @@ class ProductsPlanController extends Controller
             $this->checkPlans($request, $line_id),
             [$line_id => self::getByLine($line_id, $request)]
         );
+        $plan->refresh();
 
         $previousPlans = ProductsPlan::join(
             'products_slots',
@@ -76,6 +77,7 @@ class ProductsPlanController extends Controller
                 )
             );
         }
+
         // Обработка конфликтов на фис-машинах
         $order = self::fixFisMachineConflicts($request, $order);
         Log::info("After fix fix:", $order);
@@ -125,11 +127,15 @@ class ProductsPlanController extends Controller
 
             if ($plan->slot->type_id != 1) {
                 $parent_id = $plan->parent;
-                $plan = ProductsPlan::find($parent_id);
-                $request->merge([
-                    'delay' => $plan->delay,
-                ]);
+                if ($parent_id) {
+                    $plan = ProductsPlan::find($parent_id);
+                    $request->merge([
+                        'delay' => $plan->delay,
+                    ]);
+                }
                 unset($parent_id);
+            } else {
+                $plan->refresh();
             }
 
             // Удаляем упаковки по данной продукции
@@ -260,14 +266,14 @@ class ProductsPlanController extends Controller
             }
         }
 
+        Log::info("Update plan request:", $request->post());
+        Log::info("Update plan response:", $order);
 
         // Обработка конфликтов на фис-машинах
         $order = self::fixFisMachineConflicts($request, $order);
 
         // Валидация дочерних планов после перестановок
         $order = self::validateAndFixChildPlans($request, $order);
-
-        Log::info("Update plan response:", $order);
 
         LinesController::updateLinesTime($order);
         $plan->refresh();
