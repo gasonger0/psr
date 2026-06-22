@@ -39,20 +39,26 @@ export const usePlansStore = defineStore("productsPlans", () => {
         if (plan.plan_product_id === undefined) {
             console.log("Попытка удалить план без ИД")
             return;
-        } else {
-            useModalsStore().boils[plan.plan_product_id] = 0;
-            // TODO добавить обработку полученных с бэкенда планов
-            await deleteRequest('/api/plans/delete', plan,
-                (r: AxiosResponse) => {
-                    splice(plan.plan_product_id!);
-                    plans.value.filter(el => el.parent == plan.plan_product_id).forEach(i => {
-                        splice(i.plan_product_id!)
-                        const { line_id } = useProductsSlotsStore().getById(i.slot_id)!;
-                        useLinesStore().updateVersion(line_id);
-                    });
-                }
-            )
         }
+        useModalsStore().boils[plan.plan_product_id] = 0;
+        await deleteRequest('/api/plans/delete', plan,
+            (r: AxiosResponse) => {
+                if (r.data.plansOrder) {
+                    let date = sessionStorage.getItem('date'),
+                        isDay = sessionStorage.getItem('isDay');
+                    for (let i in r.data.plansOrder) {
+                        let pls = r.data.plansOrder[i].filter(el => el.date == date && el.isDay == isDay);
+                        let line = useLinesStore().getByID(Number(i));
+                        if (line) {
+                            line.has_plans = ref(true);
+                            plans.value = plans.value.filter(el => useProductsSlotsStore().getById(el.slot_id).line_id != line.line_id);
+                            plans.value.push(...pls.map(el => serialize(el)));
+                            useLinesStore().updateVersion(line.line_id);
+                        }
+                    }
+                }
+            }
+        )
     }
 
     async function _change(data: ProductPlan[]) {

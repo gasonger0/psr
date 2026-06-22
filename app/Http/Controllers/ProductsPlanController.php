@@ -278,28 +278,82 @@ class ProductsPlanController extends Controller
 
     public function delete(Request $request)
     {
-        // TODO проверка плана
         $id = $request->post('plan_product_id');
         $plan = ProductsPlan::find($id);
         if (!$plan) {
             return Util::errorMsg('Такого плана не существует', 404);
         }
-        $line_ids = [
-            $plan->slot->line_id => self::getByLine($plan->slot->line_id, $request)
-        ];
-        $plan->delete();
-        $this->checkPlans($request, $plan->slot->line_id);
-        ProductsPlan::where('parent', $id)->get()->each(function ($pack) use ($request, $line_ids) {
-            $pack->delete();
-            ProductsPlanController::checkPlans($request, $pack->slot->line_id);
-            $line_ids[$pack->slot->line_id] = ProductsPlanController::getByLine($pack->slot->line_id, $request);
+
+        // Длительность удаляемого плана
+        $duration = abs(Carbon::parse($plan->ended_at)->diffInMinutes(Carbon::parse($plan->started_at)));
+        $line_id = $plan->slot->line_id;
+        $started_at = $plan->started_at;
+
+        // Запоминаем дочерние планы до удаления
+        $children = ProductsPlan::where('parent', $id)->get();
+        $childData = [];
+        foreach ($children as $child) {
+            $childData[] = [
+                'line_id' => $child->slot->line_id,
+                'started_at' => $child->started_at,
+                'duration' => abs(Carbon::parse($child->ended_at)->diffInMinutes(Carbon::parse($child->started_at)))
+            ];
+        }
+
+        // Удаляем дочерние планы
+        ProductsPlan::where('parent', $id)->each(function ($el) {
+            $el->delete();
         });
+
+        // Удаляем сам план
+        $plan->delete();
+
+        // Сдвигаем последующие планы на основной линии
+        $affectedLineIds = [$line_id];
+        ProductsPlan::whereHas('slot', function ($query) use ($line_id) {
+            $query->where('line_id', $line_id);
+        })->withSession($request)
+            ->where('started_at', '>', $started_at)
+            ->each(function ($p) use ($duration) {
+                $p->update([
+                    'started_at' => Carbon::parse($p->started_at)->subMinutes($duration),
+                    'ended_at' => Carbon::parse($p->ended_at)->subMinutes($duration)
+                ]);
+            });
+
+        // Сдвигаем последующие планы на дочерних линиях
+        foreach ($childData as $cd) {
+            ProductsPlan::whereHas('slot', function ($query) use ($cd) {
+                $query->where('line_id', $cd['line_id']);
+            })->withSession($request)
+                ->where('started_at', '>', $cd['started_at'])
+                ->each(function ($p) use ($cd) {
+                    $p->update([
+                        'started_at' => Carbon::parse($p->started_at)->subMinutes($cd['duration']),
+                        'ended_at' => Carbon::parse($p->ended_at)->subMinutes($cd['duration'])
+                    ]);
+                });
+            $affectedLineIds[] = $cd['line_id'];
+        }
+
+        // Собираем order для всех затронутых линий
+        $order = [];
+        foreach (array_unique($affectedLineIds) as $lid) {
+            $order = array_replace(
+                $order,
+                self::checkPlans($request, $lid),
+                [$lid => self::getByLine($lid, $request)]
+            );
+        }
+
+        // Проверки
+        // $order = self::fixFisMachineConflicts($request, $order);
+        // $order = self::validateAndFixChildPlans($request, $order);
 
         Log::info("Delete plan request:", $request->post());
 
-        // TODO
-        LinesController::updateLinesTime($line_ids);
-        return Util::successMsg('План удалён', 200);
+        LinesController::updateLinesTime($order);
+        return Util::successMsg(['plansOrder' => $order], 200);
     }
 
     /* ACTIONS */

@@ -146,6 +146,9 @@ class LinesController extends Controller
     {
         foreach ($plansOrder as $line_id => $plans) {
             $firstPlan = reset($plans);
+            if (!$firstPlan) {
+                continue;
+            }
             $start = Carbon::parse($firstPlan['started_at']);
             $end = Carbon::parse(end($plans)['ended_at']);
 
