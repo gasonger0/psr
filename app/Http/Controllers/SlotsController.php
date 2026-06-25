@@ -251,7 +251,7 @@ class SlotsController extends Controller
                 }
             });
 
-            $itemsCount = array_filter($workerRows, function (&$value) use ($columns) {
+            $itemsCount = array_filter($workerRows, function ($value) use ($columns) {
                 return count($value) > 4;
             });
             if (count($itemsCount) > 0) {

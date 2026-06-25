@@ -97,6 +97,8 @@ class ProductsPlanController extends Controller
     {
         Util::appendSessionToData($request);
         $plan = ProductsPlan::find($request->post('plan_product_id'));
+        $oldEndedAt = Carbon::parse($plan->ended_at);
+        $oldChildEndedAt = [];
 
         $order = [];
         $fields = $request->only((new ProductsPlan)->getFillable());
@@ -137,6 +139,14 @@ class ProductsPlanController extends Controller
             } else {
                 $plan->refresh();
             }
+
+            // Сохраняем старые ended_at дочерних планов
+            ProductsPlan::where('parent', $plan->plan_product_id)->get()->each(function ($el) use (&$oldChildEndedAt) {
+                $oldChildEndedAt[$el->slot->line_id] = [
+                    'ended_at' => Carbon::parse($el->ended_at),
+                    'started_at' => $el->started_at
+                ];
+            });
 
             // Удаляем упаковки по данной продукции
             ProductsPlan::where('parent', $plan->plan_product_id)
@@ -274,6 +284,68 @@ class ProductsPlanController extends Controller
 
         // Валидация дочерних планов после перестановок
         $order = self::validateAndFixChildPlans($request, $order);
+
+        // Схлопываем разрыв, если план стал заканчиваться раньше
+        $plan->refresh();
+        $newEndedAt = Carbon::parse($plan->ended_at);
+        if ($newEndedAt->lt($oldEndedAt)) {
+            $delta = abs($oldEndedAt->diffInMinutes($newEndedAt));
+            $line_id = $plan->slot->line_id;
+
+            // Сдвигаем последующие планы на основной линии
+            ProductsPlan::whereHas('slot', fn($q) => $q->where('line_id', $line_id))
+                ->withSession($request)
+                ->where('started_at', '>', $plan->started_at)
+                ->where('plan_product_id', '!=', $plan->plan_product_id)
+                ->each(function ($p) use ($delta) {
+                    $p->update([
+                        'started_at' => Carbon::parse($p->started_at)->subMinutes($delta),
+                        'ended_at' => Carbon::parse($p->ended_at)->subMinutes($delta)
+                    ]);
+                });
+
+            // Сдвигаем последующие планы на дочерних линиях
+            foreach ($oldChildEndedAt as $childLineId => $oldData) {
+                $newChild = ProductsPlan::where('parent', $plan->plan_product_id)
+                    ->whereHas('slot', fn($q) => $q->where('line_id', $childLineId))
+                    ->withSession($request)
+                    ->first();
+                if ($newChild) {
+                    $newChildEndedAt = Carbon::parse($newChild->ended_at);
+                    if ($newChildEndedAt->lt($oldData['ended_at'])) {
+                        $childDelta = abs($oldData['ended_at']->diffInMinutes($newChildEndedAt));
+                        ProductsPlan::whereHas('slot', fn($q) => $q->where('line_id', $childLineId))
+                            ->withSession($request)
+                            ->where('started_at', '>', $newChild->started_at)
+                            ->where('plan_product_id', '!=', $newChild->plan_product_id)
+                            ->each(function ($p) use ($childDelta) {
+                                $p->update([
+                                    'started_at' => Carbon::parse($p->started_at)->subMinutes($childDelta),
+                                    'ended_at' => Carbon::parse($p->ended_at)->subMinutes($childDelta)
+                                ]);
+                            });
+
+                        // Пересобираем order и проверки
+                        $order = array_replace(
+                            $order,
+                            self::checkPlans($request, $childLineId),
+                            [$childLineId => self::getByLine($childLineId, $request)]
+                        );
+                    }
+                }
+            }
+
+            // Пересобираем order и проверки
+            $order = array_replace(
+                $order,
+                self::checkPlans($request, $line_id),
+                [$line_id => self::getByLine($line_id, $request)]
+            );
+            $order = self::fixFisMachineConflicts($request, $order);
+            $order = self::validateAndFixChildPlans($request, $order);
+
+            Log::info("Update plan shift delta: $delta mins");
+        }
 
         LinesController::updateLinesTime($order);
         $plan->refresh();
