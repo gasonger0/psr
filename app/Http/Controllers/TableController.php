@@ -37,8 +37,8 @@ class TableController extends Controller
     private static $hardware = [
         0 => 'Без оборудования',
         "" => 'Без оборудования',
-        1 => 'Мондомикс',
-        2 => 'Торнадо',
+        2 => 'Мондомикс',
+        1 => 'Торнадо',
         3 => 'Китайский аэрос',
         4 => 'Завёрточная машина №1',
         5 => 'Завёрточная машина №2',
@@ -78,39 +78,40 @@ class TableController extends Controller
                     self::$MCS . '25' . self::$MCE,
                     self::$MCS . '26' . self::$MCE,
                     self::$MCS . '27' . self::$MCE,
-                    self::$MCS . '28' . self::$MCE
+                    self::$MCS . '28' . self::$MCE,
+                    self::$MCS . '29' . self::$MCE,
+                    self::$MCS . '30' . self::$MCE,
+                    self::$MCS . '31' . self::$MCE,
+                    self::$MCS . '32' . self::$MCE,
+                    self::$MCS . '33' . self::$MCE,
+                    self::$MCS . '34' . self::$MCE,
+                    self::$MCS . '35' . self::$MCE,
+                    self::$MCS . '36' . self::$MCE,
+                    self::$MCS . '37' . self::$MCE,
+                    self::$MCS . '38' . self::$MCE,
+                    self::$MCS . '39' . self::$MCE,
+                    self::$MCS . '40' . self::$MCE
                 ],
                 [
                     '<style height="52">Дата</style>',
-                    '<style height="52">' . $session['date'] . '</style>'
+                    '<style height="52">' . $session['date'] . '</style>',
+                    '', '', '', '', '', '', '', '', '', '',
+                    '', '', '', '', '', '', '', '', '', '',
+                    '', '', '', '', '', '', '', '', '', '',
+                    '', '', '', '', '', '', '', '', '', ''
                 ],
                 [
                     '<style height="52">Смена:</style>',
                     $session['isDay'] ? 'День' : 'Ночь',
                     '',
                     'план:',
-                    '',
-                    '',
-                    '',
-                    '',
-                    '',
-                    '',
-                    '',
-                    '',
-                    '',
-                    '',
-                    '',
-                    '',
-                    '',
-                    '',
-                    '',
+                    '', '', '', '', '', '', '', '', '',
+                    '', '', '', '', '', '',
                     'факт:',
-                    '',
-                    '',
-                    '',
-                    '',
-                    '',
-                    self::$MCS . 'Ген.директор ООО КФ "Сокол"' . self::$MCE
+                    '', '', '', '', '',
+                    self::$MCS . 'Ген.директор ООО КФ "Сокол"' . self::$MCE,
+                    '', '', '', '', '', '', '', '', '',
+                    '', '', '', '', '', '', '', ''
                 ],
                 [
                     self::$MCS . '<b>№</b>' . self::$MCE,
@@ -141,7 +142,13 @@ class TableController extends Controller
                     '',
                     '',
                     '',
-                    self::$MCS . '<b>ПРИМЕЧАНИЕ</b>' . self::$MCE
+                    self::$MCS . '<b>ПРИМЕЧАНИЕ</b>' . self::$MCE,
+                    self::$MCS . '<b>Простой №1</b>' . self::$MCE,
+                    '', '', '',
+                    self::$MCS . '<b>Простой №2</b>' . self::$MCE,
+                    '', '', '',
+                    self::$MCS . '<b>Простой №3</b>' . self::$MCE,
+                    '', '', ''
                 ],
                 [
                     '',
@@ -170,7 +177,19 @@ class TableController extends Controller
                     '',
                     '',
                     self::$MCS . '<wraptext><b>кол-во людей</b></wraptext>' . self::$MCE,
-                    self::$MCS . '<b>Время, ч</b>' . self::$MCE
+                    self::$MCS . '<b>Время, ч</b>' . self::$MCE,
+                    self::$MCS . '<wraptext><b>кол-во людей</b></wraptext>' . self::$MCE,
+                    self::$MCS . '<b>Время, ч</b>' . self::$MCE,
+                    '',
+                    self::$MCS . '<b>ПРИЧИНА ПРОСТОЯ</b>' . self::$MCE,
+                    self::$MCS . '<wraptext><b>кол-во людей</b></wraptext>' . self::$MCE,
+                    self::$MCS . '<b>Время, ч</b>' . self::$MCE,
+                    '',
+                    self::$MCS . '<b>ПРИЧИНА ПРОСТОЯ</b>' . self::$MCE,
+                    self::$MCS . '<wraptext><b>кол-во людей</b></wraptext>' . self::$MCE,
+                    self::$MCS . '<b>Время, ч</b>' . self::$MCE,
+                    '',
+                    self::$MCS . '<b>ПРИЧИНА ПРОСТОЯ</b>' . self::$MCE
                 ],
                 [
                     '<style height="57"></style>',
@@ -201,6 +220,18 @@ class TableController extends Controller
                     '',
                     self::$MCS . '<b>начало</b>' . self::$MCE,
                     self::$MCS . '<b>окончание</b>' . self::$MCS,
+                    '',
+                    '',
+                    self::$MCS . '<b>начало</b>' . self::$MCE,
+                    self::$MCS . '<b>окончание</b>' . self::$MCE,
+                    '',
+                    '',
+                    self::$MCS . '<b>начало</b>' . self::$MCE,
+                    self::$MCS . '<b>окончание</b>' . self::$MCE,
+                    '',
+                    '',
+                    self::$MCS . '<b>начало</b>' . self::$MCE,
+                    self::$MCS . '<b>окончание</b>' . self::$MCE,
                     '',
                     self::$MCS . '<b>Чел-часов по плану</b>' . self::$MCE,
                     self::$MCS . '<b>Чел-часов по закрытой ГП</b>' . self::$MCE,
@@ -330,8 +361,12 @@ class TableController extends Controller
             ];
             // Обработка линий на листе
             foreach ($lines as &$line) {
-                // Получаем планы со всех смен (пока хз как исправить)
-                $linePlans = $line->plans->sortBy('started_at');
+                // Получаем планы на текущую смену, отсортированные по времени начала
+                $linePlans = $line->plans()
+                    ->where('date', $session['date'])
+                    ->where('isDay', $session['isDay'])
+                    ->orderBy('started_at')
+                    ->get();
 
                 // Переводим линию в массив и добавляем данные со смены
                 $line = $line->toArray() + (
@@ -355,14 +390,12 @@ class TableController extends Controller
                         ];
                     }
                     // Группируем планы по оборудованию 
-                    $linePlans->each(function ($p) use (&$line, $session) {
-                        if ($p['date'] == $session['date'] && $p['isDay'] == $session['isDay']) {
-                            $line['items'][$p->hardware]['items'][] =
-                                $p->toArray() +
-                                $p->slot->product->toArray() +
-                                ['category' => $p->slot->product->category->toArray()] +
-                                ['slot' => $p->slot];
-                        }
+                    $linePlans->each(function ($p) use (&$line) {
+                        $line['items'][$p->hardware]['items'][] =
+                            $p->toArray() +
+                            $p->slot->product->toArray() +
+                            ['category' => $p->slot->product->category->toArray()] +
+                            ['slot' => $p->slot];
                     });
                 } else {
                     $line['items'][0] = [
@@ -431,6 +464,12 @@ class TableController extends Controller
                     's' => [0, 0],
                     'k' => [0, 0]
                 ];
+                // Строки продуктов по категориям (для формул факта в итогах)
+                $catRows = [
+                    'z' => [],
+                    's' => [],
+                    'k' => []
+                ];
 
                 // Обрабатываем оборудование
                 foreach ($line['items'] as &$hw) {
@@ -485,27 +524,23 @@ class TableController extends Controller
 
                         $category = $product['category']['title'];
 
+                        $cat = 'z'; // по умолчанию зефир
                         if (
                             mb_strpos(mb_strtolower($category), 'зефир') !== false || 
                             mb_strpos(mb_strtolower($product['title']), 'зефир') !== false) {
-                            $sum['z'][0] += $kg;
-                            $sum['z'][1] += $boils;
+                            $cat = 'z';
                         } else if (
                             mb_strpos(mb_strtolower($category), 'суфле') !== false || 
                             mb_strpos(mb_strtolower($product['title']), 'суфле') !== false 
                             ) {
-                            $sum['s'][0] += $kg;
-                            $sum['s'][1] += $boils;
+                            $cat = 's';
                         } else if (
                             mb_strpos(mb_strtolower($category), 'конфет') !== false ||
                             mb_strpos(mb_strtolower($product['title']), 'конфет') !== false) {
-                            $sum['k'][0] += $kg;
-                            $sum['k'][1] += $boils;
-                        } else {
-                            // Если не сработал ни один паттерн, считаем, что это зефир
-                            $sum['z'][0] += $kg;
-                            $sum['z'][1] += $boils;
+                            $cat = 'k';
                         }
+                        $sum[$cat][0] += $kg;
+                        $sum[$cat][1] += $boils;
 
 
 
@@ -541,12 +576,14 @@ class TableController extends Controller
                             13 => Carbon::parse($product['ended_at'])->format('H:i'),
                             15 => '<f>=R' . (count($array) + 1) . '*' . $product['amount2parts'],
                             16 => '<f>=S' . (count($array) + 1) . '*' . $product['parts2kg'],
-                            29 => $kg / $product['slot']['perfomance'] * $product['slot']['people_count'],
-                            30 => '<f>=T' . (count($array) + 1) . '/' . $product['slot']['perfomance'] . '*' . $product['slot']['people_count'] . '</f>'
+                            39 => $kg / $product['slot']['perfomance'] * $product['slot']['people_count'],
+                            40 => '<f>=T' . (count($array) + 1) . '/' . $product['slot']['perfomance'] . '*' . $product['slot']['people_count'] . '</f>'
                         ]);
 
-
                         $dateCount += $crates + $parts;
+
+                        // Запоминаем строку продукта для формул факта в итогах
+                        $catRows[$cat][] = count($array);
 
                     }
                 }
@@ -585,9 +622,36 @@ class TableController extends Controller
                     $returnMassCells[] = "E" . count($array);
                 }
 
-                $array[] = ['', '<b>Итого зефира</b>', '', '', $sum['z'][0], ($line['type_id'] == 1 ? $sum['z'][1] : '')];
-                $array[] = ['', '<b>Итого суфле</b>', '', '', $sum['s'][0], ($line['type_id'] == 1 ? $sum['s'][1] : '')];
-                $array[] = ['', '<b>Итого конфет</b>', '', '', $sum['k'][0], ($line['type_id'] == 1 ? $sum['k'][1] : '')];
+                $array[] = self::makeRow([
+                    1 => '<b>Итого зефира</b>',
+                    4 => $sum['z'][0],
+                    5 => ($line['type_id'] == 1 ? $sum['z'][1] : ''),
+                    17 => count($catRows['z']) > 0 ? '<f>=' . implode('+', array_map(fn($r) => 'R' . $r, $catRows['z'])) . '</f>' : '',
+                    18 => count($catRows['z']) > 0 ? '<f>=' . implode('+', array_map(fn($r) => 'S' . $r, $catRows['z'])) . '</f>' : '',
+                    19 => count($catRows['z']) > 0 ? '<f>=' . implode('+', array_map(fn($r) => 'T' . $r, $catRows['z'])) . '</f>' : '',
+                    20 => ($line['type_id'] == 1 && count($catRows['z']) > 0) ? '<f>=' . implode('+', array_map(fn($r) => 'U' . $r, $catRows['z'])) . '</f>' : '',
+                    21 => ($line['type_id'] == 1 && count($catRows['z']) > 0) ? '<f>=' . implode('+', array_map(fn($r) => 'V' . $r, $catRows['z'])) . '</f>' : '',
+                ]);
+                $array[] = self::makeRow([
+                    1 => '<b>Итого суфле</b>',
+                    4 => $sum['s'][0],
+                    5 => ($line['type_id'] == 1 ? $sum['s'][1] : ''),
+                    17 => count($catRows['s']) > 0 ? '<f>=' . implode('+', array_map(fn($r) => 'R' . $r, $catRows['s'])) . '</f>' : '',
+                    18 => count($catRows['s']) > 0 ? '<f>=' . implode('+', array_map(fn($r) => 'S' . $r, $catRows['s'])) . '</f>' : '',
+                    19 => count($catRows['s']) > 0 ? '<f>=' . implode('+', array_map(fn($r) => 'T' . $r, $catRows['s'])) . '</f>' : '',
+                    20 => ($line['type_id'] == 1 && count($catRows['s']) > 0) ? '<f>=' . implode('+', array_map(fn($r) => 'U' . $r, $catRows['s'])) . '</f>' : '',
+                    21 => ($line['type_id'] == 1 && count($catRows['s']) > 0) ? '<f>=' . implode('+', array_map(fn($r) => 'V' . $r, $catRows['s'])) . '</f>' : '',
+                ]);
+                $array[] = self::makeRow([
+                    1 => '<b>Итого конфет</b>',
+                    4 => $sum['k'][0],
+                    5 => ($line['type_id'] == 1 ? $sum['k'][1] : ''),
+                    17 => count($catRows['k']) > 0 ? '<f>=' . implode('+', array_map(fn($r) => 'R' . $r, $catRows['k'])) . '</f>' : '',
+                    18 => count($catRows['k']) > 0 ? '<f>=' . implode('+', array_map(fn($r) => 'S' . $r, $catRows['k'])) . '</f>' : '',
+                    19 => count($catRows['k']) > 0 ? '<f>=' . implode('+', array_map(fn($r) => 'T' . $r, $catRows['k'])) . '</f>' : '',
+                    20 => ($line['type_id'] == 1 && count($catRows['k']) > 0) ? '<f>=' . implode('+', array_map(fn($r) => 'U' . $r, $catRows['k'])) . '</f>' : '',
+                    21 => ($line['type_id'] == 1 && count($catRows['k']) > 0) ? '<f>=' . implode('+', array_map(fn($r) => 'V' . $r, $catRows['k'])) . '</f>' : '',
+                ]);
                 $array[] = ['', '<b>Отходы</b>'];
                 $globalKG ['z'] += $sum['z'][0];
                 $globalKG ['k'] += $sum['k'][0];
@@ -604,7 +668,7 @@ class TableController extends Controller
                 $array[] = [];
             }
 
-            if ($sheet == 1) {
+            if ($sheet == 2) {
                 // Датирование
                 $dating = LinesExtra::withSession($request)
                     ->where('line_id', 42)
@@ -671,7 +735,6 @@ class TableController extends Controller
             ->setColWidth(16, 0)
             ->setColWidth(17, 0)
             ->setColWidth(26, 8)
-            ->setColWidth(29, 20)
             ->mergeCells('A4:A6')
             ->mergeCells('B4:B6')
             ->mergeCells('C4:J5')
@@ -679,12 +742,25 @@ class TableController extends Controller
             ->mergeCells('G6:J6')
             ->mergeCells('L5:L6')
             ->mergeCells('V6:Y6')
-            ->mergeCells('Z3:AC3')
-            ->mergeCells('AA5:AB5')
             ->mergeCells('Z5:Z6')
-            ->mergeCells('R4:AB4')
-            ->mergeCells('AC4:AC6')
+            ->mergeCells('R4:AA4')
+            ->mergeCells('AA4:AA6')
             ->mergeCells('M5:N5')
+            // Простой №1
+            ->mergeCells('AB4:AE4')
+            ->mergeCells('AB5:AB6')
+            ->mergeCells('AC5:AD5')
+            ->mergeCells('AE5:AE6')
+            // Простой №2
+            ->mergeCells('AF4:AI4')
+            ->mergeCells('AF5:AF6')
+            ->mergeCells('AG5:AH5')
+            ->mergeCells('AI5:AI6')
+            // Простой №3
+            ->mergeCells('AJ4:AM4')
+            ->mergeCells('AJ5:AJ6')
+            ->mergeCells('AK5:AL5')
+            ->mergeCells('AM5:AM6')
             ->addSheet($arr[2], 'Упаковка')
             ->setDefaultFontSize(20)
             ->setColWidth(1, 10)
@@ -701,7 +777,6 @@ class TableController extends Controller
             ->setColWidth(16, 0)
             ->setColWidth(17, 0)
             ->setColWidth(26, 8)
-            ->setColWidth(29, 20)
             ->mergeCells('A4:A6')
             ->mergeCells('B4:B6')
             ->mergeCells('C4:J5')
@@ -709,12 +784,25 @@ class TableController extends Controller
             ->mergeCells('G6:J6')
             ->mergeCells('L5:L6')
             ->mergeCells('V6:Y6')
-            ->mergeCells('Z3:AC3')
-            ->mergeCells('AA5:AB5')
             ->mergeCells('Z5:Z6')
-            ->mergeCells('R4:AB4')
-            ->mergeCells('AC4:AC6')
-            ->mergeCells('M5:N5');
+            ->mergeCells('R4:AA4')
+            ->mergeCells('AA4:AA6')
+            ->mergeCells('M5:N5')
+            // Простой №1
+            ->mergeCells('AB4:AE4')
+            ->mergeCells('AB5:AB6')
+            ->mergeCells('AC5:AD5')
+            ->mergeCells('AE5:AE6')
+            // Простой №2
+            ->mergeCells('AF4:AI4')
+            ->mergeCells('AF5:AF6')
+            ->mergeCells('AG5:AH5')
+            ->mergeCells('AI5:AI6')
+            // Простой №3
+            ->mergeCells('AJ4:AM4')
+            ->mergeCells('AJ5:AJ6')
+            ->mergeCells('AK5:AL5')
+            ->mergeCells('AM5:AM6');
 
         $name = 'План_' . date('d_m_Y', strtotime($session['date'])) . '.xlsx';
         $xlsx->downloadAs($name);
@@ -957,7 +1045,7 @@ class TableController extends Controller
 
     private static function makeRow(array $items): array
     {
-        $new = array_fill(0, 30, '');
+        $new = array_fill(0, 42, '');
         foreach ($items as $k => $v) {
             $new[$k] = $v;
         }

@@ -328,7 +328,7 @@ class ProductsPlanController extends Controller
                         // Пересобираем order и проверки
                         $order = array_replace(
                             $order,
-                            self::checkPlans($request, $childLineId),
+                            // self::checkPlans($request, $childLineId),
                             [$childLineId => self::getByLine($childLineId, $request)]
                         );
                     }
@@ -419,7 +419,7 @@ class ProductsPlanController extends Controller
         foreach (array_unique($affectedLineIds) as $lid) {
             $order = array_replace(
                 $order,
-                self::checkPlans($request, $lid),
+                //self::checkPlans($request, $lid),
                 [$lid => self::getByLine($lid, $request)]
             );
         }
