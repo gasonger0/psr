@@ -105,6 +105,10 @@ class ProductsPlanController extends Controller
 
         $amount = $fields['amount'];
 
+        $line_id = $plan->slot->line_id;
+        $allPlansBefore = ProductsPlan::whereHas('slot', fn($q) => $q->where('line_id', $line_id))
+            ->withSession($request)->get()->keyBy('plan_product_id');
+
         if ($plan->slot->type_id == 1 || $amount != $plan->amount || $request->has('packs')) {
             $pack = $request->post('packs');
             if ($plan->slot->type_id == 1) {
@@ -124,7 +128,6 @@ class ProductsPlanController extends Controller
                 }
             }
 
-            $line_id = $plan->slot->line_id;
             $order = $this->checkPlans($request, $line_id);
 
             if ($plan->slot->type_id != 1) {
@@ -179,7 +182,7 @@ class ProductsPlanController extends Controller
                 );
             }
 
-            // var_dump($pack, $pack);
+
         } else {
             switch ($plan->slot->type_id) {
                 case 2:
@@ -276,27 +279,26 @@ class ProductsPlanController extends Controller
             }
         }
 
-        Log::info("Update plan request:", $request->post());
-        Log::info("Update plan response:", $order);
+        // Схлопываем разрывы для всех планов линии, у которых уменьшилось время
+        $allPlansAfter = ProductsPlan::whereHas('slot', fn($q) => $q->where('line_id', $line_id))
+            ->withSession($request)->get()->keyBy('plan_product_id');
+        $shifted = false;
 
-        // Обработка конфликтов на фис-машинах
-        $order = self::fixFisMachineConflicts($request, $order);
+        foreach ($allPlansAfter as $pid => $planAfter) {
+            $oldPlan = $allPlansBefore->get($pid);
+            if (!$oldPlan) continue;
 
-        // Валидация дочерних планов после перестановок
-        $order = self::validateAndFixChildPlans($request, $order);
+            $newEndedAt = Carbon::parse($planAfter->ended_at);
+            $oldEndedAt = Carbon::parse($oldPlan->ended_at);
+            if (!$newEndedAt->lt($oldEndedAt)) continue;
 
-        // Схлопываем разрыв, если план стал заканчиваться раньше
-        $plan->refresh();
-        $newEndedAt = Carbon::parse($plan->ended_at);
-        if ($newEndedAt->lt($oldEndedAt)) {
             $delta = abs($oldEndedAt->diffInMinutes($newEndedAt));
-            $line_id = $plan->slot->line_id;
 
             // Сдвигаем последующие планы на основной линии
             ProductsPlan::whereHas('slot', fn($q) => $q->where('line_id', $line_id))
                 ->withSession($request)
-                ->where('started_at', '>', $plan->started_at)
-                ->where('plan_product_id', '!=', $plan->plan_product_id)
+                ->where('started_at', '>', $planAfter->started_at)
+                ->where('plan_product_id', '!=', $pid)
                 ->each(function ($p) use ($delta) {
                     $p->update([
                         'started_at' => Carbon::parse($p->started_at)->subMinutes($delta),
@@ -306,10 +308,9 @@ class ProductsPlanController extends Controller
 
             // Сдвигаем последующие планы на дочерних линиях
             foreach ($oldChildEndedAt as $childLineId => $oldData) {
-                $newChild = ProductsPlan::where('parent', $plan->plan_product_id)
+                $newChild = ProductsPlan::where('parent', $pid)
                     ->whereHas('slot', fn($q) => $q->where('line_id', $childLineId))
-                    ->withSession($request)
-                    ->first();
+                    ->withSession($request)->first();
                 if ($newChild) {
                     $newChildEndedAt = Carbon::parse($newChild->ended_at);
                     if ($newChildEndedAt->lt($oldData['ended_at'])) {
@@ -324,28 +325,43 @@ class ProductsPlanController extends Controller
                                     'ended_at' => Carbon::parse($p->ended_at)->subMinutes($childDelta)
                                 ]);
                             });
-
-                        // Пересобираем order и проверки
-                        $order = array_replace(
-                            $order,
-                            // self::checkPlans($request, $childLineId),
-                            [$childLineId => self::getByLine($childLineId, $request)]
-                        );
                     }
                 }
             }
-
-            // Пересобираем order и проверки
-            $order = array_replace(
-                $order,
-                self::checkPlans($request, $line_id),
-                [$line_id => self::getByLine($line_id, $request)]
-            );
-            $order = self::fixFisMachineConflicts($request, $order);
-            $order = self::validateAndFixChildPlans($request, $order);
-
-            Log::info("Update plan shift delta: $delta mins");
+            $shifted = true;
         }
+
+        if ($shifted) {
+            // Только пересборка order и правило 3 (crate), без checkPlans/fixFisMachineConflicts
+            $order = array_replace($order, [$line_id => self::getByLine($line_id, $request)]);
+            // Применяем только правило 3 для crate-планов (line_id=37)
+            $cratePlans = ProductsPlan::whereHas('slot', fn($q) => $q->where('line_id', 37))
+                ->withSession($request)->get();
+            foreach ($cratePlans as $crate) {
+                $siblings = ProductsPlan::where('parent', $crate->parent)
+                    ->whereHas('slot', fn($q) => $q->where('line_id', '!=', 37))
+                    ->get();
+                if ($siblings->isEmpty()) continue;
+                $latestSiblingEnd = $siblings->max('ended_at');
+                if (Carbon::parse($crate->ended_at)->isAfter($latestSiblingEnd)) {
+                    $crate->update(['ended_at' => $latestSiblingEnd]);
+                }
+            }
+            if ($cratePlans->isNotEmpty()) {
+                $order = array_replace($order, [37 => self::getByLine(37, $request)]);
+            }
+            Log::info("Update plan shift applied");
+        }
+
+        Log::info("Update plan request:", $request->post());
+        Log::info("Update plan response:", $order);
+
+        // Обработка конфликтов на фис-машинах
+        $order = self::fixFisMachineConflicts($request, $order);
+
+        // Валидация дочерних планов после перестановок
+        $order = self::validateAndFixChildPlans($request, $order);
+
 
         LinesController::updateLinesTime($order);
         $plan->refresh();
@@ -427,6 +443,23 @@ class ProductsPlanController extends Controller
         // Проверки
         // $order = self::fixFisMachineConflicts($request, $order);
         // $order = self::validateAndFixChildPlans($request, $order);
+
+        // Обновляем crate-планы (правило 3)
+        $cratePlans = ProductsPlan::whereHas('slot', fn($q) => $q->where('line_id', 37))
+            ->withSession($request)->get();
+        foreach ($cratePlans as $crate) {
+            $siblings = ProductsPlan::where('parent', $crate->parent)
+                ->whereHas('slot', fn($q) => $q->where('line_id', '!=', 37))
+                ->get();
+            if ($siblings->isEmpty()) continue;
+            $latestSiblingEnd = $siblings->max('ended_at');
+            if (Carbon::parse($crate->ended_at)->isAfter($latestSiblingEnd)) {
+                $crate->update(['ended_at' => $latestSiblingEnd]);
+            }
+        }
+        if ($cratePlans->isNotEmpty()) {
+            $order = array_replace($order, [37 => self::getByLine(37, $request)]);
+        }
 
         Log::info("Delete plan request:", $request->post());
 
