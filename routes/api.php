@@ -5,7 +5,6 @@ use App\Http\Controllers\LinesController;
 use App\Http\Controllers\LogsController;
 use App\Http\Controllers\ProductsCategoriesController;
 use App\Http\Controllers\ProductsDictionaryController;
-use App\Http\Controllers\ProductsOrderController;
 use App\Http\Controllers\ProductsPlanController;
 use App\Http\Controllers\ProductsSlotsController;
 use App\Http\Controllers\ResponsibleController;
@@ -16,7 +15,6 @@ use App\Http\Middleware\ForceJsonResponse;
 use App\Http\Middleware\ParseSession;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\Cookie;
 
 Route::group(['middleware' => ['web', ParseSession::class]], function () {
     /*******
@@ -189,18 +187,15 @@ Route::group(['middleware' => ['web', ParseSession::class]], function () {
     /********
      * SESSION
      *******/
-    Route::post('/update_session', function (Request $request) {
-        if ($request) {
-            $dateValue = $request->post('date');
-            $timeValue = $request->post('isDay');
-        } else {
-            $dateValue = $request->cookie('date');
-            $timeValue = filter_var($request->cookie('isDay'), FILTER_VALIDATE_BOOLEAN);
+    Route::match(['get', 'post'], '/update_session', function (Request $request) {
+        $dateValue = $request->post('date', $request->cookie('date'));
+        $timeValue = $request->post('isDay', $request->cookie('isDay'));
+        if (is_string($timeValue)) {
+            $timeValue = filter_var($timeValue, FILTER_VALIDATE_BOOLEAN);
         }
         $response = response('Set Cookie');
         $response->cookie('date', $dateValue, 60000);
         $response->cookie('isDay', $timeValue, 60000);
         return $response;
-
     });
 });

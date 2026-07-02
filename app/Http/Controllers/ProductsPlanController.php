@@ -314,7 +314,7 @@ class ProductsPlanController extends Controller
                 if ($newChild) {
                     $newChildEndedAt = Carbon::parse($newChild->ended_at);
                     if ($newChildEndedAt->lt($oldData['ended_at'])) {
-                        $childDelta = abs($oldData['ended_at']->diffInMinutes($newChildEndedAt));
+                            $childDelta = abs($oldData['ended_at']->diffInMinutes($newChildEndedAt));
                         ProductsPlan::whereHas('slot', fn($q) => $q->where('line_id', $childLineId))
                             ->withSession($request)
                             ->where('started_at', '>', $newChild->started_at)
@@ -325,15 +325,18 @@ class ProductsPlanController extends Controller
                                     'ended_at' => Carbon::parse($p->ended_at)->subMinutes($childDelta)
                                 ]);
                             });
+                        // Обновляем $order для дочерней линии после сдвига
+                        $order = array_replace($order, [$childLineId => self::getByLine($childLineId, $request)]);
                     }
                 }
             }
             $shifted = true;
         }
 
+        // Всегда обновляем $order для основной линии (БД могла измениться в processPacks/fixFisMachineConflicts)
+        $order = array_replace($order, [$line_id => self::getByLine($line_id, $request)]);
+
         if ($shifted) {
-            // Только пересборка order и правило 3 (crate), без checkPlans/fixFisMachineConflicts
-            $order = array_replace($order, [$line_id => self::getByLine($line_id, $request)]);
             // Применяем только правило 3 для crate-планов (line_id=37)
             $cratePlans = ProductsPlan::whereHas('slot', fn($q) => $q->where('line_id', 37))
                 ->withSession($request)->get();
