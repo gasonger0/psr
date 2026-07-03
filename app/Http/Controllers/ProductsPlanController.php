@@ -238,8 +238,38 @@ class ProductsPlanController extends Controller
                         DB::commit();
                         $order = $this->checkPlans($request, 37);
                     } else {
+                        $packLineId = $plan->slot->line_id;
+                        $packLineBefore = ProductsPlan::whereHas('slot', fn($q) => $q->where('line_id', $packLineId))
+                            ->withSession($request)->get()->keyBy('plan_product_id');
                         $plan->update($fields);
-                        $order = $this->checkPlans($request, $plan->slot->line_id);
+                        $order = $this->checkPlans($request, $packLineId);
+
+                        // Коллапс для линии упаковки (подтягиваем последующие планы вверх)
+                        $packLineAfter = ProductsPlan::whereHas('slot', fn($q) => $q->where('line_id', $packLineId))
+                            ->withSession($request)->get()->keyBy('plan_product_id');
+                        $packShifted = false;
+                        foreach ($packLineAfter as $pid => $planAfter) {
+                            $oldPlan = $packLineBefore->get($pid);
+                            if (!$oldPlan) continue;
+                            $newEndedAt = Carbon::parse($planAfter->ended_at);
+                            $oldEndedAt = Carbon::parse($oldPlan->ended_at);
+                            if (!$newEndedAt->lt($oldEndedAt)) continue;
+                            $delta = abs($oldEndedAt->diffInMinutes($newEndedAt));
+                            ProductsPlan::whereHas('slot', fn($q) => $q->where('line_id', $packLineId))
+                                ->withSession($request)
+                                ->where('started_at', '>', $planAfter->started_at)
+                                ->where('plan_product_id', '!=', $pid)
+                                ->each(function ($p) use ($delta) {
+                                    $p->update([
+                                        'started_at' => Carbon::parse($p->started_at)->subMinutes($delta),
+                                        'ended_at' => Carbon::parse($p->ended_at)->subMinutes($delta)
+                                    ]);
+                                });
+                            $packShifted = true;
+                        }
+                        if ($packShifted) {
+                            $order = array_replace($order, [$packLineId => self::getByLine($packLineId, $request)]);
+                        }
                     }
                     break;
                 case 3:
@@ -253,6 +283,13 @@ class ProductsPlanController extends Controller
                         ->whereHas('slot', fn($q) => $q->where('type_id', 2))
                         ->with('slot')
                         ->get();
+
+                    // Сохраняем состояние линий упаковки до изменений
+                    $packLinesBefore = [];
+                    foreach ($packs as $pack) {
+                        $packLinesBefore[$pack->slot->line_id] = ProductsPlan::whereHas('slot', fn($q) => $q->where('line_id', $pack->slot->line_id))
+                            ->withSession($request)->get()->keyBy('plan_product_id');
+                    }
 
                     foreach ($packs as $pack) {
                         $duration = Util::calcDuration(
@@ -274,6 +311,35 @@ class ProductsPlanController extends Controller
                             $order,
                             $this->checkPlans($request, $pack->slot->line_id)
                         );
+                    }
+
+                    // Коллапс для линий упаковки (подтягиваем последующие планы вверх)
+                    foreach ($packLinesBefore as $packLineId => $lineBefore) {
+                        $lineAfter = ProductsPlan::whereHas('slot', fn($q) => $q->where('line_id', $packLineId))
+                            ->withSession($request)->get()->keyBy('plan_product_id');
+                        $packShifted = false;
+                        foreach ($lineAfter as $pid => $planAfter) {
+                            $oldPlan = $lineBefore->get($pid);
+                            if (!$oldPlan) continue;
+                            $newEndedAt = Carbon::parse($planAfter->ended_at);
+                            $oldEndedAt = Carbon::parse($oldPlan->ended_at);
+                            if (!$newEndedAt->lt($oldEndedAt)) continue;
+                            $delta = abs($oldEndedAt->diffInMinutes($newEndedAt));
+                            ProductsPlan::whereHas('slot', fn($q) => $q->where('line_id', $packLineId))
+                                ->withSession($request)
+                                ->where('started_at', '>', $planAfter->started_at)
+                                ->where('plan_product_id', '!=', $pid)
+                                ->each(function ($p) use ($delta) {
+                                    $p->update([
+                                        'started_at' => Carbon::parse($p->started_at)->subMinutes($delta),
+                                        'ended_at' => Carbon::parse($p->ended_at)->subMinutes($delta)
+                                    ]);
+                                });
+                            $packShifted = true;
+                        }
+                        if ($packShifted) {
+                            $order = array_replace($order, [$packLineId => self::getByLine($packLineId, $request)]);
+                        }
                     }
                     break;
             }
@@ -592,9 +658,10 @@ class ProductsPlanController extends Controller
         if (empty($request->post())) {
             return Util::errorMsg('Нет записей для смены порядка.', 404);
         }
-
+        Log::info("Before change:", $request->post() ?? []);
         $baselineId = 0;
         $order = [];
+        $affectedLineIds = [];
         foreach ($request->post() as $item) {
             // Находим план по ИД
             $plan = ProductsPlan::find($item['plan_product_id']);
@@ -605,15 +672,11 @@ class ProductsPlanController extends Controller
                 // Обновляем модель
                 $plan->update($item);
                 $plan->save();
-                // $order = array_replace(
-                //     $order,
-                //     $this->checkPlans($request, $plan->slot->line_id)
-                // );
 
                 // Список планов по упаковке, привязанных к текущему плану
                 ProductsPlan::where('parent', $plan->plan_product_id)
                     ->withSession($request)
-                    ->each(function ($pack) use ($plan, $request, &$order) {
+                    ->each(function ($pack) use ($plan, $request, &$affectedLineIds) {
                         // Получаем длительность в минутах
                         $duration = abs(Carbon::parse($pack->ended_at)
                             ->diffInMinutes(
@@ -628,13 +691,7 @@ class ProductsPlanController extends Controller
                         ]);
                         $pack->save();
 
-                        $lineId = $pack->slot->line_id;
-                        // Проверка
-                        $order = array_replace(
-                            $order,
-                            self::checkPlans($request, $lineId)
-                            // [$lineId => self::getByLine($lineId, $request)]
-                        );
+                        $affectedLineIds[] = $pack->slot->line_id;
                     });
             } else {
                 switch ($plan->slot->type_id) {
@@ -735,7 +792,15 @@ class ProductsPlanController extends Controller
             }
         }
 
-        $order[$baselineId] = $this->getByLine($baselineId, $request);
+        // Вызываем checkPlans для всех затронутых дочерних линий один раз,
+        // после того как ВСЕ варки и их дети уже перемещены
+        foreach (array_unique($affectedLineIds) as $lineId) {
+            $order = array_replace(
+                $order,
+                self::checkPlans($request, $lineId),
+                [$lineId => self::getByLine($lineId, $request)],
+            );
+        }
 
         // Обработка конфликтов на фис-машинах
         $order = self::fixFisMachineConflicts($request, $order);
@@ -743,6 +808,9 @@ class ProductsPlanController extends Controller
         // Валидация дочерних планов после перестановок
         $order = self::validateAndFixChildPlans($request, $order);
 
+        // Обновляем baseline линию ПОСЛЕ всех изменений в БД
+        $order[$baselineId] = $this->getByLine($baselineId, $request);
+        Log::info("After change:", $order);
         LinesController::updateLinesTime($order);
         // Обновляённый порядок
         return Util::successMsg($order, 202);
@@ -1057,6 +1125,44 @@ class ProductsPlanController extends Controller
                 $child->update([
                     'started_at' => Carbon::parse($child->started_at)->addMinutes($shift),
                     'ended_at' => Carbon::parse($child->ended_at)->addMinutes($shift)
+                ]);
+                $changedLineIds[] = $child->slot->line_id;
+
+                // Находим упаковки и пересчитываем от нового положения глазировки
+                ProductsPlan::where('parent', $boil->plan_product_id)
+                    ->whereHas('slot', fn($q) => $q->where('type_id', 2))
+                    ->withSession($request)
+                    ->each(function ($pack) use ($child, &$changedLineIds) {
+                        $duration = abs(Carbon::parse($pack->started_at)->diffInMinutes(Carbon::parse($pack->ended_at)));
+                        $newStart = Carbon::parse($child->started_at);
+                        $pack->update([
+                            'started_at' => $newStart,
+                            'ended_at' => $newStart->copy()->addMinutes($duration)
+                        ]);
+                        $changedLineIds[] = $pack->slot->line_id;
+                    });
+            }
+            $previousEnd = Carbon::parse($child->ended_at);
+        }
+
+        // Обратный проход: закрываем разрывы, если предыдущий план стал короче
+        $previousEnd = null;
+        foreach ($boils as $boil) {
+            $child = ProductsPlan::where('parent', $boil->plan_product_id)
+                ->whereHas('slot', function ($query) {
+                    $query->whereIn('type_id', [3, 5]);
+                })->withSession($request)->first();
+
+            if (!$child) {
+                continue;
+            }
+
+            $childStart = Carbon::parse($child->started_at);
+            if ($previousEnd && $previousEnd->isBefore($childStart)) {
+                $gap = abs($previousEnd->diffInMinutes($childStart));
+                $child->update([
+                    'started_at' => $childStart->copy()->subMinutes($gap),
+                    'ended_at' => Carbon::parse($child->ended_at)->subMinutes($gap)
                 ]);
                 $changedLineIds[] = $child->slot->line_id;
 
