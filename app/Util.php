@@ -187,20 +187,21 @@ class Util
     }
 
     // TODO в параметры линий
-    public static function calcReturnMass(array $line, int $sum, string $type): int|bool
+    public static function calcReturnMass(array $line, array $sum, string $type): string|bool
     {
         $title = mb_strtolower($line['title']);
+        $m = "<f>=(" . implode("+", $sum) . ") * ";
         if (str_contains($title, "непрерывная линия")) {
             return 25;
         } else if (str_contains($title, "шоколадная линия 1")) {
             match ($type) {
-                'z' => $sum * 0.015,
-                's' => $sum * 0.00405
+                'z' => $m . 0.015,
+                's' => $m . 0.00405
             };
         } else if (str_contains($title, "полуавт")) {
-            return $sum * 0.025;
+            return $m . 0.025;
         } else if (str_contains($title, "shot")) {
-            return $sum * 0.005;
+            return $m . 0.005;
         }
         return false;
     }
@@ -246,5 +247,47 @@ class Util
                 //     * $pl->slot->people_count;
             });
         return $array;
+    }
+
+    public static function makeCounts(int $row_index, array $product, string $letter = 'B', int $amount = null)
+    {
+        $index = ord($letter) - 65 + 1;
+        $i = fn(int $m = 0) => chr($index + 65 + $m);
+        return [
+            $index => $amount,
+            "<f>=" . $i(0) . "$row_index*$product[amount2parts]",
+            "<f>=" . $i(1) . "$row_index*$product[parts2kg]",
+            isset($product['kg2boil']) ? "<f>=" . $i(2) . "$row_index*$product[kg2boil]" : 0,
+            isset($product['cars']) ? "<f>=" . $i(3) . "$row_index*$product[cars]" : 0,
+            '<b>т</b>',
+            "<f>=ROUNDDOWN(" . $i(4) . "$row_index)",
+            '<b>под</b>'
+        ];
+    }
+
+    public static function makeResult(string $letter, array $sum, array $catRows, bool $is_boil)
+    {
+        $title = match ($letter) {
+            'z' => "зефира",
+            's' => "суфле",
+            'k' => "конфет"
+        };
+
+        $mapCat = fn($l) => 
+                count($catRows[$letter]) > 0 ? 
+                    '<f>=' . 
+                        implode('+', array_map(fn($r) => $l . $r, $catRows[$letter])) 
+                : '';
+            
+        return [
+            1 =>  "<b>Итого $title</b>",
+            4 =>  count($sum[$letter][0]) > 0 ? "<f>=" . implode("+", $sum[$letter][0]) : '',
+            5 =>  count($sum[$letter][1]) > 0 && $is_boil ? "<f>=" . implode("+", $sum[$letter][1]) : '',
+            17 => $mapCat('P'),
+            18 => $mapCat('Q'), 
+            19 => $mapCat('R'), 
+            20 => $is_boil ? $mapCat('S') : '', 
+            21 => $is_boil ? $mapCat('U') : ''
+        ];
     }
 }
