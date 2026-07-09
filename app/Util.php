@@ -193,8 +193,8 @@ class Util
         $m = "<f>=(" . implode("+", $sum) . ") * ";
         if (str_contains($title, "непрерывная линия")) {
             return 25;
-        } else if (str_contains($title, "шоколадная линия 1")) {
-            match ($type) {
+        } else if (str_contains($title, "шоколадная линия")) {
+            return match ($type) {
                 'z' => $m . 0.015,
                 's' => $m . 0.00405
             };
@@ -253,14 +253,16 @@ class Util
     {
         $index = ord($letter) - 65 + 1;
         $i = fn(int $m = 0) => chr($index + 65 + $m);
+
+        $cars = $i(3) . "$row_index*$product[cars]";
         return [
             $index => $amount,
             "<f>=" . $i(0) . "$row_index*$product[amount2parts]",
             "<f>=" . $i(1) . "$row_index*$product[parts2kg]",
             isset($product['kg2boil']) ? "<f>=" . $i(2) . "$row_index*$product[kg2boil]" : 0,
-            isset($product['cars']) ? "<f>=" . $i(3) . "$row_index*$product[cars]" : 0,
+            isset($product['cars']) ? "<f>=ROUNDDOWN($cars)" : 0,
             '<b>т</b>',
-            "<f>=ROUNDDOWN(" . $i(4) . "$row_index)",
+            "<f>=ROUNDUP((($cars) - " . $i(4) . "$row_index)*$product[cars2plates])",
             '<b>под</b>'
         ];
     }
@@ -281,13 +283,13 @@ class Util
             
         return [
             1 =>  "<b>Итого $title</b>",
-            4 =>  count($sum[$letter][0]) > 0 ? "<f>=" . implode("+", $sum[$letter][0]) : '',
-            5 =>  count($sum[$letter][1]) > 0 && $is_boil ? "<f>=" . implode("+", $sum[$letter][1]) : '',
-            17 => $mapCat('P'),
-            18 => $mapCat('Q'), 
-            19 => $mapCat('R'), 
-            20 => $is_boil ? $mapCat('S') : '', 
-            21 => $is_boil ? $mapCat('U') : ''
+            4 =>  (count($sum[$letter][0]) > 0) ? "<f>=" . implode("+", $sum[$letter][0]) : '',
+            5 =>  (count($sum[$letter][1]) > 0 && $is_boil) ? "<f>=" . implode("+", $sum[$letter][1]) : '',
+            // 15 => $mapCat('P'),
+            16 => $mapCat('Q'), 
+            17 => $mapCat('R'), 
+            18 => $is_boil ? $mapCat('S') : '', 
+            // 19 => $is_boil ? $mapCat('T') : ''
         ];
     }
 }

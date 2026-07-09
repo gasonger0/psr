@@ -85,29 +85,29 @@ class TableController extends Controller
                 self::makeRow([
                     0 => '<style height="52">Смена:</style>',
                     $session['isDay'] ? 'День' : 'Ночь',
-                    3 =>'план:',
+                    3 => 'план:',
                     15 => 'факт:',
-                    21 => self::$MCS . 'Ген.директор ООО КФ "Сокол"' . self::$MCE,
+                    21 => self::$MCS . 'Зам. ген.директора ООО КФ "Сокол"' . self::$MCE,
                 ]),
                 self::makeRow([
                     0 => self::$MCS . '<b>№</b>' . self::$MCE,
-                    '<style border="#000000" font-size="20">' . 
-                        self::$MCS . 
-                            '<b>Наименование</b>' . 
-                        self::$MCE . 
+                    '<style border="#000000" font-size="20">' .
+                    self::$MCS .
+                    '<b>Наименование</b>' .
+                    self::$MCE .
                     '</style>',
                     self::$MCS . '<b>Плановое кол-во корпуса</b>' . self::$MCE,
                     11 => self::$MCS . '<b>План</b>' . self::$MCE,
                     // 10 => self::$MCS . '<b>Зефирная масса, кг</b>' . self::$MCE,
                     // 16 => self::$MCS . '<b>ПРИМЕЧАНИЕ</b>' . self::$MCE,
                     15 => self::$MCS . '<b>Факт</b>' . self::$MCE,
-                    25 => self::$MCS . '<b>ПРИМЕЧАНИЕ</b>' . self::$MCE,
+                    27 => self::$MCS . '<b>ПРИМЕЧАНИЕ</b>' . self::$MCE,
                 ]),
                 self::makeRow([
                     11 => self::$MCS . '<wraptext><b>кол-во людей</b></wraptext>' . self::$MCE,
                     12 => self::$MCS . '<b>Время, ч</b>' . self::$MCE,
-                    23 => self::$MCS . '<wraptext><b>кол-во людей</b></wraptext>' . self::$MCE,
-                    24 => self::$MCS . '<b>Время, ч</b>' . self::$MCE,
+                    24 => self::$MCS . '<wraptext><b>кол-во людей</b></wraptext>' . self::$MCE,
+                    25 => self::$MCS . '<b>Время, ч</b>' . self::$MCE,
                 ]),
                 self::makeRow([
                     0 => '<style height="57"></style>',
@@ -121,11 +121,11 @@ class TableController extends Controller
                     15 => self::$MCS . '<b>ящ</b>' . self::$MCE,
                     self::$MCS . '<b>шт</b>' . self::$MCE,
                     self::$MCS . '<b>кг</b>' . self::$MCE,
-                    self::$MCS . ($type == 1 ?'<b>Варка</b>' : '') . self::$MCE,
+                    self::$MCS . ($type == 1 ? '<b>Варка</b>' : '') . self::$MCE,
                     self::$MCS . '<b>Телеги</b>' . self::$MCE,
-                    23 => self::$MCS . '<b>начало</b>' . self::$MCE,
+                    25 => self::$MCS . '<b>начало</b>' . self::$MCE,
                     self::$MCS . '<b>окончание</b>' . self::$MCS,
-                    26 => self::$MCS . '<b>Чел-часов по плану</b>' . self::$MCE,
+                    28 => self::$MCS . '<b>Чел-часов по плану</b>' . self::$MCE,
                     self::$MCS . '<b>Чел-часов по закрытой ГП</b>' . self::$MCE,
                     self::$MCS . '<b>Чел-часов по факту</b>' . self::$MCE
                 ])
@@ -393,27 +393,29 @@ class TableController extends Controller
                                 11 => $product['slot']['people_count'],
                                 12 => Carbon::parse($product['started_at'])->format('H:i'),
                                 13 => Carbon::parse($product['ended_at'])->format('H:i'),
-                                25 => "<f>=E$row_index / {$product['slot']['perfomance']} * {$product['slot']['people_count']}</f>",
-                                36 => "<f>=R$row_index / {$product['slot']['perfomance']} * {$product['slot']['people_count']}</f>"
+                                28 => "<f>=E$row_index / {$product['slot']['perfomance']} * {$product['slot']['people_count']}</f>",
+                                29 => "<f>=R$row_index / {$product['slot']['perfomance']} * {$product['slot']['people_count']}</f>",
                             ],
-                            Util::makeCounts($row_index, $product, 'O')    
+                            Util::makeCounts($row_index, $product, 'O')
                         );
 
                         $category = $product['category']['title'];
 
                         $cat = 'z'; // по умолчанию зефир
                         if (
-                            mb_strpos(mb_strtolower($category), 'зефир') !== false || 
-                            mb_strpos(mb_strtolower($product['title']), 'зефир') !== false) {
+                            mb_strpos(mb_strtolower($category), 'зефир') !== false ||
+                            mb_strpos(mb_strtolower($product['title']), 'зефир') !== false
+                        ) {
                             $cat = 'z';
                         } else if (
-                            mb_strpos(mb_strtolower($category), 'суфле') !== false || 
-                            mb_strpos(mb_strtolower($product['title']), 'суфле') !== false 
-                            ) {
+                            mb_strpos(mb_strtolower($category), 'суфле') !== false ||
+                            mb_strpos(mb_strtolower($product['title']), 'суфле') !== false
+                        ) {
                             $cat = 's';
                         } else if (
                             mb_strpos(mb_strtolower($category), 'конфет') !== false ||
-                            mb_strpos(mb_strtolower($product['title']), 'конфет') !== false) {
+                            mb_strpos(mb_strtolower($product['title']), 'конфет') !== false
+                        ) {
                             $cat = 'k';
                         }
                         $sum[$cat][0][] = "E$row_index";
@@ -423,7 +425,13 @@ class TableController extends Controller
                         array_push($dateCount, "C$row_index", "D$row_index");
 
                         // Запоминаем строку продукта для формул факта в итогах
-                        $catRows[$cat][] = $row_index;
+                        if ($cat == "z" && $sheet == 1) {
+                            if (array_search($line['line_id'], [8, 9, 10, 11, 12]) !== false) {
+                                $catRows[$cat][] = $row_index;
+                            }
+                        } else {
+                            $catRows[$cat][] = $row_index;
+                        }
 
                     }
                 }
@@ -432,28 +440,41 @@ class TableController extends Controller
                     $array[] = self::makeRow([
                         1 => '<style bgcolor="#FFC263"><b><i>Заключительное время</i></b></style>',
                         11 => $line['workers_count'],
-                        12 => $lastTime->addMinutes(-$line['after_time'])->format('H:i:s'),
-                        13 => $lastTime->addMinutes($line['after_time'])->format('H:i:s')
+                        12 => $lastTime->addMinutes(-$line['after_time'])->format('H:i'),
+                        13 => $lastTime->addMinutes($line['after_time'])->format('H:i')
                     ]);
                 }
                 $array[] = [];
 
-                if ($line['type_id'] == 2) {
-                    if (count($sum['z'][0]) > 0) {
-                        $val = Util::calcReturnMass($line, $sum['z'][0], 'z');
-                        if ($val != false) {
-                            $array[] = ["", "Возвратные отходы зеф.массы:", '', '', "<i>$val</i>"];
-                            $returnMassCells[] = "E" . count($array);
+                if ($sheet == 2) {
+                    foreach ([
+                        'z' => 'зеф.массы',
+                        's' => 'суфле',
+                        'k' => 'зеф.массы'
+                    ] as $i => $t) {
+                        if (count($sum[$i][0]) > 0) {
+                            $val = Util::calcReturnMass($line, $sum[$i][0], $i);
+                            if ($val != false) {
+                                $array[] = ["", "Возвратные отходы $t:", '', '', "<i>$val</i>"];
+                                $i != 's' ? $returnMassCells[] = "E" . count($array) : '';
+                            }
                         }
                     }
+                    // if (count($sum['z'][0]) > 0) {
+                    //     $val = Util::calcReturnMass($line, $sum['z'][0], 'z');
+                    //     if ($val != false) {
+                    //         $array[] = ["", "Возвратные отходы зеф.массы:", '', '', "<i>$val</i>"];
+                    //         $returnMassCells[] = "E" . count($array);
+                    //     }
+                    // }
 
-                    if (count($sum['s'][0]) > 0) {
-                        $val = Util::calcReturnMass($line, $sum['s'][0], 's');
-                        if ($val != false) {
-                            $array[] = ["", "Возвратные отходы суфле:", '', '', "<i>$val</i>"];
-                            // $returnMassCells[] = "E" . count($array);
-                        }
-                    }
+                    // if (count($sum['s'][0]) > 0) {
+                    //     $val = Util::calcReturnMass($line, $sum['s'][0], 's');
+                    //     if ($val != false) {
+                    //         $array[] = ["", "Возвратные отходы суфле:", '', '', "<i>$val</i>"];
+                    //         // $returnMassCells[] = "E" . count($array);
+                    //     }
+                    // }
 
                     $array[] = [];
                 } else {
@@ -462,15 +483,52 @@ class TableController extends Controller
                     $returnMassCells[] = "E" . count($array);
                 }
 
+                $add = function ($i, $sum) use (&$globalB, &$globalKG) {
+                    array_push($globalKG[$i], ...$sum[$i][0]);
+                    array_push($globalB[$i], ...$sum[$i][1]);
+                };
+
                 foreach (['z', 's', 'k'] as $i) {
+
                     $array[] = self::makeRow(Util::makeResult($i, $sum, $catRows, $line['type_id'] == 1));
 
-                    array_push($globalKG [$i], ...$sum[$i][0]);
-                    array_push($globalB  [$i], ...$sum[$i][1]);
+                    /* Для упаковки:
+                        1) Зефир - считаем только зефир на нл1 сп, нл2 сп, нл1 гл, нл2 гл, шл1, па, эквивалент
+                        2) Конфеты - только по ваншоту
+                        3) Суфле - только по шл1
+                    */
+                    if ($sheet == 2) {
+                        switch ($i) {
+                            case 'z':
+                                if (array_search($line['line_id'], [17, 18, 24, 25, 41]) !== false) {
+                                    $add($i, $sum);
+                                }
+                                break;
+                            case 'k':
+                                if ($line['line_id'] == 31) {
+                                    $add($i, $sum);
+                                }
+                                break;
+                            case 's':
+                                if ($line['line_id'] == 20) {
+                                    $add($i, $sum);
+                                }
+                                break;
+                        }
+                    } else {
+                        if (
+                            !($i == 'z'
+                            && (str_contains($product['title'], 'начинка') === false
+                            || str_contains($product['title'], 'переваривание') === false)
+                            )
+                        ) {
+                            $add($i, $sum);
+                        }
+                    }
                 }
 
                 $array[] = ['', '<b>Отходы</b>'];
-                
+
                 $sum = [
                     'z' => [0, 0],
                     's' => [0, 0],
@@ -487,7 +545,6 @@ class TableController extends Controller
                     ->first()
                     ->toArray();
 
-                $array[] = ['', '<style bgcolor="#B7DEE8"><b>ОТВЕТСТВЕННЫЕ: ' . $dating['master'] . ',' . $dating['engineer'] . '</b></style>'];
                 $array[] = self::makeRow([
                     1 => '<style bgcolor="#D8E4BC"><b>ДАТИРОВАНИЕ</b></style>',
                     3 => "<f>=" . implode("+", $dateCount) . " / 8000",
@@ -495,26 +552,31 @@ class TableController extends Controller
                     12 => Carbon::parse($dating['started_at'])->format("H:i"),
                     13 => Carbon::parse($dating['ended_at'])->format("H:i")
                 ]);
-
+                if ($dating['master'] || $dating['engineer']) {
+                    $array[] = [
+                        '',
+                        '<style bgcolor="#B7DEE8"><b>ОТВЕТСТВЕННЫЕ: ' . $dating['master'] . ',' . $dating['engineer'] . '</b></style>'
+                    ];
+                }
             }
             $array[] = [];
-            
+
             foreach ([
-                'z' => 'ЗЕФИРА', 
-                's' => 'КОНФЕТ', 
+                'z' => 'ЗЕФИРА',
+                's' => 'КОНФЕТ',
                 'k' => 'СУФЛЕ'
             ] as $i => $t) {
                 if ($i != 'z' && $line['type_id'] == 2 || $i == 'z') {
-                    $kg = "<f>=" .implode("+", $globalKG [$i]);
-                    $boils = $line['type_id'] == 1 && $i == 'z' ? "<f>=" .implode("+", $globalB [$i]) : '';
+                    $kg = "<f>=" . implode("+", $globalKG[$i]);
+                    $boils = $line['type_id'] == 1 && $i == 'z' ? "<f>=" . implode("+", $globalB[$i]) : '';
                     $array[] = self::makeRow([
                         1 => "ИТОГО $t",
                         4 => $kg,
                         5 => $boils,
-                        19 => str_replace('E', 'T', $kg),
-                        20 => str_replace('F', 'U', $kg),
+                        17 => str_replace('E', 'R', $kg),
+                        18 => str_replace('F', 'S', $boils),
                     ]);
-                }  
+                }
             }
 
             $array[] = self::makeRow([
@@ -545,8 +607,6 @@ class TableController extends Controller
             ->setColWidth(7, 8)
             ->setColWidth(9, 8)
             ->setColWidth(12, 8)
-            ->setColWidth(22, 8)
-            ->setColWidth(25, 20)
             ->mergeCells('A4:A6')
             ->mergeCells('B4:B6')
             ->mergeCells('C4:J5')
@@ -554,13 +614,21 @@ class TableController extends Controller
             ->mergeCells('M5:N5')
             ->mergeCells('G6:J6')
             ->mergeCells('K5:K6')
+            ->mergeCells('L5:L6')
+            ->setColWidth(16, 8)
+            ->setColWidth(17, 8)
+            ->setColWidth(18, 8)
+            ->setColWidth(19, 8)
+            ->setColWidth(22, 8)
+            ->setColWidth(25, 8)
+            ->setColWidth(28, 20)
             ->mergeCells('T6:W6')
-            ->mergeCells('V3:Y3')
+            ->mergeCells('V3:AA3')
             ->mergeCells('W5:X5')
             ->mergeCells('P4:Y4')
-            ->mergeCells('Y4:Y6')
-            ->mergeCells('L5:L6')
-            ->mergeCells('L11:N11')
+            ->mergeCells('Y5:Y6')
+            ->mergeCells('AB4:AB6')
+            ->mergeCells('Z5:AA5')
             ->addSheet($arr[2], 'Упаковка')
             ->setDefaultFontSize(20)
             ->setColWidth(1, 10)
@@ -572,20 +640,28 @@ class TableController extends Controller
             ->setColWidth(7, 8)
             ->setColWidth(9, 8)
             ->setColWidth(12, 8)
-            ->setColWidth(22, 8)
-            ->setColWidth(25, 20)
             ->mergeCells('A4:A6')
             ->mergeCells('B4:B6')
             ->mergeCells('C4:J5')
-            ->mergeCells('K4:M4')
+            ->mergeCells('L4:N4')
+            ->mergeCells('M5:N5')
             ->mergeCells('G6:J6')
             ->mergeCells('K5:K6')
+            ->mergeCells('L5:L6')
+            ->setColWidth(16, 8)
+            ->setColWidth(17, 8)
+            ->setColWidth(18, 8)
+            ->setColWidth(19, 8)
+            ->setColWidth(22, 8)
+            ->setColWidth(25, 8)
+            ->setColWidth(28, 20)
             ->mergeCells('T6:W6')
-            ->mergeCells('V3:Y3')
+            ->mergeCells('V3:AA3')
             ->mergeCells('W5:X5')
-            ->mergeCells('N4:X4')
-            ->mergeCells('Y4:Y6')
-            ->mergeCells('L5:M5');
+            ->mergeCells('P4:Y4')
+            ->mergeCells('Y5:Y6')
+            ->mergeCells('AB4:AB6')
+            ->mergeCells('Z5:AA5');
 
         $name = 'План_' . date('d_m_Y', strtotime($session['date'])) . '.xlsx';
         $xlsx->downloadAs($name);
