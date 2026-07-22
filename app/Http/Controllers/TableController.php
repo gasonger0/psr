@@ -239,7 +239,11 @@ class TableController extends Controller
         foreach ($linesSheets as $sheet => &$lines) {
             $array = $arr[$sheet];
             $dateCount = [];
-            $returnMassCells = [];
+            $returnMassCells = [
+                'z' => [],
+                'k' => [],
+                's' => []
+            ];
             $globalKG = [
                 'z' => [],
                 'k' => [],
@@ -450,37 +454,22 @@ class TableController extends Controller
                     foreach ([
                         'z' => 'зеф.массы',
                         's' => 'суфле',
-                        'k' => 'зеф.массы'
+                        'k' => 'конфет'
                     ] as $i => $t) {
                         if (count($sum[$i][0]) > 0) {
                             $val = Util::calcReturnMass($line, $sum[$i][0], $i);
                             if ($val != false) {
                                 $array[] = ["", "Возвратные отходы $t:", '', '', "<i>$val</i>"];
-                                $i != 's' ? $returnMassCells[] = "E" . count($array) : '';
+                                $returnMassCells[$i][] = "E" . count($array);
                             }
                         }
                     }
-                    // if (count($sum['z'][0]) > 0) {
-                    //     $val = Util::calcReturnMass($line, $sum['z'][0], 'z');
-                    //     if ($val != false) {
-                    //         $array[] = ["", "Возвратные отходы зеф.массы:", '', '', "<i>$val</i>"];
-                    //         $returnMassCells[] = "E" . count($array);
-                    //     }
-                    // }
-
-                    // if (count($sum['s'][0]) > 0) {
-                    //     $val = Util::calcReturnMass($line, $sum['s'][0], 's');
-                    //     if ($val != false) {
-                    //         $array[] = ["", "Возвратные отходы суфле:", '', '', "<i>$val</i>"];
-                    //         // $returnMassCells[] = "E" . count($array);
-                    //     }
-                    // }
 
                     $array[] = [];
                 } else {
                     // TODO Возможно, для линий варки тоже надо не для всех
                     $array[] = ["", "Возвратные отходы зеф.массы:"];
-                    $returnMassCells[] = "E" . count($array);
+                    $returnMassCells['z'][] = "E" . count($array);
                 }
 
                 $add = function ($i, $sum) use (&$globalB, &$globalKG) {
@@ -500,7 +489,7 @@ class TableController extends Controller
                     if ($sheet == 2) {
                         switch ($i) {
                             case 'z':
-                                if (array_search($line['line_id'], [17, 18, 24, 25, 41]) !== false) {
+                                if (array_search($line['line_id'], [14, 17, 18, 20, 24, 25, 41]) !== false) {
                                     $add($i, $sum);
                                 }
                                 break;
@@ -517,17 +506,14 @@ class TableController extends Controller
                         }
                     } else {
                         if (
-                            !($i == 'z'
+                            $i == 'z' && array_search($line['line_id'], [8, 9, 10, 11, 12]) !== false
                             && (str_contains($product['title'], 'начинка') === false
-                            || str_contains($product['title'], 'переваривание') === false)
-                            )
+                                || str_contains($product['title'], 'переваривание') === false)
                         ) {
                             $add($i, $sum);
                         }
                     }
                 }
-
-                $array[] = ['', '<b>Отходы</b>'];
 
                 $sum = [
                     'z' => [0, 0],
@@ -547,7 +533,7 @@ class TableController extends Controller
 
                 $array[] = self::makeRow([
                     1 => '<style bgcolor="#D8E4BC"><b>ДАТИРОВАНИЕ</b></style>',
-                    3 => "<f>=" . implode("+", $dateCount) . " / 8000",
+                    3 => "<f>=" . implode("+", $dateCount) . " / 8000</f>",
                     11 => $dating['workers_count'],
                     12 => Carbon::parse($dating['started_at'])->format("H:i"),
                     13 => Carbon::parse($dating['ended_at'])->format("H:i")
@@ -563,26 +549,43 @@ class TableController extends Controller
 
             foreach ([
                 'z' => 'ЗЕФИРА',
-                's' => 'КОНФЕТ',
-                'k' => 'СУФЛЕ'
+                's' => 'СУФЛЕ',
+                'k' => 'КОНФЕТ'
             ] as $i => $t) {
                 if ($i != 'z' && $line['type_id'] == 2 || $i == 'z') {
-                    $kg = "<f>=" . implode("+", $globalKG[$i]);
-                    $boils = $line['type_id'] == 1 && $i == 'z' ? "<f>=" . implode("+", $globalB[$i]) : '';
+                    $kg = implode("+", $globalKG[$i]);
+                    $boils = $line['type_id'] == 1 && $i == 'z' ? implode("+", $globalB[$i]) : '';
                     $array[] = self::makeRow([
                         1 => "ИТОГО $t",
-                        4 => $kg,
-                        5 => $boils,
-                        17 => str_replace('E', 'R', $kg),
-                        18 => str_replace('F', 'S', $boils),
+                        4 => "<f>=" . $kg . "</f>",
+                        5 => $sheet == 1 ? "<f>=" . $boils . "</f>" : '',
+                        17 => "<f>=" . str_replace('E', 'R', $kg) . "</f>",
+                        18 => $sheet == 1 ? "<f>=" . str_replace('F', 'S', $boils) . "</f>" : '',
                     ]);
                 }
             }
 
-            $array[] = self::makeRow([
-                1 => "ИТОГО ВОЗВРАТНОЙ МАССЫ",
-                4 => "<f>=" . implode(" + ", $returnMassCells)
-            ]);
+            foreach ($returnMassCells as $k => $s) {
+                if ($sheet == 1) {
+                    $array[] = self::makeRow([
+                        1 => "ИТОГО ВОЗВРАТНОЙ МАССЫ",
+                        4 => "<f>=" . implode(" + ", $returnMassCells['z']) . "</f>"
+                    ]);
+                } else {
+                    if (count($s) > 0) {
+                        $title = match($k) {
+                            'z' => 'ЗЕФИРНОЙ МАССЫ',
+                            's' => 'СУФЛЕ',
+                            'k' => 'КОНФЕТ',
+                        };
+
+                        $array[] = self::makeRow([
+                            1 => "ИТОГО ВОЗВРАТНЫЕ ОТХОДЫ $title",
+                            4 => "<f>=" . implode(" + ", $returnMassCells[$k]) . "</f>"
+                        ]);
+                    }
+                }
+            }
 
             array_push(
                 $array,
@@ -592,7 +595,6 @@ class TableController extends Controller
                 ['', "<b><i>ЗАДАНИЕ ПОЛУЧИЛ</i></b>"]
             );
             $arr[$sheet] = $array;
-            $returnMassCells = [];
             $dateCount = 0;
         }
 
@@ -803,11 +805,11 @@ class TableController extends Controller
         );
         $columns[5][7] = "ТОННАЖ ФАКТ";
         $columns[7][7] = "ОТКЛОНЕНИЕ";
-        $columns[8][7] = "<f>=H5-H7";
+        $columns[8][7] = "<f>=H5-H7</f>";
         $columns[] = [''];
-        $sumByLines = array_map(fn($i) => "<f>=" . implode(" + ", $i), $sumByLines);
+        $sumByLines = array_map(fn($i) => "<f>=" . implode(" + ", $i) . "</f>", $sumByLines);
         $columns[] = ["ИТОГО ПО ЗАДАНИЮ", ...$sumByLines];
-        $sum = array_map(fn($i) => "<f>=" . implode(" + ", $i), $sum);
+        $sum = array_map(fn($i) => "<f>=" . implode(" + ", $i) . "</f>", $sum);
         $columns[] = ["ИТОГО ПО РАСПИСАННЫМ ЛЮДЯМ", ...$sum];
         $columns[] = [];
         $columns[] = [
@@ -850,9 +852,9 @@ class TableController extends Controller
                 '',
                 // self::summarize($company['indexes'], 'F'),
                 self::summarize($company['indexes'], 'G'),
-                count($amount['z']) > 0 ? "<f>=" . implode("+", $amount['z']) : '',
-                count($amount['k']) > 0 ? "<f>=" . implode("+", $amount['k']) : '',
-                count($amount['s']) > 0 ? "<f>=" . implode("+", $amount['s']) : '',
+                count($amount['z']) > 0 ? "<f>=" . implode("+", $amount['z']) . "</f>" : '',
+                count($amount['k']) > 0 ? "<f>=" . implode("+", $amount['k']) . "</f>" : '',
+                count($amount['s']) > 0 ? "<f>=" . implode("+", $amount['s']) . "</f>" : '',
             ];
         }
 

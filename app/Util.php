@@ -195,13 +195,13 @@ class Util
             return 25;
         } else if (str_contains($title, "шоколадная линия")) {
             return match ($type) {
-                'z' => $m . 0.015,
-                's' => $m . 0.00405
+                'z' => $m . 0.015 . "</f>",
+                's' => $m . 0.00405 . "</f>"
             };
         } else if (str_contains($title, "полуавт")) {
-            return $m . 0.025;
+            return $m . 0.025 . "</f>";
         } else if (str_contains($title, "shot")) {
-            return $m . 0.005;
+            return $m . 0.005 . "</f>";
         }
         return false;
     }
@@ -257,12 +257,12 @@ class Util
         $cars = $i(3) . "$row_index*$product[cars]";
         return [
             $index => $amount,
-            "<f>=" . $i(0) . "$row_index*$product[amount2parts]",
-            "<f>=" . $i(1) . "$row_index*$product[parts2kg]",
-            isset($product['kg2boil']) ? "<f>=" . $i(2) . "$row_index*$product[kg2boil]" : 0,
-            isset($product['cars']) ? "<f>=ROUNDDOWN($cars)" : 0,
+            "<f>=" . $i(0) . "$row_index*$product[amount2parts]</f>",
+            "<f>=" . $i(1) . "$row_index*$product[parts2kg]</f>",
+            isset($product['kg2boil']) ? "<f>=" . $i(2) . "$row_index*$product[kg2boil]</f>" : 0,
+            isset($product['cars']) ? "<f>=ROUNDDOWN($cars, 0)</f>" : 0,
             '<b>т</b>',
-            "<f>=ROUNDUP((($cars) - " . $i(4) . "$row_index)*$product[cars2plates])",
+            "<f>=ROUNDUP((($cars) - " . $i(4) . "$row_index)*$product[cars2plates], 0)</f>",
             '<b>под</b>'
         ];
     }
@@ -278,13 +278,13 @@ class Util
         $mapCat = fn($l) => 
                 count($catRows[$letter]) > 0 ? 
                     '<f>=' . 
-                        implode('+', array_map(fn($r) => $l . $r, $catRows[$letter])) 
+                        implode('+', array_map(fn($r) => $l . $r, $catRows[$letter])) . "</f>"
                 : '';
             
         return [
             1 =>  "<b>Итого $title</b>",
-            4 =>  (count($sum[$letter][0]) > 0) ? "<f>=" . implode("+", $sum[$letter][0]) : '',
-            5 =>  (count($sum[$letter][1]) > 0 && $is_boil) ? "<f>=" . implode("+", $sum[$letter][1]) : '',
+            4 =>  (count($sum[$letter][0]) > 0) ? "<f>=" . implode("+", $sum[$letter][0]) . "</f>" : '',
+            5 =>  (count($sum[$letter][1]) > 0 && $is_boil) ? "<f>=" . implode("+", $sum[$letter][1]) . "</f>" : '',
             // 15 => $mapCat('P'),
             16 => $mapCat('Q'), 
             17 => $mapCat('R'), 

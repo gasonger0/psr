@@ -84,8 +84,8 @@ class LogsController extends Controller
                     Carbon::parse($el->started_at)->format('H:i:s'),
                     Carbon::parse($el->ended_at)->format('H:i:s'),
                     $el->people_count,
-                    "<f>=МИНУТЫ(C$count-B$count)/60*D$count",
-                    "<f>=B1*E$count",
+                    "<f>=МИНУТЫ(C$count-B$count)/60*D$count</f>",
+                    "<f>=B1*E$count</f>",
                     explode(": ", $el->action)[1]
                 ];
 
@@ -147,8 +147,8 @@ class LogsController extends Controller
         foreach ($lines as $line) {
             $columns[] = [
                 $line['title'],
-                "<f>=".implode("+", $line['hours']),
-                "<f>=".implode("+", $line['cost'])
+                "<f>=".implode("+", $line['hours'])."</f>",
+                "<f>=".implode("+", $line['cost'])."</f>"
             ];
         }
 
