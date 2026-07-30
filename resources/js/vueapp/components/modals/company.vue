@@ -49,13 +49,13 @@ const workerDictTabs = {
  */
 const addNewFront = (): void => {
     switch (activeTab.value) {
-        case 1:
+        case '1':
             workers.add();
             break;
-        case 2:
+        case '2':
             responsibles.add();
             break;
-        case 3:
+        case '3':
             companies.add();
     }
     return;
@@ -90,24 +90,49 @@ const save = (rec: Record<string, any>): void => {
  */
 const del = (rec: Record<string, any>): void => {
     if ("stay_cost" in rec) {
-        companies._delete(rec as CompanyInfo);
+        if (!rec.company_id) {
+            companies.companies = companies.companies.filter((c: CompanyInfo) => c !== rec);
+        } else {
+            companies._delete(rec as CompanyInfo);
+        }
     } else if ("worker_id" in rec) {
-        workers._delete(rec as WorkerInfo);
+        if (!rec.worker_id) {
+            workers.workers = workers.workers.filter((w: WorkerInfo) => w !== rec);
+        } else {
+            workers._delete(rec as WorkerInfo);
+        }
     } else {
-        responsibles._delete(rec as ResponsibleInfo);
+        if (!rec.responsible_id) {
+            responsibles.responsibles = responsibles.responsibles.filter((r: ResponsibleInfo) => r !== rec);
+        } else {
+            responsibles._delete(rec as ResponsibleInfo);
+        }
     }
 }
 /**
  * Отмена редактирования/создания
  */
 const cancel = (rec: Record<string, any>) => {
+    // Если запись не сохранена на бэкенде (нет ID) — просто удаляем её локально
     if ("worker_id" in rec) {
+        if (!rec.worker_id) {
+            workers.workers = workers.workers.filter((w: WorkerInfo) => w !== rec);
+            return;
+        }
         Object.assign(rec, original.value[1][rec.worker_id]);
         delete original.value[1][rec.worker_id];
     } else if ("responsible_id" in rec) {
+        if (!rec.responsible_id) {
+            responsibles.responsibles = responsibles.responsibles.filter((r: ResponsibleInfo) => r !== rec);
+            return;
+        }
         Object.assign(rec, original.value[2][rec.responsible_id]);
         delete original.value[2][rec.responsible_id];
     } else {
+        if (!rec.company_id) {
+            companies.companies = companies.companies.filter((c: CompanyInfo) => c !== rec);
+            return;
+        }
         Object.assign(rec, original.value[3][rec.company_id]);
         delete original.value[3][rec.company_id]
     }
@@ -140,6 +165,13 @@ const edit = (rec: Record<string, any>): void => {
 
 
 const exit = (): void => {
+    // Удаляем несохранённые записи из всех трёх сторов
+    workers.workers = workers.workers.filter((w: WorkerInfo) => w.worker_id);
+    responsibles.responsibles = responsibles.responsibles.filter((r: ResponsibleInfo) => r.responsible_id);
+    companies.companies = companies.companies.filter((c: CompanyInfo) => c.company_id);
+    // Очищаем кэш оригинальных значений
+    original.value = { 1: {}, 2: {}, 3: {} };
+
     const modal = useModalsStore();
     modal.close('workers');
     return;

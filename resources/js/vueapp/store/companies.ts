@@ -2,12 +2,12 @@ import { deleteRequest, getRequest, notify, postRequest, putRequest } from "@/fu
 import { AxiosError, AxiosResponse } from "axios";
 import { defineStore } from "pinia";
 import { Ref, ref } from "vue";
-import { compileScript } from "vue/compiler-sfc";
 
 export type CompanyInfo = {
     company_id?: number,
     title: string,
-    stay_cost?: number
+    stay_cost?: number,
+    isEditing?: boolean
 };
 
 export const useCompaniesStore = defineStore("companies", () => {
@@ -36,7 +36,7 @@ export const useCompaniesStore = defineStore("companies", () => {
     async function _delete(rec: CompanyInfo): Promise<void> {
         let res = await deleteRequest('/api/companies/delete', rec)
         if (res) {
-            splice(rec.company_id);
+            splice(rec.company_id!);
         }
         return;
     }
@@ -45,9 +45,10 @@ export const useCompaniesStore = defineStore("companies", () => {
     function getByID(id: number) {
         return companies.value.find((el: CompanyInfo) => el.company_id == id);
     }
-    function add() {
+    function add(): void {
         companies.value.push({
-            title: ''
+            title: '',
+            isEditing: true
         });
     }
     function splice(id: number) {
