@@ -22,7 +22,7 @@ const slots: Ref<Object> = ref([]);
 
 const slotsKey: Ref<number> = ref(1);
 
-const activeProduct: Ref<ProductInfo> = ref();
+const activeProduct: Ref<ProductInfo | undefined> = ref();
 const activeTab: Ref<string> = ref('1');
 const activeProductTab: Ref<string> = ref('1');
 
@@ -98,9 +98,14 @@ const saveProduct = (product: ProductInfo) => {
     }
     product.isEditing = false;
 };
-const deleteProduct = (product: ProductInfo) => {
-    productsStore._delete(product);
+const deleteProduct = async (product: ProductInfo) => {
+    await productsStore._delete(product);
     products.value = products.value.filter((el: ProductInfo) => el != product);
+    if (activeProduct.value?.product_id === product.product_id) {
+        activeProduct.value = undefined;
+        activeProductTab.value = '1';
+        slots.value = { 1: [], 2: [], 3: [], 4: [], 5: [] };
+    }
 }
 
 /* SLOTS */
@@ -115,11 +120,11 @@ const saveSlot = async (slot: ProductSlot) => {
     }
     slot.isEditing = false;
 };
-const deleteSlot = (slot: ProductSlot) => {
-    slotsStore._delete(slot);
+const deleteSlot = async (slot: ProductSlot) => {
+    await slotsStore._delete(slot);
     let index = slots.value[slot.type_id].indexOf(slot);
-    if (index) {
-        delete slots.value[slot.type_id][index];
+    if (index !== -1) {
+        slots.value[slot.type_id].splice(index, 1);
     }
 }
 
