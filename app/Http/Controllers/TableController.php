@@ -598,6 +598,18 @@ class TableController extends Controller
             $dateCount = 0;
         }
 
+        // Добавляем рамки ко всем ячейкам
+        foreach ($arr as $sheet => &$rows) {
+            foreach ($rows as &$row) {
+                if (is_array($row)) {
+                    foreach ($row as $colIndex => &$cell) {
+                        $cell = self::styleCell((string) $cell, $colIndex);
+                    }
+                }
+            }
+        }
+        unset($rows, $row, $cell);
+
         $xlsx = SimpleXLSXGen::fromArray($arr[1], 'Варка')
             ->setDefaultFontSize(20)
             ->setColWidth(1, 10)
@@ -902,6 +914,33 @@ class TableController extends Controller
         }
         return '<f>=(' . implode('+', $arr) . ')</f>';
         // return '<f>=(' . implode('+', $arr) . ')/' . count($arr) . '</f>';
+    }
+
+    private static function styleCell(string $cell, int $colIndex): string
+    {
+        $isFact = $colIndex >= 15 && $colIndex <= 26;
+
+        // Если ячейка уже содержит <style ...>, добавляем нужные атрибуты в существующий тег
+        if (preg_match('/^<style\s([^>]*)>/', $cell, $m)) {
+            $attrs = $m[1];
+            $additions = [];
+            if (!str_contains($attrs, 'border')) {
+                $additions[] = 'border="medium"';
+            }
+            if ($isFact && !str_contains($attrs, 'bgcolor')) {
+                $additions[] = 'bgcolor="#fbcc5e"';
+            }
+            if ($additions) {
+                $cell = preg_replace('/^<style\s/', '<style ' . implode(' ', $additions) . ' ', $cell, 1);
+            }
+            return $cell;
+        }
+
+        // Если стиля нет — создаём новый
+        if ($isFact) {
+            return '<style border="medium" bgcolor="#fbcc5e">' . $cell . '</style>';
+        }
+        return '<style border="medium">' . $cell . '</style>';
     }
 
     private static function makeRow(array $items): array
