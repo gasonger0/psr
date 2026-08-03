@@ -116,8 +116,8 @@ export const useLinesStore = defineStore('lines', () => {
         const newLine: LineInfo = {
             edit: true,
             work_time: {
-                started_at: dayjs.default(),
-                ended_at: dayjs.default(),
+                started_at: dayjs.default(sessionStorage.getItem('date'), 'YYYY-MM-DD').startOf('day'),
+                ended_at: dayjs.default(sessionStorage.getItem('date'), 'YYYY-MM-DD').endOf('day'),
             },
             title: 'Новая линия',
             workers_count: 0,
