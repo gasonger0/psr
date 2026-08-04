@@ -34,7 +34,7 @@ const formatLineResponsible = (line: LineInfo) => {
         let f = responsiblesStore.getByID(line.master!);
         if (f) {
             let n = f.title.split(' ');
-            arr.push(n[0] + ' ' + n[1][0] + '.');
+            arr.push(n[0] + (n.length > 1 ? (' ' + n[1][0] + '.') : ''));
         }
     }
 
@@ -42,7 +42,7 @@ const formatLineResponsible = (line: LineInfo) => {
         let f = responsiblesStore.getByID(line.engineer!);
         if (f) {
             let n = f.title.split(' ');
-            arr.push(n[0] + ' ' + n[1][0] + '.');
+            arr.push(n[0] + ' ' + (n.length > 1 ? (' ' + n[1][0] + '.') : ''));
         }
     }
     return arr.join('\n');

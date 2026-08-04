@@ -303,10 +303,10 @@ class TableController extends Controller
                 $line['master'] = $line['master'] ? explode(' ', Responsible::find($line['master'])->title) : '';
                 $line['engineer'] = $line['engineer'] ? explode(' ', Responsible::find($line['engineer'])->title) : '';
                 if (is_array($line['master'])) {
-                    $line['master'] = $line['master'][0] . '.' . mb_substr($line['master'][1], 0, 1) . '.';
+                    $line['master'] = $line['master'][0] ." ". (count($line['master']) . 1) ? (mb_substr($line['master'][1], 0, 1) . '.') : "";
                 }
                 if (is_array($line['engineer'])) {
-                    $line['engineer'] = $line['engineer'][0] . '.' . mb_substr($line['engineer'][1], 0, 1) . '.';
+                    $line['engineer'] = $line['engineer'][0] ." ". (count($line['engineer']) . 1) ? (mb_substr($line['engineer'][1], 0, 1) . '.') : "";
                 }
 
                 // Делаем шапку линии
@@ -369,10 +369,9 @@ class TableController extends Controller
                 // Обрабатываем оборудование
                 foreach ($line['items'] as &$hw) {
                     if (isset($hw['hwTitle']) && $line['type_id'] == 1) {
-                        $array[] = [
-                            '',
-                            '<style bgcolor="#D8E4BC"><b>' . mb_strtoupper($hw['hwTitle']) . '</b></style>'
-                        ];
+                        $array[] = self::makeRow([
+                            1 => '<style bgcolor="#D8E4BC"><b>' . mb_strtoupper($hw['hwTitle']) . '</b></style>'
+                        ]);
                     }
                     // Выделяем колонки
                     if ($line['type_id'] == 1) {
@@ -380,9 +379,9 @@ class TableController extends Controller
 
                         $colons = array_filter(array_unique($colons));
                         if (count($colons) > 1 || array_search(3, $colons) !== false) {
-                            $array[] = ['', '<b>' . self::$colons[3] . '</b>'];
+                            $array[] = self::makeRow([1 => '<b>' . self::$colons[3] . '</b>']);
                         } else {
-                            $array[] = ['', '<b>' . self::$colons[array_shift($colons)] . '</b>'];
+                            $array[] = self::makeRow([1 => '<b>' . self::$colons[array_shift($colons)] . '</b>']);
                         }
                     }
 
@@ -459,7 +458,7 @@ class TableController extends Controller
                         if (count($sum[$i][0]) > 0) {
                             $val = Util::calcReturnMass($line, $sum[$i][0], $i);
                             if ($val != false) {
-                                $array[] = ["", "Возвратные отходы $t:", '', '', "<i>$val</i>"];
+                                $array[] = self::makeRow([1 => "Возвратные отходы $t:", 4 => "<i>$val</i>"]);
                                 $returnMassCells[$i][] = "E" . count($array);
                             }
                         }
@@ -468,7 +467,7 @@ class TableController extends Controller
                     $array[] = [];
                 } else {
                     // TODO Возможно, для линий варки тоже надо не для всех
-                    $array[] = ["", "Возвратные отходы зеф.массы:"];
+                    $array[] = self::makeRow([1 => "Возвратные отходы зеф.массы:"]);
                     $returnMassCells['z'][] = "E" . count($array);
                 }
 
@@ -591,8 +590,8 @@ class TableController extends Controller
                 $array,
                 [],
                 [],
-                ['', "<b><i>ЗАДАНИЕ СОСТАВИЛ</i></b>"],
-                ['', "<b><i>ЗАДАНИЕ ПОЛУЧИЛ</i></b>"]
+                self::makeRow([1 => "<b><i>ЗАДАНИЕ СОСТАВИЛ</i></b>"]),
+                self::makeRow([1 => "<b><i>ЗАДАНИЕ ПОЛУЧИЛ</i></b>"])
             );
             $arr[$sheet] = $array;
             $dateCount = 0;
@@ -600,10 +599,10 @@ class TableController extends Controller
 
         // Добавляем рамки ко всем ячейкам
         foreach ($arr as $sheet => &$rows) {
-            foreach ($rows as &$row) {
+            foreach ($rows as $rowIndex => &$row) {
                 if (is_array($row)) {
                     foreach ($row as $colIndex => &$cell) {
-                        $cell = self::styleCell((string) $cell, $colIndex);
+                        $cell = self::styleCell((string) $cell, $colIndex, $rowIndex);
                     }
                 }
             }
@@ -916,18 +915,21 @@ class TableController extends Controller
         // return '<f>=(' . implode('+', $arr) . ')/' . count($arr) . '</f>';
     }
 
-    private static function styleCell(string $cell, int $colIndex): string
+    private static function styleCell(string $cell, int $colIndex, int $rowIndex): string
     {
         $isFact = $colIndex >= 15 && $colIndex <= 26;
+        // Строки 0-1: без границ и фона; строка 2: без границ, но с фоном для факта
+        $addBorder = $rowIndex >= 3;
+        $addBgcolor = $isFact && ($rowIndex >= 2);
 
         // Если ячейка уже содержит <style ...>, добавляем нужные атрибуты в существующий тег
         if (preg_match('/^<style\s([^>]*)>/', $cell, $m)) {
             $attrs = $m[1];
             $additions = [];
-            if (!str_contains($attrs, 'border')) {
-                $additions[] = 'border="medium"';
+            if ($addBorder && !str_contains($attrs, 'border')) {
+                $additions[] = 'border="thin"';
             }
-            if ($isFact && !str_contains($attrs, 'bgcolor')) {
+            if ($addBgcolor && !str_contains($attrs, 'bgcolor')) {
                 $additions[] = 'bgcolor="#fbcc5e"';
             }
             if ($additions) {
@@ -937,15 +939,22 @@ class TableController extends Controller
         }
 
         // Если стиля нет — создаём новый
-        if ($isFact) {
-            return '<style border="medium" bgcolor="#fbcc5e">' . $cell . '</style>';
+        $attrs = [];
+        if ($addBorder) {
+            $attrs[] = 'border="thin"';
         }
-        return '<style border="medium">' . $cell . '</style>';
+        if ($addBgcolor) {
+            $attrs[] = 'bgcolor="#fbcc5e"';
+        }
+        if ($attrs) {
+            return '<style ' . implode(' ', $attrs) . '>' . $cell . '</style>';
+        }
+        return $cell;
     }
 
     private static function makeRow(array $items): array
     {
-        $new = array_fill(0, 30, '');
+        $new = array_fill(0, 31, '');
         foreach ($items as $k => $v) {
             $new[$k] = $v;
         }
