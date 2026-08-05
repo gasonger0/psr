@@ -303,10 +303,10 @@ class TableController extends Controller
                 $line['master'] = $line['master'] ? explode(' ', Responsible::find($line['master'])->title) : '';
                 $line['engineer'] = $line['engineer'] ? explode(' ', Responsible::find($line['engineer'])->title) : '';
                 if (is_array($line['master'])) {
-                    $line['master'] = $line['master'][0] ." ". (count($line['master']) . 1) ? (mb_substr($line['master'][1], 0, 1) . '.') : "";
+                    $line['master'] = $line['master'][0] ." ". (count($line['master']) > 1 ? (mb_substr($line['master'][1], 0, 1) . '.') : "");
                 }
                 if (is_array($line['engineer'])) {
-                    $line['engineer'] = $line['engineer'][0] ." ". (count($line['engineer']) . 1) ? (mb_substr($line['engineer'][1], 0, 1) . '.') : "";
+                    $line['engineer'] = $line['engineer'][0] ." ". (count($line['engineer']) > 1 ? (mb_substr($line['engineer'][1], 0, 1) . '.') : "");
                 }
 
                 // Делаем шапку линии
