@@ -256,7 +256,7 @@ class Util
 
         $cars = $i(3) . "$row_index*$product[cars]";
         return [
-            $index => $amount,
+            $index => (float)$amount,
             "<f>=" . $i(0) . "$row_index*$product[amount2parts]</f>",
             "<f>=" . $i(1) . "$row_index*$product[parts2kg]</f>",
             isset($product['kg2boil']) ? "<f>=" . $i(2) . "$row_index*$product[kg2boil]</f>" : 0,

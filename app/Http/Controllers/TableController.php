@@ -254,6 +254,14 @@ class TableController extends Controller
                 'k' => [],
                 's' => []
             ];
+            $globalBy = [
+                'a' => [[], []],
+                'z' => [[], []],
+                'n' => [[], []],
+                'f' => [[], []],
+                'p' => [[], []],
+                'c' => [[], []],
+            ];
             // Обработка линий на листе
             foreach ($lines as &$line) {
                 // Получаем планы на текущую смену, отсортированные по времени начала
@@ -299,7 +307,6 @@ class TableController extends Controller
                 }
 
                 // Делаем ФИО Отсветсвенных 
-                // TODO нужны только на упаковке
                 $line['master'] = $line['master'] ? explode(' ', Responsible::find($line['master'])->title) : '';
                 $line['engineer'] = $line['engineer'] ? explode(' ', Responsible::find($line['engineer'])->title) : '';
                 if (is_array($line['master'])) {
@@ -358,6 +365,15 @@ class TableController extends Controller
                     'z' => [[], []],
                     's' => [[], []],
                     'k' => [[], []]
+                ];
+                // Суммы по подкатегориям зефира (агар, фруктоза, без сахара)
+                $sumBy = [
+                    'a' => [[], []],
+                    'z' => [[], []],
+                    'n' => [[], []],
+                    'f' => [[], []],
+                    'p' => [[], []],
+                    'c' => [[], []],
                 ];
                 // Строки продуктов по категориям (для формул факта в итогах)
                 $catRows = [
@@ -424,6 +440,34 @@ class TableController extends Controller
                         $sum[$cat][0][] = "E$row_index";
                         $sum[$cat][1][] = "F$row_index";
 
+                        if ($sheet == 1) {
+                            $titleLower = mb_strtolower($product['title']);
+                            if (str_contains($titleLower, 'агар')) {
+                                $sumBy['a'][0][] = "E$row_index";
+                                $sumBy['a'][1][] = "F$row_index";
+                            } 
+                            else if (str_contains($titleLower, 'желатин')) {
+                                $sumBy['z'][0][] = "E$row_index";
+                                $sumBy['z'][1][] = "F$row_index";
+                            }
+                            else if (str_contains($titleLower, 'без сахар')) {
+                                $sumBy['n'][0][] = "E$row_index";
+                                $sumBy['n'][1][] = "F$row_index";
+                            }
+                            else if (str_contains($titleLower, 'фруктоз')) {
+                                $sumBy['f'][0][] = "E$row_index";
+                                $sumBy['f'][1][] = "F$row_index";
+                            }
+                            else if (str_contains($titleLower, 'пектин')) {
+                                $sumBy['p'][0][] = "E$row_index";
+                                $sumBy['p'][1][] = "F$row_index";
+                            }
+                            else if (str_contains($titleLower, 'крем-десерт')) {
+                                $sumBy['c'][0][] = "E$row_index";
+                                $sumBy['c'][1][] = "F$row_index";
+                            }
+                        }
+
                         $array[] = self::makeRow($counts);
                         array_push($dateCount, "C$row_index", "D$row_index");
 
@@ -471,10 +515,20 @@ class TableController extends Controller
                     $returnMassCells['z'][] = "E" . count($array);
                 }
 
-                $add = function ($i, $sum) use (&$globalB, &$globalKG) {
+                $add = function ($i, $sum) use (&$globalB, &$globalKG, &$globalBy, &$sumBy) {
                     array_push($globalKG[$i], ...$sum[$i][0]);
                     array_push($globalB[$i], ...$sum[$i][1]);
                 };
+
+                // Накапливаем подкатегории зефира (агар, фруктоза, без сахара) в глобальные суммы — только варка
+                if ($sheet == 1 && array_search($line['line_id'], [8, 9, 10, 11, 12]) !== false) {
+                    foreach (['a', 'z', 'n', 'f', 'p', 'c'] as $key) {
+                        if (count($sumBy[$key][0]) > 0) {
+                            array_push($globalBy[$key][0], ...$sumBy[$key][0]);
+                            array_push($globalBy[$key][1], ...$sumBy[$key][1]);
+                        }
+                    }
+                }
 
                 foreach (['z', 's', 'k'] as $i) {
 
@@ -520,6 +574,15 @@ class TableController extends Controller
                     'k' => [0, 0]
                 ];
 
+                $sumBy = [
+                    'a' => [[], []],
+                    'z' => [[], []],
+                    'n' => [[], []],
+                    'f' => [[], []],
+                    'p' => [[], []],
+                    'c' => [[], []],
+                ];
+
                 $array[] = [];
             }
 
@@ -546,20 +609,43 @@ class TableController extends Controller
             }
             $array[] = [];
 
+            if ($sheet == 1) {
+                foreach ([
+                    'a' => 'агара',
+                    'z' => 'желатина',
+                    'n' => 'без сахара',
+                    'f' => 'фруктозы',
+                    'p' => 'на пектине',
+                    'c' => 'крем-десерты'
+                ] as $key => $title) {
+                    if (count($globalBy[$key][0]) > 0) {
+                        $kg = implode("+", $globalBy[$key][0]);
+                        $boils = implode("+", $globalBy[$key][1]);
+                        $array[] = self::makeRow([
+                            1 => "ИТОГО $title",
+                            4 => "<f>=$kg</f>",
+                            5 => "<f>=$boils</f>",
+                            17 => "<f>=" . str_replace('E', 'R', $kg) . "</f>",
+                            18 => "<f>=" . str_replace('F', 'S', $boils) . "</f>",
+                        ]);
+                    }
+                }
+            }
+
             foreach ([
                 'z' => 'ЗЕФИРА',
                 's' => 'СУФЛЕ',
                 'k' => 'КОНФЕТ'
             ] as $i => $t) {
                 if ($i != 'z' && $line['type_id'] == 2 || $i == 'z') {
-                    $kg = implode("+", $globalKG[$i]);
-                    $boils = $line['type_id'] == 1 && $i == 'z' ? implode("+", $globalB[$i]) : '';
+                    $kg = count($globalKG[$i]) > 0 ? implode("+", $globalKG[$i]) : '0';
+                    $boils = $line['type_id'] == 1 && $i == 'z' && count($globalB[$i]) > 0 ? implode("+", $globalB[$i]) : '';
                     $array[] = self::makeRow([
                         1 => "ИТОГО $t",
-                        4 => "<f>=" . $kg . "</f>",
-                        5 => $sheet == 1 ? "<f>=" . $boils . "</f>" : '',
-                        17 => "<f>=" . str_replace('E', 'R', $kg) . "</f>",
-                        18 => $sheet == 1 ? "<f>=" . str_replace('F', 'S', $boils) . "</f>" : '',
+                        4 => count($globalKG[$i]) > 0 ? "<f>=$kg</f>" : '',
+                        5 => $sheet == 1 && count($globalB[$i]) > 0 ? "<f>=$boils</f>" : '',
+                        17 => count($globalKG[$i]) > 0 ? "<f>=" . str_replace('E', 'R', $kg) . "</f>" : '',
+                        18 => $sheet == 1 && count($globalB[$i]) > 0 ? "<f>=" . str_replace('F', 'S', $boils) . "</f>" : '',
                     ]);
                 }
             }
