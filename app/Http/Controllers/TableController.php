@@ -440,32 +440,30 @@ class TableController extends Controller
                         $sum[$cat][0][] = "E$row_index";
                         $sum[$cat][1][] = "F$row_index";
 
-                        if ($sheet == 1) {
+                        if ($sheet == 1 && $cat == 'z'){
                             $titleLower = mb_strtolower($product['title']);
-                            if (str_contains($titleLower, 'агар')) {
-                                $sumBy['a'][0][] = "E$row_index";
-                                $sumBy['a'][1][] = "F$row_index";
-                            } 
-                            else if (str_contains($titleLower, 'желатин')) {
-                                $sumBy['z'][0][] = "E$row_index";
-                                $sumBy['z'][1][] = "F$row_index";
+
+                            $map = [
+                                'агар'                                       => 'a',
+                                'желатин'                                     => 'z',
+                                '/без\s+(добавления\s+)?сахар[а]?/u'          => 'n',
+                                'фруктоз'                                     => 'f',
+                                'крем-десерт'                                 => 'c',
+                            ];
+
+                            $key = 'p'; // по умолчанию «на пектине»
+                            foreach ($map as $pattern => $k) {
+                                if ($pattern[0] === '/'
+                                    ? preg_match($pattern, $titleLower)
+                                    : str_contains($titleLower, $pattern)
+                                ) {
+                                    $key = $k;
+                                    break;
+                                }
                             }
-                            else if (str_contains($titleLower, 'без сахар')) {
-                                $sumBy['n'][0][] = "E$row_index";
-                                $sumBy['n'][1][] = "F$row_index";
-                            }
-                            else if (str_contains($titleLower, 'фруктоз')) {
-                                $sumBy['f'][0][] = "E$row_index";
-                                $sumBy['f'][1][] = "F$row_index";
-                            }
-                            else if (str_contains($titleLower, 'пектин')) {
-                                $sumBy['p'][0][] = "E$row_index";
-                                $sumBy['p'][1][] = "F$row_index";
-                            }
-                            else if (str_contains($titleLower, 'крем-десерт')) {
-                                $sumBy['c'][0][] = "E$row_index";
-                                $sumBy['c'][1][] = "F$row_index";
-                            }
+
+                            $sumBy[$key][0][] = "E$row_index";
+                            $sumBy[$key][1][] = "F$row_index";
                         }
 
                         $array[] = self::makeRow($counts);
