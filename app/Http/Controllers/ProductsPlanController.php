@@ -80,13 +80,11 @@ class ProductsPlanController extends Controller
 
         // Обработка конфликтов на фис-машинах
         $order = self::fixFisMachineConflicts($request, $order);
-        Log::info("After fix fix:", $order);
 
         // Валидация дочерних планов после перестановок
         $order = self::validateAndFixChildPlans($request, $order);
 
         LinesController::updateLinesTime($order);
-        Log::info("Response:", $order);
         return Util::successMsg($plan->toArray() + [
             'packs' => ProductsPlan::withSession($request)->where('parent', $plan->plan_product_id)->get(),
             'plansOrder' => $order
@@ -412,18 +410,15 @@ class ProductsPlanController extends Controller
                     ->get();
                 if ($siblings->isEmpty()) continue;
                 $latestSiblingEnd = $siblings->max('ended_at');
-                if (Carbon::parse($crate->ended_at)->isAfter($latestSiblingEnd)) {
+                if (Carbon::parse($crate->ended_at)->isAfter($latestSiblingEnd)
+                    && Carbon::parse($latestSiblingEnd)->isAfter(Carbon::parse($crate->started_at))) {
                     $crate->update(['ended_at' => $latestSiblingEnd]);
                 }
             }
             if ($cratePlans->isNotEmpty()) {
                 $order = array_replace($order, [37 => self::getByLine(37, $request)]);
             }
-            Log::info("Update plan shift applied");
         }
-
-        Log::info("Update plan request:", $request->post());
-        Log::info("Update plan response:", $order);
 
         // Обработка конфликтов на фис-машинах
         $order = self::fixFisMachineConflicts($request, $order);
@@ -522,7 +517,8 @@ class ProductsPlanController extends Controller
                 ->get();
             if ($siblings->isEmpty()) continue;
             $latestSiblingEnd = $siblings->max('ended_at');
-            if (Carbon::parse($crate->ended_at)->isAfter($latestSiblingEnd)) {
+            if (Carbon::parse($crate->ended_at)->isAfter($latestSiblingEnd)
+                && Carbon::parse($latestSiblingEnd)->isAfter(Carbon::parse($crate->started_at))) {
                 $crate->update(['ended_at' => $latestSiblingEnd]);
             }
         }
@@ -530,7 +526,6 @@ class ProductsPlanController extends Controller
             $order = array_replace($order, [37 => self::getByLine(37, $request)]);
         }
 
-        Log::info("Delete plan request:", $request->post());
 
         LinesController::updateLinesTime($order);
         return Util::successMsg(['plansOrder' => $order], 200);
@@ -1070,7 +1065,8 @@ class ProductsPlanController extends Controller
                     // чем заканчиваем любой этап (кроме варки),
                     // ставим окончание ящиков как самое позднее окончание 
     
-                    if (Carbon::parse($latest)->diffInMinutes($p->ended_at) > 0) {
+                    if (Carbon::parse($latest)->diffInMinutes($p->ended_at) > 0
+                        && $latest->isAfter(Carbon::parse($p->started_at))) {
                         $p->update([
                             'ended_at' => $latest
                         ]);
@@ -1306,8 +1302,10 @@ class ProductsPlanController extends Controller
                 if ($latestEnd !== null) {
                     foreach ($cratePlans as $crate) {
                         $crate_end = Carbon::parse($crate->ended_at);
+                        $crate_start = Carbon::parse($crate->started_at);
 
-                        if ($crate_end->isAfter($latestEnd)) {
+                        // Не даём ended_at стать раньше started_at
+                        if ($crate_end->isAfter($latestEnd) && Carbon::parse($latestEnd)->isAfter($crate_start)) {
                             $crate->update([
                                 'ended_at' => $latestEnd
                             ]);

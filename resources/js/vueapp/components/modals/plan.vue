@@ -332,7 +332,8 @@ const initializeData = async () => {
         if (props.data.plan_product_id) {
             state.packs = plansStore.plans
                 .filter(el => el.parent === props.data!.plan_product_id)
-                .map(i => i.slot_id);
+                .map(i => i.slot_id)
+                .filter(slotId => state.packOptions.some(o => o.value === slotId));
         }
 
         state.showPack = state.packs.length > 0;
