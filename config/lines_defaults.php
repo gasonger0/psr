@@ -80,7 +80,7 @@ return [
         'started_at' => '8:00',
         'ended_at' => '18:00',
         'workers_count' => 4,
-        'prep_time' => 120,
+        'prep_time' => 45,
         'after_time' => 60
     ],
     [
@@ -90,7 +90,7 @@ return [
         'started_at' => '8:00',
         'ended_at' => '18:00',
         'workers_count' => 4,
-        'prep_time' => 120,
+        'prep_time' => 45,
         'after_time' => 60
     ],
     [
@@ -100,7 +100,7 @@ return [
         'started_at' => '8:00',
         'ended_at' => '18:00',
         'workers_count' => 4,
-        'prep_time' => 120,
+        'prep_time' => 45,
         'after_time' => 60
     ],
     [
@@ -110,7 +110,7 @@ return [
         'started_at' => '8:00',
         'ended_at' => '18:30',
         'workers_count' => 3,
-        'prep_time' => 120,
+        'prep_time' => 45,
         'after_time' => 60
     ],
     [
@@ -120,7 +120,7 @@ return [
         'started_at' => '8:00',
         'ended_at' => '18:30',
         'workers_count' => 3,
-        'prep_time' => 120,
+        'prep_time' => 45,
         'after_time' => 60
     ],
     [
@@ -137,8 +137,8 @@ return [
         'title' => 'Непрерывная линия №2 – сахарная пудра',
         'started_at' => '8:00',
         'ended_at' => '20:00',
-        'workers_count' => 12,
-        'prep_time' => 20,
+        'workers_count' => 6,
+        'prep_time' => 15,
         'after_time' => 30
     ],
     [
@@ -156,7 +156,7 @@ return [
         'started_at' => '8:00',
         'ended_at' => '20:00',
         'workers_count' => 6,
-        'prep_time' => 20,
+        'prep_time' => 15,
         'after_time' => 30
     ],
     [
@@ -183,7 +183,7 @@ return [
         'started_at' => '8:00',
         'ended_at' => '20:00',
         'workers_count' => 6,
-        'prep_time' => 20,
+        'prep_time' => 15,
         'after_time' => 30
     ],
     [
@@ -191,8 +191,8 @@ return [
         'title' => 'Непрерывная линия сахарной пудры №1',
         'started_at' => '8:00',
         'ended_at' => '20:00',
-        'workers_count' => 12,
-        'prep_time' => 20,
+        'workers_count' => 6,
+        'prep_time' => 15,
         'after_time' => 30
     ],
     [
@@ -218,7 +218,7 @@ return [
         'title' => 'FLOY PAK 8',
         'started_at' => '9:30',
         'ended_at' => '20:00',
-        'workers_count' => 4,
+        'workers_count' => 3,
         'prep_time' => null,
         'after_time' => 10
     ],
@@ -227,7 +227,7 @@ return [
         'title' => 'FLOY PAK 3',
         'started_at' => '9:30',
         'ended_at' => '20:00',
-        'workers_count' => 4,
+        'workers_count' => 3,
         'prep_time' => null,
         'after_time' => 10
     ],
@@ -236,7 +236,7 @@ return [
         'title' => 'FLOY PAK 1',
         'started_at' => '9:30',
         'ended_at' => '20:00',
-        'workers_count' => 4,
+        'workers_count' => 3,
         'prep_time' => null,
         'after_time' => 10
     ],
@@ -254,7 +254,7 @@ return [
         'title' => 'Полуавтоматическая линия сахарной пудры',
         'started_at' => '9:30',
         'ended_at' => '20:00',
-        'workers_count' => 12,
+        'workers_count' => 6,
         'prep_time' => 5,
         'after_time' => 15
     ],
@@ -263,7 +263,7 @@ return [
         'title' => 'FLOY PAK 2',
         'started_at' => '9:30',
         'ended_at' => '20:00',
-        'workers_count' => 4,
+        'workers_count' => 3,
         'prep_time' => null,
         'after_time' => 10
     ],
@@ -272,7 +272,7 @@ return [
         'title' => 'FLOY PAK №10',
         'started_at' => '9:30',
         'ended_at' => '20:00',
-        'workers_count' => 4,
+        'workers_count' => 3,
         'prep_time' => null,
         'after_time' => 10
     ],
@@ -281,7 +281,7 @@ return [
         'title' => 'FLOY PAK №5',
         'started_at' => '9:30',
         'ended_at' => '20:00',
-        'workers_count' => 4,
+        'workers_count' => 3,
         'prep_time' => null,
         'after_time' => 10
     ],
