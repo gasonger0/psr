@@ -85,6 +85,14 @@ class LinesController extends Controller
             );
         Lines::find($line->line_id)->update($request->only((new Lines)->getFillable()));
 
+        // Сохранение подготовительного/заключительного времени как значений по умолчанию
+        if ($request->post('prep_as_def')) {
+            Util::setDefault($line->line_id, 'prep_time', $request->post('prep_time'));
+        }
+        if ($request->post('after_as_def')) {
+            Util::setDefault($line->line_id, 'after_time', $request->post('after_time'));
+        }
+
         $log = null;
         if ($request->post('cancel_reason')) {
             // TODO Ищем старый лог с такой причиной

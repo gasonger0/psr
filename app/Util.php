@@ -2,6 +2,7 @@
 
 namespace App;
 use App\Models\Lines;
+use App\Models\LinesDefault;
 use App\Models\ProductsDictionary;
 use App\Models\ProductsPlan;
 use App\Models\ProductsSlots;
@@ -17,17 +18,59 @@ class Util
      */
     public static function getDefaults($line_id = false): array|bool
     {
-        $defs = config('lines_defaults');
         if ($line_id !== false) {
+            $default = LinesDefault::where('line_id', $line_id)->first();
+            if ($default) {
+                $data = $default->toArray();
+                unset($data['lines_default_id'], $data['line_id']);
+                return $data;
+            }
+
+            // Fallback на старый конфиг, пока строки не перенесены в БД
+            $defs = config('lines_defaults');
             $index = array_search($line_id, array_column($defs, 'line_id'));
             if ($index !== false) {
                 return $defs[$index];
-            } else {
-                return false;
             }
-        } else {
-            return $defs;
+            return false;
         }
+
+        $db = LinesDefault::get()->toArray();
+        if (count($db) > 0) {
+            return array_map(function ($item) {
+                unset($item['lines_default_id']);
+                return $item;
+            }, $db);
+        }
+
+        return config('lines_defaults');
+    }
+
+    /**
+     * Сохраняет значение параметра линии по умолчанию.
+     *
+     * @param int $line_id ИД линии
+     * @param string $field Название поля
+     * @param mixed $value Новое значение
+     */
+    public static function setDefault(int $line_id, string $field, $value): bool
+    {
+        $allowed = ['title', 'perfomance', 'started_at', 'ended_at', 'workers_count', 'prep_time', 'after_time'];
+        if (!in_array($field, $allowed, true)) {
+            return false;
+        }
+
+        $attributes = ['line_id' => $line_id];
+        if (!LinesDefault::where('line_id', $line_id)->exists()) {
+            $seed = self::getDefaults($line_id);
+            if (is_array($seed) && $seed !== false) {
+                $attributes = array_merge($attributes, array_intersect_key($seed, array_flip($allowed)));
+            }
+        }
+        $attributes[$field] = $value;
+
+        LinesDefault::updateOrCreate(['line_id' => $line_id], $attributes);
+        return true;
     }
 
     /**

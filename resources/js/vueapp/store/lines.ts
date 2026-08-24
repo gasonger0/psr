@@ -31,6 +31,8 @@ export type LineInfo = {
     engineer?: number,
     prep_time: number,
     after_time: number,
+    prep_as_def?: boolean,
+    after_as_def?: boolean,
     extra_title?: string,
     detector: Detector,
     date: dayjs.Dayjs,
@@ -124,6 +126,8 @@ export const useLinesStore = defineStore('lines', () => {
             type_id: 1,
             prep_time: 0,
             after_time: 0,
+            prep_as_def: false,
+            after_as_def: false,
             detector: {
                 has_detector: false
             } as Detector,
@@ -159,6 +163,9 @@ export const useLinesStore = defineStore('lines', () => {
         const item = JSON.parse(JSON.stringify(line));
         item.started_at = line.work_time.started_at.format(format);
         item.ended_at = line.work_time.ended_at.format(format);
+
+        item.prep_as_def = line.prep_as_def;
+        item.after_as_def = line.after_as_def;
 
         item.has_detector = line.detector.has_detector;
         item.detector_start = line.detector.detector_start?.format(format);

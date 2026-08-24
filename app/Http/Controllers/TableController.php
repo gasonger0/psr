@@ -467,7 +467,24 @@ class TableController extends Controller
                         }
 
                         $array[] = self::makeRow($counts);
-                        array_push($dateCount, "C$row_index", "D$row_index");
+
+                        // Датирование: каждую продукцию считаем один раз, только с эталонных линий упаковки.
+                        if ($sheet == 2) {
+                            $datingLines = match ($cat) {
+                                'z' => [14, 17, 18, 20, 24, 25, 41],
+                                'k' => [31],
+                                's' => [20],
+                                default => [],
+                            };
+
+                            if (in_array($line['line_id'], $datingLines, true)) {
+                                // Весовая продукция: только ящики (C), фасованная: ящики (C) и штуки (D)
+                                $dateCount[] = "C$row_index";
+                                if (($product['category']['type_id'] ?? 1) == 2) {
+                                    $dateCount[] = "D$row_index";
+                                }
+                            }
+                        }
 
                         // Запоминаем строку продукта для формул факта в итогах
                         if ($cat == "z" && $sheet == 1) {
@@ -508,9 +525,11 @@ class TableController extends Controller
 
                     $array[] = [];
                 } else {
-                    // TODO Возможно, для линий варки тоже надо не для всех
-                    $array[] = self::makeRow([1 => "Возвратные отходы зеф.массы:"]);
-                    $returnMassCells['z'][] = "E" . count($array);
+                    $val = Util::calcReturnMass($line, $sum['z'][0], 'z');
+                    if ($val != false) {
+                        $array[] = self::makeRow([1 => "Возвратные отходы зеф.массы:", 4 => "<i>$val</i>"]);
+                        $returnMassCells['z'][] = "E" . count($array);
+                    }
                 }
 
                 $add = function ($i, $sum) use (&$globalB, &$globalKG, &$globalBy, &$sumBy) {
@@ -593,7 +612,7 @@ class TableController extends Controller
 
                 $array[] = self::makeRow([
                     1 => '<style bgcolor="#D8E4BC"><b>ДАТИРОВАНИЕ</b></style>',
-                    3 => "<f>=" . implode("+", $dateCount) . " / 8000</f>",
+                    3 => "<f>=" . (count($dateCount) > 0 ? implode("+", $dateCount) : '0') . " / 8000</f>",
                     11 => $dating['workers_count'],
                     12 => Carbon::parse($dating['started_at'])->format("H:i"),
                     13 => Carbon::parse($dating['ended_at'])->format("H:i")
@@ -648,13 +667,24 @@ class TableController extends Controller
                 }
             }
 
-            foreach ($returnMassCells as $k => $s) {
-                if ($sheet == 1) {
+            if ($sheet == 1) {
+                if (count($returnMassCells['z']) > 0) {
                     $array[] = self::makeRow([
                         1 => "ИТОГО ВОЗВРАТНОЙ МАССЫ",
                         4 => "<f>=" . implode(" + ", $returnMassCells['z']) . "</f>"
                     ]);
-                } else {
+                }
+            } else {
+                $kg = array_merge($globalKG['k'], $globalKG['z'], $globalKG['s']);
+                $kg = count($kg) > 0 ? implode("+", $kg) : '0';
+                $array[] = self::makeRow([
+                    1 => "ИТОГО ГП",
+                    4 => "<f>=$kg</f>",
+                    17 => "<f>=" . str_replace('E', 'R', $kg) . "</f>",
+                ]);
+                $array[] = [];
+
+                foreach ($returnMassCells as $k => $s) {
                     if (count($s) > 0) {
                         $title = match($k) {
                             'z' => 'ЗЕФИРНОЙ МАССЫ',

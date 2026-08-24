@@ -140,8 +140,14 @@ const currentWorkerCount = computed(() => {
                     :options="cancelReasons" :dropdown-match-select-width="false" />
                 <span>Подготовительное время(мин):</span>
                 <Input v-model:value="data.prep_time" placeholder="0" />
+                <Checkbox v-model:checked="data.prep_as_def">
+                    Сохранить как значение по умолчанию
+                </Checkbox>
                 <span>Заключительное время(мин):</span>
                 <Input v-model:value="data.after_time" placeholder="0" />
+                <Checkbox v-model:checked="data.after_as_def">
+                    Сохранить как значение по умолчанию
+                </Checkbox>
                 <br>
                 <RadioGroup v-model:value="data.type_id" class="select resp">
                     <RadioButton value="1">Варка</RadioButton>

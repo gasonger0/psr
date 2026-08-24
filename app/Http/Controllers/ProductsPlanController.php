@@ -441,6 +441,9 @@ class ProductsPlanController extends Controller
         if (!$plan) {
             return Util::errorMsg('Такого плана не существует', 404);
         }
+        if (!$plan->slot) {
+            return Util::errorMsg('У плана не найден слот', 404);
+        }
 
         // Длительность удаляемого плана
         $duration = abs(Carbon::parse($plan->ended_at)->diffInMinutes(Carbon::parse($plan->started_at)));
@@ -451,6 +454,9 @@ class ProductsPlanController extends Controller
         $children = ProductsPlan::where('parent', $id)->get();
         $childData = [];
         foreach ($children as $child) {
+            if (!$child->slot) {
+                continue;
+            }
             $childData[] = [
                 'line_id' => $child->slot->line_id,
                 'started_at' => $child->started_at,
@@ -459,9 +465,7 @@ class ProductsPlanController extends Controller
         }
 
         // Удаляем дочерние планы
-        ProductsPlan::where('parent', $id)->each(function ($el) {
-            $el->delete();
-        });
+        ProductsPlan::where('parent', $id)->delete();
 
         // Удаляем сам план
         $plan->delete();
@@ -852,20 +856,28 @@ class ProductsPlanController extends Controller
 
     public function clear(Request $request)
     {
-        ProductsPlan::withSession($request)->each(function ($plan) {
-            $plan->delete();
-        });
+        ProductsPlan::withSession($request)->delete();
+
         $lines = [];
         LinesExtra::withSession($request)->each(function ($line) use ($request, &$lines) {
+            $lineModel = $line->lines;
+            if (!$lineModel) {
+                return;
+            }
+
             $default = Util::getDefaults($line->line_id);
-            $default ? $default = Util::createDate($default, $request, $line->lines) : '';
+            if (!$default) {
+                return;
+            }
+
+            $default = Util::createDate($default, $request, $lineModel);
             if ($default) {
                 $line->update([
                     'started_at' => $default['started_at'],
                     'ended_at' => $default['ended_at']
                 ]);
             }
-            // var_dump($default)
+
             $default['line_id'] = $line->line_id;
             $lines[] = $default;
         });
