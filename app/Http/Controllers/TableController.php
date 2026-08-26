@@ -471,16 +471,16 @@ class TableController extends Controller
                         // Датирование: каждую продукцию считаем один раз, только с эталонных линий упаковки.
                         if ($sheet == 2) {
                             $datingLines = match ($cat) {
-                                'z' => [14, 17, 18, 20, 24, 25, 41],
-                                'k' => [31],
-                                's' => [20],
+                                'z' => [14, 17, 18, 20, 24, 25, 41, 51],
+                                'k' => [31, 51],
+                                's' => [20, 51],
                                 default => [],
                             };
 
                             if (in_array($line['line_id'], $datingLines, true)) {
                                 // Весовая продукция: только ящики (C), фасованная: ящики (C) и штуки (D)
                                 $dateCount[] = "C$row_index";
-                                if (($product['category']['type_id'] ?? 1) == 2) {
+                                if (($product['category']['type_id'] ?? 1) != 2) {
                                     $dateCount[] = "D$row_index";
                                 }
                             }
@@ -526,10 +526,10 @@ class TableController extends Controller
                     $array[] = [];
                 } else {
                     $val = Util::calcReturnMass($line, $sum['z'][0], 'z');
-                    if ($val != false) {
+                    // if ($val != false) {
                         $array[] = self::makeRow([1 => "Возвратные отходы зеф.массы:", 4 => "<i>$val</i>"]);
                         $returnMassCells['z'][] = "E" . count($array);
-                    }
+                    // }
                 }
 
                 $add = function ($i, $sum) use (&$globalB, &$globalKG, &$globalBy, &$sumBy) {
@@ -559,17 +559,17 @@ class TableController extends Controller
                     if ($sheet == 2) {
                         switch ($i) {
                             case 'z':
-                                if (array_search($line['line_id'], [14, 17, 18, 20, 24, 25, 41]) !== false) {
+                                if (array_search($line['line_id'], [14, 17, 18, 20, 24, 25, 41, 51]) !== false) {
                                     $add($i, $sum);
                                 }
                                 break;
                             case 'k':
-                                if ($line['line_id'] == 31) {
+                                if ($line['line_id'] == 31 || $line['line_id'] == 51) {
                                     $add($i, $sum);
                                 }
                                 break;
                             case 's':
-                                if ($line['line_id'] == 20) {
+                                if ($line['line_id'] == 20 || $line['line_id'] == 51) {
                                     $add($i, $sum);
                                 }
                                 break;
@@ -612,7 +612,7 @@ class TableController extends Controller
 
                 $array[] = self::makeRow([
                     1 => '<style bgcolor="#D8E4BC"><b>ДАТИРОВАНИЕ</b></style>',
-                    3 => "<f>=" . (count($dateCount) > 0 ? implode("+", $dateCount) : '0') . " / 8000</f>",
+                    3 => (count($dateCount) > 0 ? ("<f>=" . implode("+", $dateCount) . "</f>") : '0'),
                     11 => $dating['workers_count'],
                     12 => Carbon::parse($dating['started_at'])->format("H:i"),
                     13 => Carbon::parse($dating['ended_at'])->format("H:i")
