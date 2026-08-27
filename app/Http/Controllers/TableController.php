@@ -472,8 +472,8 @@ class TableController extends Controller
                         if ($sheet == 2) {
                             $datingLines = match ($cat) {
                                 'z' => [14, 17, 18, 20, 24, 25, 41, 51],
-                                'k' => [31, 51],
-                                's' => [20, 51],
+                                'k' => [31],
+                                's' => [20],
                                 default => [],
                             };
 
@@ -524,7 +524,7 @@ class TableController extends Controller
                     }
 
                     $array[] = [];
-                } else {
+                } else if (array_search($line['line_id'], [8, 9, 10, 11, 12])) {
                     $val = Util::calcReturnMass($line, $sum['z'][0], 'z');
                     // if ($val != false) {
                         $array[] = self::makeRow([1 => "Возвратные отходы зеф.массы:", 4 => "<i>$val</i>"]);
@@ -564,12 +564,12 @@ class TableController extends Controller
                                 }
                                 break;
                             case 'k':
-                                if ($line['line_id'] == 31 || $line['line_id'] == 51) {
+                                if ($line['line_id'] == 31) {
                                     $add($i, $sum);
                                 }
                                 break;
                             case 's':
-                                if ($line['line_id'] == 20 || $line['line_id'] == 51) {
+                                if ($line['line_id'] == 20) {
                                     $add($i, $sum);
                                 }
                                 break;
