@@ -21,6 +21,7 @@ export type ProductInfo = {
     cars: string,
     cars2plates: string,
     always_show?: boolean,
+    televisor?: boolean,
     category: CategoryInfo,
     order?: ProductOrder,
     isEditing: boolean,
@@ -80,6 +81,7 @@ export const useProductsStore = defineStore('products', () => {
             cars2plates: '',
             category: category,
             always_show: false,
+            televisor: false,
             isEditing: true,
         };
         products.value.push(newProduct as ProductInfo);

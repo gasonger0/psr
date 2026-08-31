@@ -19,6 +19,7 @@ class ProductsDictionary extends Model
         'cars',
         'cars2plates',
         'always_show',
+        'televisor',
         'created_at',
         'updated_at'
     ];

@@ -231,7 +231,8 @@ class TableController extends Controller
         Lines::each(function ($line) use (&$linesSheets, $session) {
             $pls = array_filter($line->plans->toArray(), fn($p) => $p['date'] == $session['date'] && $p['isDay'] == $session['isDay']);
             if ($pls) {
-                $linesSheets[$line->type_id][] = $line;
+                // Сборка ящиков (type_id = 3) отображается на листе упаковки
+                $linesSheets[$line->type_id == 3 ? 2 : $line->type_id][] = $line;
             }
         });
 
@@ -468,21 +469,12 @@ class TableController extends Controller
 
                         $array[] = self::makeRow($counts);
 
-                        // Датирование: каждую продукцию считаем один раз, только с эталонных линий упаковки.
-                        if ($sheet == 2) {
-                            $datingLines = match ($cat) {
-                                'z' => [14, 17, 18, 20, 24, 25, 41, 51],
-                                'k' => [31],
-                                's' => [20],
-                                default => [],
-                            };
-
-                            if (in_array($line['line_id'], $datingLines, true)) {
-                                // Весовая продукция: только ящики (C), фасованная: ящики (C) и штуки (D)
-                                $dateCount[] = "C$row_index";
-                                if (($product['category']['type_id'] ?? 1) != 2) {
-                                    $dateCount[] = "D$row_index";
-                                }
+                        // Датирование: каждую продукцию считаем один раз, только с линий, отмеченных «Учитывать в датировании».
+                        if ($sheet == 2 && $line['use_dating']) {
+                            // Весовая продукция: только ящики (C), фасованная: ящики (C) и штуки (D)
+                            $dateCount[] = "C$row_index";
+                            if (($product['category']['type_id'] ?? 1) != 2) {
+                                $dateCount[] = "D$row_index";
                             }
                         }
 
@@ -654,7 +646,7 @@ class TableController extends Controller
                 's' => 'СУФЛЕ',
                 'k' => 'КОНФЕТ'
             ] as $i => $t) {
-                if ($i != 'z' && $line['type_id'] == 2 || $i == 'z') {
+                if ($i != 'z' && ($line['type_id'] == 2 || $line['type_id'] == 3) || $i == 'z') {
                     $kg = count($globalKG[$i]) > 0 ? implode("+", $globalKG[$i]) : '0';
                     $boils = $line['type_id'] == 1 && $i == 'z' && count($globalB[$i]) > 0 ? implode("+", $globalB[$i]) : '';
                     $array[] = self::makeRow([

@@ -80,10 +80,10 @@ const abortController = ref<AbortController | null>(null);
 // Computed properties
 const time = computed(() => {
     if (!localPlanData.value?.amount || !state.product || !state.perfomance) return 0;
-    // Ящики
-    if (state.line.line_id == 37) {
+    // Сборка ящиков
+    if (state.line.type_id == 3) {
         let amount = localPlanData.value.amount;
-        if (state.product.title.includes('телевизор')) {
+        if (state.product.televisor) {
             amount += amount * eval(state.product.amount2parts);
         } else {
             amount *= eval(state.product.amount2parts);

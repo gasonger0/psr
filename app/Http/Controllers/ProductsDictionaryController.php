@@ -50,7 +50,8 @@ class ProductsDictionaryController extends Controller
                             ->where('isDay', $session['isDay'])
                             ->whereIn('slot_id', $slots)
                             ->each(function ($plan) use(&$backed) {
-                                $index = $plan->line->type_id;
+                                // Сборка ящиков (type_id = 3) учитывается как упаковка
+                                $index = $plan->line->type_id == 3 ? 2 : $plan->line->type_id;
                                 $backed[$index][] = $plan->amount;
                             });
                         

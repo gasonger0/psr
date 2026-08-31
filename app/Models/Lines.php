@@ -15,7 +15,9 @@ class Lines extends Model
     public $fillable = [
         'title',
         'color',
-        'type_id'
+        'type_id',
+        'return_type',
+        'use_dating'
     ];
 
     public $timestamps = false;

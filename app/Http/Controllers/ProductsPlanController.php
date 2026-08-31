@@ -185,17 +185,18 @@ class ProductsPlanController extends Controller
             switch ($plan->slot->type_id) {
                 case 2:
                     // Упаковка
-                    if ($plan->slot->line_id == 37) {
+                    if ($plan->slot->line->type_id == 3) {  // сборка ящиков
                         DB::beginTransaction();
                         $plan->update($fields);
-                        $line_plans = self::checkPlans($request, 37, true);
+                        $crateLineId = $plan->slot->line_id;
+                        $line_plans = self::checkPlans($request, $crateLineId, true);
 
                         /**
-                         * 1) Получаем все, у кого parent и line_id != 37
+                         * 1) Получаем все, у кого parent и линия != 3
                          *      (Варка не интересует, у неё parent = null, удобно)
-                         * 2) Получаем 
+                         * 2) Получаем
                          */
-                        foreach ($line_plans[37] as $crate) {
+                        foreach ($line_plans[$crateLineId] as $crate) {
                             $plans = ProductsPlan::where('parent', $crate->parent)
                                 ->get();
 
@@ -204,12 +205,12 @@ class ProductsPlanController extends Controller
                                 'end' => Carbon::parse($plans->max('ended_at'))
                             ];
 
-                            // Проверяем, что для каждого из них время 
+                            // Проверяем, что для каждого из них время
                             // начинается не позже начала других этапов
                             if (Carbon::parse($crate->started_at)->isAfter($latest['start'])) {
                                 DB::rollBack();
                                 return Util::successMsg([
-                                    37 => ProductsPlan::whereHas('slot', fn($q) => $q->where('line_id', 37))
+                                    $crateLineId => ProductsPlan::whereHas('slot', fn($q) => $q->where('line_id', $crateLineId))
                                         ->withSession($request)
                                         ->get()->toArray()
                                 ]);
@@ -234,7 +235,7 @@ class ProductsPlanController extends Controller
                             ]);
                         }
                         DB::commit();
-                        $order = $this->checkPlans($request, 37);
+                        $order = $this->checkPlans($request, $crateLineId);
                     } else {
                         $packLineId = $plan->slot->line_id;
                         $packLineBefore = ProductsPlan::whereHas('slot', fn($q) => $q->where('line_id', $packLineId))
@@ -401,12 +402,12 @@ class ProductsPlanController extends Controller
         $order = array_replace($order, [$line_id => self::getByLine($line_id, $request)]);
 
         if ($shifted) {
-            // Применяем только правило 3 для crate-планов (line_id=37)
-            $cratePlans = ProductsPlan::whereHas('slot', fn($q) => $q->where('line_id', 37))
+            // Применяем только правило 3 для crate-планов (сборка ящиков, type_id линии = 3)
+            $cratePlans = ProductsPlan::whereHas('slot.line', fn($q) => $q->where('type_id', 3))
                 ->withSession($request)->get();
             foreach ($cratePlans as $crate) {
                 $siblings = ProductsPlan::where('parent', $crate->parent)
-                    ->whereHas('slot', fn($q) => $q->where('line_id', '!=', 37))
+                    ->whereHas('slot.line', fn($q) => $q->where('type_id', '!=', 3))
                     ->get();
                 if ($siblings->isEmpty()) continue;
                 $latestSiblingEnd = $siblings->max('ended_at');
@@ -416,7 +417,9 @@ class ProductsPlanController extends Controller
                 }
             }
             if ($cratePlans->isNotEmpty()) {
-                $order = array_replace($order, [37 => self::getByLine(37, $request)]);
+                foreach (Lines::where('type_id', 3)->pluck('line_id') as $crateLineId) {
+                    $order = array_replace($order, [$crateLineId => self::getByLine($crateLineId, $request)]);
+                }
             }
         }
 
@@ -513,11 +516,11 @@ class ProductsPlanController extends Controller
         // $order = self::validateAndFixChildPlans($request, $order);
 
         // Обновляем crate-планы (правило 3)
-        $cratePlans = ProductsPlan::whereHas('slot', fn($q) => $q->where('line_id', 37))
+        $cratePlans = ProductsPlan::whereHas('slot.line', fn($q) => $q->where('type_id', 3))
             ->withSession($request)->get();
         foreach ($cratePlans as $crate) {
             $siblings = ProductsPlan::where('parent', $crate->parent)
-                ->whereHas('slot', fn($q) => $q->where('line_id', '!=', 37))
+                ->whereHas('slot.line', fn($q) => $q->where('type_id', '!=', 3))
                 ->get();
             if ($siblings->isEmpty()) continue;
             $latestSiblingEnd = $siblings->max('ended_at');
@@ -527,7 +530,9 @@ class ProductsPlanController extends Controller
             }
         }
         if ($cratePlans->isNotEmpty()) {
-            $order = array_replace($order, [37 => self::getByLine(37, $request)]);
+            foreach (Lines::where('type_id', 3)->pluck('line_id') as $crateLineId) {
+                $order = array_replace($order, [$crateLineId => self::getByLine($crateLineId, $request)]);
+            }
         }
 
 
@@ -696,17 +701,18 @@ class ProductsPlanController extends Controller
                 switch ($plan->slot->type_id) {
                     case 2:
                         // Упаковка
-                        if ($plan->slot->line_id == 37) {
+                        if ($plan->slot->line->type_id == 3) {  // сборка ящиков
                             DB::beginTransaction();
                             $plan->update($item);
-                            $line_plans = self::checkPlans($request, 37, true);
+                            $crateLineId = $plan->slot->line_id;
+                            $line_plans = self::checkPlans($request, $crateLineId, true);
 
                             /**
-                             * 1) Получаем все, у кого parent и line_id != 37
+                             * 1) Получаем все, у кого parent и линия != 3
                              *      (Варка не интересует, у неё parent = null, удобно)
-                             * 2) Получаем 
+                             * 2) Получаем
                              */
-                            foreach ($line_plans[37] as $crate) {
+                            foreach ($line_plans[$crateLineId] as $crate) {
                                 $plans = ProductsPlan::where('parent', $crate->parent)
                                     ->get();
 
@@ -715,12 +721,12 @@ class ProductsPlanController extends Controller
                                     'end' => Carbon::parse($plans->max('ended_at'))
                                 ];
 
-                                // Проверяем, что для каждого из них время 
+                                // Проверяем, что для каждого из них время
                                 // начинается не позже начала других этапов
                                 if (Carbon::parse($crate->started_at)->isAfter($latest['start'])) {
                                     DB::rollBack();
                                     return Util::successMsg([
-                                        37 => ProductsPlan::whereHas('slot', fn($q) => $q->where('line_id', 37))
+                                        $crateLineId => ProductsPlan::whereHas('slot', fn($q) => $q->where('line_id', $crateLineId))
                                             ->withSession($request)
                                             ->get()->toArray()
                                     ]);
@@ -745,7 +751,7 @@ class ProductsPlanController extends Controller
                                 ]);
                             }
                             DB::commit();
-                            $order = $this->checkPlans($request, 37);
+                            $order = $this->checkPlans($request, $crateLineId);
                         } else {
                             $plan->update($item);
                             $order = $this->checkPlans($request, $plan->slot->line_id);
@@ -761,7 +767,7 @@ class ProductsPlanController extends Controller
                         );
 
                         $packs = ProductsPlan::where('parent', $plan->parent)
-                            ->whereHas('slot', fn($q) => $q->where('type_id', 2)->where('line_id', '!=', 37))
+                            ->whereHas('slot', fn($q) => $q->where('type_id', 2)->whereHas('line', fn($l) => $l->where('type_id', '!=', 3)))
                             ->with('slot')
                             ->get();
 
@@ -935,7 +941,7 @@ class ProductsPlanController extends Controller
                 $start = Carbon::parse($plan->started_at);
 
                 // Если не варка, не обсыпка и не упаковка ящиков - доюавляем задержку
-                if ($slot->type_id != 1 && $slot->type_id != 4 && $slot->line_id != 37) {
+                if ($slot->type_id != 1 && $slot->type_id != 4 && $slot->line->type_id != 3) {
                     $start->addMinutes($delay);
                 }
 
@@ -945,7 +951,7 @@ class ProductsPlanController extends Controller
 
                 $boil_end = Carbon::parse($plan->ended_at)->addMinutes(10)->addMinutes($delay);
 
-                if ($ended_at < $boil_end && $slot->line_id != 37) {
+                if ($ended_at < $boil_end && $slot->line->type_id != 3) {
                     $ended_at = $boil_end;
                 }
 
@@ -988,7 +994,7 @@ class ProductsPlanController extends Controller
                 );
 
                 // Если упаковка, запоминаем ИД для проверки глазировки
-                if ($slot->type_id == 2 && $slot->line_id != 37) {
+                if ($slot->type_id == 2 && $slot->line->type_id != 3) {
                     $packsGlazCheck[] = $packPlan;
                 } else {
                     $line_id = $packPlan->slot->line_id;
@@ -1053,7 +1059,7 @@ class ProductsPlanController extends Controller
 
         // Получаем все планы
         $plans = ProductsPlan::where('parent', $plan->plan_product_id)
-            ->with('slot')
+            ->with('slot.line')
             ->withSession($request)
             ->orderBy('ended_at', 'DESC')
             ->get();
@@ -1071,7 +1077,7 @@ class ProductsPlanController extends Controller
             );
 
             // Находим упаковку ящиков по данной продукции
-            $plans->filter(fn($q) => $q->slot->line_id == 37)
+            $plans->filter(fn($q) => $q->slot->line->type_id == 3)
                 ->each(function ($p) use ($latest, $request, &$order) {
                     // Если заканчиваем упаковывать ящики ПОЗЖЕ,
                     // чем заканчиваем любой этап (кроме варки),
@@ -1208,7 +1214,7 @@ class ProductsPlanController extends Controller
      * Валидация и исправление дочерних планов согласно правилам после перестановок в checkPlans:
      * 1) Обсыпка (type_id=4) должна быть такой же длительности, как варка (type_id=1)
      * 2) Упаковка (type_id=2) не может начаться раньше глазировки/опудривания и закончиться раньше них
-     * 3) Сборка ящиков (line_id=37) не может заканчиваться позже других этапов
+     * 3) Сборка ящиков (type_id линии = 3) не может заканчиваться позже других этапов
      * 
      * @return array Обновлённый массив $order с пересчётом конфликтов на изменённых линиях
      */
@@ -1291,9 +1297,9 @@ class ProductsPlanController extends Controller
                 }
             }
 
-            // Правило 3: Сборка ящиков (line_id = 37) не может заканчиваться позже других этапов
+            // Правило 3: Сборка ящиков (type_id линии = 3) не может заканчиваться позже других этапов
             $cratePlans = ProductsPlan::where('parent', $boilPlan->plan_product_id)
-                ->whereHas('slot', fn($q) => $q->where('line_id', 37))
+                ->whereHas('slot.line', fn($q) => $q->where('type_id', 3))
                 ->with('slot')
                 ->get();
 

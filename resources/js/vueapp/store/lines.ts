@@ -21,6 +21,8 @@ export type LineInfo = {
     title: string,
     color?: string,
     type_id: number,
+    return_type?: number | null,
+    use_dating?: boolean,
     count_current?: number,
     line_extra_id?: number,
     workers_count: number,
@@ -124,6 +126,8 @@ export const useLinesStore = defineStore('lines', () => {
             title: 'Новая линия',
             workers_count: 0,
             type_id: 1,
+            return_type: null,
+            use_dating: false,
             prep_time: 0,
             after_time: 0,
             prep_as_def: false,
@@ -166,6 +170,10 @@ export const useLinesStore = defineStore('lines', () => {
 
         item.prep_as_def = line.prep_as_def;
         item.after_as_def = line.after_as_def;
+
+        // Отправляем всегда, чтобы очистка дропдауна (null) сохранялась на бэке
+        item.return_type = line.return_type ?? null;
+        item.use_dating = line.use_dating ?? false;
 
         item.has_detector = line.detector.has_detector;
         item.detector_start = line.detector.detector_start?.format(format);

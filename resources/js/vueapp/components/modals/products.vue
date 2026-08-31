@@ -3,10 +3,10 @@ import { CategoryInfo, useCategoriesStore } from '@/store/categories';
 import { useModalsStore } from '@/store/modal';
 import { ProductInfo, useProductsStore } from '@/store/products';
 import { ProductSlot, useProductsSlotsStore } from '@/store/productsSlots';
-import { Modal, Divider, Tree, List, ListItem, Input, Tabs, TabPane, Empty, Button, InputNumber, Select, SelectOption, Checkbox, Table, TableSummary, TableSummaryRow, TableSummaryCell } from 'ant-design-vue';
+import { Modal, Divider, Tree, List, ListItem, Input, Tabs, TabPane, Empty, Button, InputNumber, Select, SelectOption, Checkbox, Table, TableSummary, TableSummaryRow, TableSummaryCell, Tooltip } from 'ant-design-vue';
 import { Key } from 'ant-design-vue/es/_util/type';
 import { computed, ref, Ref } from 'vue';
-import { EditOutlined, DeleteOutlined, SaveOutlined, ForkOutlined, PullRequestOutlined, PlusCircleOutlined, ArrowRightOutlined } from '@ant-design/icons-vue';
+import { EditOutlined, DeleteOutlined, SaveOutlined, ForkOutlined, PullRequestOutlined, PlusCircleOutlined, ArrowRightOutlined, InfoCircleOutlined } from '@ant-design/icons-vue';
 import { categoriesTableColumns, hardwares, productsTableColumns, productsTabs } from '@/store/dicts';
 import { useLinesStore } from '@/store/lines';
 
@@ -206,7 +206,12 @@ const exit = () => {
                                 <template v-if="k == 6">
                                     <div style="display:flex; flex-direction: column; gap: 10px;">
                                         <div v-for="(v) in productsTableColumns[k]" style="display: flex;">
-                                            <span style="width:20%;padding-right:5%;">{{ v.title }}</span>
+                                            <span style="width:20%;padding-right:5%;">
+                                                {{ v.title }}
+                                                <Tooltip v-if="v.hint" :title="v.hint">
+                                                    <InfoCircleOutlined />
+                                                </Tooltip>
+                                            </span>
                                             <div v-if="v.addon !== false">
                                                 <Input v-model:value="activeProduct[v.dataIndex]"
                                                     style="max-width:300px;" :addon-before="v.addon" />

@@ -159,6 +159,16 @@ export const productsTabs = {
 };
 
 /**
+ * Правила возвратных масс линий
+ */
+export const lineReturnTypes = [
+    { value: 1, label: 'Непрерывная линия' },
+    { value: 2, label: 'Шоколадная линия' },
+    { value: 3, label: 'Линия-полуавтомат' },
+    { value: 4, label: 'One-Shot' },
+];
+
+/**
  * Этапы изготовления продукции
  */
 export const stages = {
@@ -273,6 +283,7 @@ export const productsTableColumns = {
         { title: 'Кг в Варки:', dataIndex: 'kg2boil', addon: 'Кг ×' },
         { title: 'Телеги:', dataIndex: 'cars', addon: 'Варка ×' },
         { title: 'Поддоны:', dataIndex: 'cars2plates', addon: '(Варка - Варка(цел)) ×' },
+        { title: 'Телевизор', dataIndex: 'televisor', addon: false, hint: 'Добавлять шт в расчёт длительности' },
         { title: 'Отображать, даже если нет в анализе', dataIndex: 'always_show', addon: false },
     ]
 };

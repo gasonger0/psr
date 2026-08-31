@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { LineInfo, useLinesStore } from '../../store/lines';
-import { cancelReasons } from '../../store/dicts';
+import { cancelReasons, lineReturnTypes } from '../../store/dicts';
 import { ResponsibleInfo, useResponsiblesStore } from '../../store/responsibles';
 import { DefaultOptionType } from 'ant-design-vue/es/select';
 import { Card, Input, Switch, Tooltip, Popconfirm, Select, SelectOption, TimePicker, RadioGroup, RadioButton, Checkbox } from 'ant-design-vue';
@@ -152,7 +152,14 @@ const currentWorkerCount = computed(() => {
                 <RadioGroup v-model:value="data.type_id" class="select resp">
                     <RadioButton value="1">Варка</RadioButton>
                     <RadioButton value="2">Упаковка</RadioButton>
+                    <RadioButton value="3">Сборка ящиков</RadioButton>
                 </RadioGroup>
+                <span>Возвратные массы:</span>
+                <Select v-model:value="data.return_type" placeholder="Не участвует" :allowClear="true"
+                    :options="lineReturnTypes" class="select" />
+                <Checkbox v-model:checked="data.use_dating">
+                    Учитывать в датировании
+                </Checkbox>
                 <span>Ответственные:</span>
                 <Select v-model:value="data.master" class="select" :dropdown-match-select-width="false"
                     :options="selectResponsible" />

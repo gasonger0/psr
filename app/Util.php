@@ -161,11 +161,10 @@ class Util
      */
     public static function calcDuration(ProductsDictionary $product, int $amount, ProductsSlots $slot): float
     {
-        if ($slot->line_id == 37) {     // сборка ящиков
-            // если  телевизоры, то по штукам в ящике + ящикам, иначе по ящикам
-            $title = $slot->line->title;
+        if ($slot->line->type_id == 3) {     // сборка ящиков
+            // если телевизоры, то по штукам в ящике + ящикам, иначе по ящикам
             $newAmount = eval ("return $amount * $product->amount2parts;");
-            if (mb_strpos($title, "телевизор") !== false) {
+            if ($product->televisor) {
                 $newAmount += $amount;
             }
             return eval ("return $newAmount / $slot->perfomance;");
@@ -215,6 +214,7 @@ class Util
                 $data['ended_at'] = $date->setTime(...$etime)->format('Y-m-d H:i:s');
                 break;
             case 2:
+            case 3: // сборка ящиков: работает по графику упаковки
                 $data['started_at'] = $date->setTime(8, 0, 0)->addHours($isDay ? 0 : 12)->format('Y-m-d H:i:s');
                 $data['ended_at'] = $date->setTime(20, 0, 0)->addHours($isDay ? 0 : 12)->format('Y-m-d H:i:s');
                 break;
@@ -229,24 +229,21 @@ class Util
         return $data;
     }
 
-    // TODO в параметры линий
+    // Правила возвратных масс задаются в линии (return_type)
     public static function calcReturnMass(array $line, array $sum, string $type): string|bool
     {
-        $title = mb_strtolower($line['title']);
         $m = "<f>=(" . implode("+", $sum) . ") * ";
-        if (str_contains($title, "непрерывная линия")) {
-            return 25;
-        } else if (str_contains($title, "шоколадная линия")) {
-            return match ($type) {
+        return match ((int)($line['return_type'] ?? 0)) {
+            1 => 25, // Непрерывная линия
+            2 => match ($type) { // Шоколадная линия: по названию (зефир/суфле)
                 'z' => $m . 0.015 . "</f>",
-                's' => $m . 0.00405 . "</f>"
-            };
-        } else if (str_contains($title, "полуавт")) {
-            return $m . 0.025 . "</f>";
-        } else if (str_contains($title, "shot")) {
-            return $m . 0.005 . "</f>";
-        }
-        return false;
+                's' => $m . 0.00405 . "</f>",
+                default => false,
+            },
+            3 => $m . 0.025 . "</f>", // Линия-полуавтомат
+            4 => $m . 0.005 . "</f>", // One-Shot
+            default => false,
+        };
     }
 
     public static function getLinesPersonalTime(Request $request): array
