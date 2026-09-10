@@ -177,7 +177,7 @@ const exit = () => {
                     </section>
                     <Divider type="vertical" style="height:unset;" />
                     <section class="products">
-                        <List :data-source="products" v-if="activeCategory !== undefined" class="product_list">
+                        <List :data-source="products" v-if="activeCategory !== undefined" class="product_list" :locale="{ emptyText: 'Нет данных' }">
                             <template #renderItem="{ item }">
                                 <ListItem v-if="!item.isEditing" class="product_list-item" :class="getClass(item)">
                                     <a href="#" @click="handleProductSelect(item.product_id)">{{ item.title }}</a>
