@@ -209,7 +209,7 @@ return [
         'title' => 'Шоколадная линия 1',
         'started_at' => '9:30',
         'ended_at' => '20:00',
-        'workers_count' => 7,
+        'workers_count' => 6,
         'prep_time' => 5,
         'after_time' => 30
     ],

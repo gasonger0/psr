@@ -559,7 +559,7 @@ class TableController extends Controller
                     if ($sheet == 2) {
                         switch ($i) {
                             case 'z':
-                                if (array_search($line['line_id'], [14, 17, 18, 20, 24, 25, 41, 51]) !== false) {
+                                if (array_search($line['line_id'], [14, 17, 18, 20, 24, 25, 41]) !== false) {
                                     $add($i, $sum);
                                 }
                                 break;
