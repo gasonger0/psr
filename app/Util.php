@@ -20,30 +20,18 @@ class Util
     {
         if ($line_id !== false) {
             $default = LinesDefault::where('line_id', $line_id)->first();
-            if ($default) {
-                $data = $default->toArray();
-                unset($data['lines_default_id'], $data['line_id']);
-                return $data;
+            if (!$default) {
+                return false;
             }
-
-            // Fallback на старый конфиг, пока строки не перенесены в БД
-            $defs = config('lines_defaults');
-            $index = array_search($line_id, array_column($defs, 'line_id'));
-            if ($index !== false) {
-                return $defs[$index];
-            }
-            return false;
+            $data = $default->toArray();
+            unset($data['lines_default_id'], $data['line_id']);
+            return $data;
         }
 
-        $db = LinesDefault::get()->toArray();
-        if (count($db) > 0) {
-            return array_map(function ($item) {
-                unset($item['lines_default_id']);
-                return $item;
-            }, $db);
-        }
-
-        return config('lines_defaults');
+        return LinesDefault::get()->map(function ($item) {
+            unset($item['lines_default_id']);
+            return $item;
+        })->toArray();
     }
 
     /**
@@ -55,7 +43,7 @@ class Util
      */
     public static function setDefault(int $line_id, string $field, $value): bool
     {
-        $allowed = ['title', 'perfomance', 'started_at', 'ended_at', 'workers_count', 'prep_time', 'after_time'];
+        $allowed = ['perfomance', 'workers_count', 'prep_time', 'after_time'];
         if (!in_array($field, $allowed, true)) {
             return false;
         }
