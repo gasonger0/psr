@@ -28,12 +28,13 @@ class ProductionSeeder extends Seeder
             Hardware::updateOrCreate(['hardware_id' => $row['hardware_id']], $row);
         }
 
-        // coef_k = null: категория «конфеты» не участвует (как сейчас)
+        // Паритет со старым хардкодом: в коде коэффициенты 3 и 4 режимов
+        // применялись к любой категории (z/s/k), поэтому задаём их для всех типов.
         $returnTypes = [
             ['return_type_id' => 1, 'title' => 'Непрерывная линия', 'formula_type' => 'fixed', 'fixed_value' => 25],
             ['return_type_id' => 2, 'title' => 'Шоколадная линия', 'formula_type' => 'coef', 'coef_z' => 0.015, 'coef_s' => 0.00405],
-            ['return_type_id' => 3, 'title' => 'Линия-полуавтомат', 'formula_type' => 'coef', 'coef_z' => 0.025],
-            ['return_type_id' => 4, 'title' => 'One-Shot', 'formula_type' => 'coef', 'coef_z' => 0.005],
+            ['return_type_id' => 3, 'title' => 'Линия-полуавтомат', 'formula_type' => 'coef', 'coef_z' => 0.025, 'coef_s' => 0.025, 'coef_k' => 0.025],
+            ['return_type_id' => 4, 'title' => 'One-Shot', 'formula_type' => 'coef', 'coef_z' => 0.005, 'coef_s' => 0.005, 'coef_k' => 0.005],
         ];
         foreach ($returnTypes as $row) {
             ReturnType::updateOrCreate(['return_type_id' => $row['return_type_id']], $row);

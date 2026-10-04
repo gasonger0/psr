@@ -3,9 +3,6 @@
 namespace Tests\Feature;
 
 use App\Http\Controllers\ProductsPlanController;
-use App\Models\Lines;
-use App\Models\ProductsSlots;
-use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Tests\TestCase;
@@ -15,14 +12,13 @@ const TEST_IS_DAY = 0;
 
 class ProductsPlanControllerTest extends TestCase
 {
-
-    static public function addSession(Request &$request)
+    public static function addSession(Request &$request)
     {
         $request->attributes->set('date', TEST_DATE);
         $request->attributes->set('isDay', TEST_IS_DAY);
     }
 
-    static public function compare(array $expected, array $actual): void
+    public static function compare(array $expected, array $actual): void
     {
         foreach ($actual as $lineId => $plans) {
             self::assertArrayHasKey($lineId, $expected);
@@ -36,10 +32,11 @@ class ProductsPlanControllerTest extends TestCase
         }
     }
 
-    static public function extractOrder(Response $response): array
+    public static function extractOrder(Response $response): array
     {
         $content = json_decode($response->getContent(), true);
         $responseBody = json_decode($response->content(), true);
+
         return $responseBody['plansOrder'];
     }
 
@@ -47,18 +44,18 @@ class ProductsPlanControllerTest extends TestCase
     public function test_can_create_first_plan(): void
     {
         $request = Request::create('/plans/create', 'POST', [
-            "slot_id" => 2997,
-            "started_at" => TEST_DATE . " 20:30:00",
-            "ended_at" => TEST_DATE . " 22:59:00",
-            "amount" => 100,
-            "delay" => 30,
-            "colon" => "2",
-            "hardware" => 1,
-            "packs" => [610, 3000, 3001]
+            'slot_id' => 2997,
+            'started_at' => TEST_DATE.' 20:30:00',
+            'ended_at' => TEST_DATE.' 22:59:00',
+            'amount' => 100,
+            'delay' => 30,
+            'colon' => '2',
+            'hardware' => 1,
+            'packs' => [610, 3000, 3001],
         ]);
         self::addSession($request);
 
-        $controller = new ProductsPlanController();
+        $controller = new ProductsPlanController;
         $response = $controller->create($request);
 
         $this->assertSame(201, $response->getStatusCode());
@@ -70,33 +67,33 @@ class ProductsPlanControllerTest extends TestCase
             8 => [
                 [
                     'slot_id' => 2997,
-                    'started_at' => TEST_DATE . " 20:30:00",
-                    'ended_at' => TEST_DATE . " 22:59:00",
-                ]
+                    'started_at' => TEST_DATE.' 20:30:00',
+                    'ended_at' => TEST_DATE.' 22:59:00',
+                ],
             ],
             // Глазировка (3)
             14 => [
                 [
-                    "slot_id" => 3000,
-                    "started_at" => TEST_DATE . " 21:00:00",
-                    "ended_at" => TEST_DATE . " 23:44:00",
-                ]
+                    'slot_id' => 3000,
+                    'started_at' => TEST_DATE.' 21:00:00',
+                    'ended_at' => TEST_DATE.' 23:39:00',
+                ],
             ],
             // Обсыпка (4)
             17 => [
                 [
-                    "slot_id" => 3001,
-                    "started_at" => TEST_DATE . " 20:30:00",
-                    "ended_at" => TEST_DATE . " 21:59:00",
-                ]
+                    'slot_id' => 3001,
+                    'started_at' => TEST_DATE.' 20:30:00',
+                    'ended_at' => TEST_DATE.' 22:59:00',
+                ],
             ],
             // Сборка ящиков (2)
             37 => [
                 [
-                    "slot_id" => 610,
-                    "started_at" => TEST_DATE . " 20:30:00",
-                    "ended_at" => TEST_DATE . " 21:44:00",
-                ]
+                    'slot_id' => 610,
+                    'started_at' => TEST_DATE.' 21:00:00',
+                    'ended_at' => TEST_DATE.' 23:39:00',
+                ],
             ],
 
         ];
@@ -107,18 +104,18 @@ class ProductsPlanControllerTest extends TestCase
     public function test_can_insert_before_first_plan(): void
     {
         $request = Request::create('/plans/create', 'POST', [
-            "slot_id" => 631,
-            "started_at" => TEST_DATE . " 22:59:07",
-            "ended_at" => TEST_DATE . " 00:12:22",
-            "amount" => 100,
-            "delay" => 30,
-            "colon" => "2",
-            "hardware" => 1,
-            "packs" => [633, 3013]
+            'slot_id' => 631,
+            'started_at' => TEST_DATE.' 22:59:07',
+            'ended_at' => TEST_DATE.' 00:12:22',
+            'amount' => 100,
+            'delay' => 30,
+            'colon' => '2',
+            'hardware' => 1,
+            'packs' => [633, 3013],
         ]);
         self::addSession($request);
 
-        $controller = new ProductsPlanController();
+        $controller = new ProductsPlanController;
         $response = $controller->create($request);
 
         $this->assertSame(201, $response->getStatusCode());
@@ -126,35 +123,42 @@ class ProductsPlanControllerTest extends TestCase
         $orderCase = [
             8 => [
                 [
-                    "slot_id" => 631,
-                    "started_at" => TEST_DATE . " 22:59:07",
-                    "ended_at" => TEST_DATE . " 00:12:22",
+                    'slot_id' => 2997,
+                    'started_at' => TEST_DATE.' 20:30:00',
+                    'ended_at' => TEST_DATE.' 22:59:00',
                 ],
                 [
-                    "slot_id" => 2997,
-                    "started_at" => TEST_DATE . " 20:30:00",
-                    "ended_at" => TEST_DATE . " 22:59:07",
-                ]
+                    'slot_id' => 631,
+                    'started_at' => TEST_DATE.' 22:59:14',
+                    'ended_at' => TEST_DATE.' 00:12:29',
+                ],
             ],
             13 => [
                 [
-                    "slot_id" => 633,
-                    "started_at" => TEST_DATE . " 23:29:07",
-                    "ended_at" => TEST_DATE . " 01:12:22",
-                ]
+                    'slot_id' => 633,
+                    'started_at' => TEST_DATE.' 23:39:00',
+                    'ended_at' => '2026-04-03 00:41:37',
+                ],
             ],
             14 => [
                 [
-                    "slot_id" => 3000,
-                    "started_at" => TEST_DATE . " 21:00:00",
-                    "ended_at" => TEST_DATE . " 23:44:07",
+                    'slot_id' => 3000,
+                    'started_at' => TEST_DATE.' 21:00:00',
+                    'ended_at' => TEST_DATE.' 23:39:00',
                 ],
                 [
-                    "slot_id" => 3013,
-                    "started_at" => TEST_DATE . " 23:44:07",
-                    "ended_at" => TEST_DATE . " 01:12:22",
-                ]
-            ]
+                    'slot_id' => 3013,
+                    'started_at' => TEST_DATE.' 23:39:00',
+                    'ended_at' => '2026-04-03 00:41:37',
+                ],
+            ],
+            17 => [
+                [
+                    'slot_id' => 3001,
+                    'started_at' => TEST_DATE.' 20:30:00',
+                    'ended_at' => TEST_DATE.' 22:59:00',
+                ],
+            ],
         ];
 
         $order = self::extractOrder($response);

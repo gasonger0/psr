@@ -228,7 +228,7 @@ class Util
         }
         $m = '<f>=('.implode('+', $sum).') * ';
         if ($mode->formula_type === 'fixed') {
-            return (float) $mode->fixed_value;
+            return $mode->fixed_value !== null ? (float) $mode->fixed_value : false;
         }
         $coef = match ($type) {
             'z' => $mode->coef_z,
@@ -241,16 +241,11 @@ class Util
     }
 
     /**
-     * Справочник режимов возвратных масс, кэш на время запроса.
+     * Справочник режимов возвратных масс.
      */
     public static function getReturnTypes(): Collection
     {
-        static $returnTypes = null;
-        if ($returnTypes === null) {
-            $returnTypes = ReturnType::all()->keyBy('return_type_id');
-        }
-
-        return $returnTypes;
+        return ReturnType::all()->keyBy('return_type_id');
     }
 
     public static function getLinesPersonalTime(Request $request): array

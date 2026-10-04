@@ -19,16 +19,12 @@ class Setting extends Model
     protected $fillable = ['key', 'value'];
 
     /**
-     * Читает настройку. Статический кэш — на время запроса
-     * (после сохранения в UI настройка применится со следующего запроса).
+     * Читает настройку из БД. Возвращает $default, если ключа нет.
      */
     public static function get(string $key, $default = null)
     {
-        static $cache = null;
-        if ($cache === null) {
-            $cache = self::pluck('value', 'key')->toArray();
-        }
+        $value = self::where('key', $key)->value('value');
 
-        return $cache[$key] ?? $default;
+        return $value !== null ? $value : $default;
     }
 }

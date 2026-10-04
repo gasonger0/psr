@@ -17,7 +17,6 @@ use Carbon\Carbon;
 use DateTime;
 use Exception;
 use Illuminate\Http\Request;
-use Illuminate\Support\Collection;
 use Shuchkin\SimpleXLSX;
 use Shuchkin\SimpleXLSXGen;
 
@@ -39,18 +38,11 @@ class TableController extends Controller
         3 => 'Варочные колонки №1 и №2',
     ];
 
-    private static ?Collection $hardwaresMap = null;
-
     private static function hardwareTitle($hardwareId): string
     {
-        if (! $hardwareId) {
-            return 'Без оборудования';
-        }
-        if (self::$hardwaresMap === null) {
-            self::$hardwaresMap = Hardware::pluck('title', 'hardware_id');
-        }
+        $hardware = Hardware::find($hardwareId);
 
-        return self::$hardwaresMap[$hardwareId] ?? 'Без оборудования';
+        return $hardware ? ($hardware->full_title ?? $hardware->title) : 'Без оборудования';
     }
 
     private static function makeArrayHeader($session, $type)
