@@ -2,6 +2,7 @@
 import WorkersBoard from '@boards/workers/board.vue';
 import PlansBoard from '@boards/plans/board.vue';
 import ProductsDict from '@modals/products.vue';
+import ProductionWindow from '@modals/production.vue';
 import { onBeforeMount, ref, Ref } from 'vue';
 import WorkersWindow from './vueapp/components/modals/company.vue';
 import Toolbar from '@common/toolbar.vue';
@@ -86,6 +87,7 @@ const processData = async () => {
     <!-- <Logs :open="openLogs" :lines="data ? data.lines : null" @close-modal="closeModal" @notify="notify" /> -->
     <!-- <ProductsDict :open="openProductsDict" :data="data" @close-modal="closeModal" @notify="notify" /> -->
     <ProductsDict />
+    <ProductionWindow />
     <WorkersWindow />
     <Graph />
     <WorkersBoard v-if="!boardType && isReady" />

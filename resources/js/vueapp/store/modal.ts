@@ -12,6 +12,7 @@ export const useModalsStore = defineStore('modals', () => {
     const visibility: Object = {
         workers: ref(false),
         products: ref(false),
+        production: ref(false),
         result: ref(false),
         logs: ref(false),
         graph: ref(false),

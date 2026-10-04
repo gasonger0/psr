@@ -9,7 +9,8 @@ import {
     AppstoreOutlined,
     TeamOutlined,
     CheckCircleOutlined,
-    TableOutlined
+    TableOutlined,
+    SettingOutlined
 } from '@ant-design/icons-vue';
 import * as dayjs from "dayjs";
 import 'dayjs/locale/ru.js';
@@ -114,6 +115,12 @@ const emit = defineEmits([
                         <Button type="primary" @click="openModal('products')">
                             <AppstoreOutlined />
                             Продукция
+                        </Button>
+                        </MenuItem>
+                        <MenuItem>
+                        <Button type="primary" @click="openModal('production')">
+                            <SettingOutlined />
+                            Производство
                         </Button>
                         </MenuItem>
                         <MenuItem>
