@@ -24,10 +24,10 @@ return new class extends Migration
             $table->id('return_type_id');
             $table->string('title');
             $table->enum('formula_type', ['fixed', 'coef']);
-            $table->decimal('fixed_value', 10, 4)->nullable();
-            $table->decimal('coef_z', 10, 4)->nullable();
-            $table->decimal('coef_s', 10, 4)->nullable();
-            $table->decimal('coef_k', 10, 4)->nullable();
+            $table->decimal('fixed_value', 10, 6)->nullable();
+            $table->decimal('coef_z', 10, 6)->nullable();
+            $table->decimal('coef_s', 10, 6)->nullable();
+            $table->decimal('coef_k', 10, 6)->nullable();
         });
 
         Schema::create('settings', function (Blueprint $table) {

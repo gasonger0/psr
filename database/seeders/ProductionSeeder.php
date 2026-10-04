@@ -25,7 +25,7 @@ class ProductionSeeder extends Seeder
             ['hardware_id' => 6, 'title' => 'ЗМ №1 и №2', 'full_title' => 'Завёрточные машины №1 и №2', 'type' => 2],
         ];
         foreach ($hardwares as $row) {
-            Hardware::create($row);
+            Hardware::updateOrCreate(['hardware_id' => $row['hardware_id']], $row);
         }
 
         // coef_k = null: категория «конфеты» не участвует (как сейчас)
@@ -36,7 +36,7 @@ class ProductionSeeder extends Seeder
             ['return_type_id' => 4, 'title' => 'One-Shot', 'formula_type' => 'coef', 'coef_z' => 0.005],
         ];
         foreach ($returnTypes as $row) {
-            ReturnType::create($row);
+            ReturnType::updateOrCreate(['return_type_id' => $row['return_type_id']], $row);
         }
 
         $settings = [
@@ -46,7 +46,7 @@ class ProductionSeeder extends Seeder
             ['key' => 'zm_perfomance2', 'value' => '287'],
         ];
         foreach ($settings as $row) {
-            Setting::create($row);
+            Setting::updateOrCreate(['key' => $row['key']], $row);
         }
     }
 }
