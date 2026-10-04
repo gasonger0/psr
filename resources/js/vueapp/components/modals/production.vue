@@ -173,8 +173,8 @@ const saveSettings = async () => {
 </script>
 
 <template>
-    <Modal v-model:open="modal.visibility['production']" title="Производство" :closable="true" width="1200"
-        :footer="null">
+    <Modal v-model:open="modal.visibility['production']" title="Производство" :closable="true"
+        wrap-class-name="modal production" class="modal production" :footer="null">
         <Tabs tab-position="left">
             <TabPane key="lines" tab="Линии">
                 <div style="display:flex; gap:8px; margin-bottom:8px;">
