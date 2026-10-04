@@ -294,23 +294,6 @@ export const categoriesTableColumns = [
 ]
 
 /**
- * Список оборудования
- */
-export const hardwares = [
-    { value: null, label: 'Нет' },
-    { value: 1, label: 'ТОРНАДО' },
-    { value: 2, label: 'Мондомикс' },
-    { value: 3, label: 'Китайский Аэрос' }
-]
-/**
- * Список оборудования для упаковки
- */
-export const packHardwares = [
-    { value: 4, label: 'ЗМ №1', title: 'Завёрточная машина №1' },
-    { value: 5, label: 'ЗМ №2', title: 'Завёрточная машина №2' },
-    { value: 6, label: 'ЗМ №1 и №2', title: 'Завёрточные машины №1 и №2' },
-]
-/**
  * ИД линий, которые показываем при drag'n'drop даже если варка уже есть
  */
 export const alwaysShowLines = [8, 9, 10, 11, 12];

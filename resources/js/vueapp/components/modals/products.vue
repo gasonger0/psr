@@ -7,7 +7,8 @@ import { Modal, Divider, Tree, List, ListItem, Input, Tabs, TabPane, Empty, Butt
 import { Key } from 'ant-design-vue/es/_util/type';
 import { computed, ref, Ref } from 'vue';
 import { EditOutlined, DeleteOutlined, SaveOutlined, ForkOutlined, PullRequestOutlined, PlusCircleOutlined, ArrowRightOutlined, InfoCircleOutlined } from '@ant-design/icons-vue';
-import { categoriesTableColumns, hardwares, productsTableColumns, productsTabs } from '@/store/dicts';
+import { categoriesTableColumns, productsTableColumns, productsTabs } from '@/store/dicts';
+import { useProductionStore } from '@/store/production';
 import { useLinesStore } from '@/store/lines';
 
 const modal = useModalsStore();
@@ -15,6 +16,7 @@ const categoriesStore = useCategoriesStore();
 const productsStore = useProductsStore();
 const slotsStore = useProductsSlotsStore();
 const linesStore = useLinesStore();
+const production = useProductionStore();
 
 const activeCategory: Ref<CategoryInfo> = ref();
 const products: Ref<ProductInfo[]> = ref([]);
@@ -238,7 +240,7 @@ const exit = () => {
                                                 </template>
                                                 <template v-else-if="column.dataIndex == 'hardware' && k == 1">
                                                     <Select v-model:value="record[column.dataIndex]"
-                                                        style="width: 100%;" :options="hardwares">
+                                                        style="width: 100%;" :options="production.slotHardwareOptions">
                                                     </Select>
                                                 </template>
                                                 <template v-else-if="column.dataIndex == 'actions'">
@@ -268,7 +270,7 @@ const exit = () => {
                                                     {{ linesStore.getByID(text)!.title }}
                                                 </template>
                                                 <template v-if="column.dataIndex == 'hardware' && text">
-                                                    {{ hardwares[text]!.label }}
+                                                    {{ production.getByID(text)?.title ?? '' }}
                                                 </template>
                                             </template>
                                         </template>

@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { colons, hardwares, packHardwares, productsTabs } from '@/store/dicts';
+import { colons, productsTabs } from '@/store/dicts';
+import { useProductionStore } from '@/store/production';
 import { LineInfo, useLinesStore } from '@/store/lines';
 import { useModalsStore } from '@/store/modal';
 import { ProductInfo, useProductsStore } from '@/store/products';
@@ -55,6 +56,7 @@ const slotsStore = useProductsSlotsStore();
 const productsStore = useProductsStore();
 const plansStore = usePlansStore();
 const linesStore = useLinesStore();
+const production = useProductionStore();
 
 // State
 const state = reactive<ModalState>({
@@ -176,8 +178,11 @@ const handleHardware = () => {
             state.perfomance = state.slot.perfomance;
         }
 
+        // ЗМ (ID 4–6 закреплены сидом оборудования): 143.5/287 берём из настроек
         if ([4,5,6].includes(state.hardware)) {
-            state.perfomance = (state.hardware === 4 || state.hardware === 5) ? 143.5 : 287;
+            state.perfomance = (state.hardware === 4 || state.hardware === 5)
+                ? production.settings.zm_perfomance
+                : production.settings.zm_perfomance2;
         }
 
         // // Коррекция производительности для упаковки на ЗМ
@@ -534,7 +539,7 @@ onUnmounted(() => {
                     <div class="form-group">
                         <h4>Оборудование:</h4>
                         <RadioGroup v-model:value="state.hardware" @change="handleHardware" :disabled="state.isLoading">
-                            <RadioButton v-for="i in hardwares" :value="i.value" :key="i.value">
+                            <RadioButton v-for="i in production.boilHardwares" :value="i.value" :key="i.value">
                                 {{ i.label }}
                             </RadioButton>
                         </RadioGroup>
@@ -547,7 +552,7 @@ onUnmounted(() => {
                     <div class="form-group">
                         <h4>Оборудование упаковки:</h4>
                         <RadioGroup v-model:value="state.hardware" @change="handleHardware" :disabled="state.isLoading">
-                            <RadioButton v-for="i in packHardwares" :value="i.value" :key="i.value">
+                            <RadioButton v-for="i in production.packHardwares" :value="i.value" :key="i.value">
                                 <Tooltip :title="i.title">{{ i.label }}</Tooltip>
                             </RadioButton>
                         </RadioGroup>
