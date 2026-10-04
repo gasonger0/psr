@@ -8,6 +8,7 @@ import Toolbar from '@common/toolbar.vue';
 import { getTimeString, postRequest } from '@/functions';
 import { useProductsStore } from '@/store/products';
 import { useLinesStore } from '@/store/lines';
+import { useProductionStore } from '@/store/production';
 import { useWorkersStore } from '@/store/workers';
 import { useResponsiblesStore } from '@/store/responsibles';
 import { useCategoriesStore } from '@/store/categories';
@@ -47,6 +48,7 @@ onBeforeMount(async () => {
     });
 
     await useLinesStore()._load();
+    await useProductionStore()._load();
     await useCompaniesStore()._load();
     await useWorkersStore()._load();
     await useWorkerSlotsStore()._load();

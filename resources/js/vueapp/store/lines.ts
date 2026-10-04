@@ -116,7 +116,7 @@ export const useLinesStore = defineStore('lines', () => {
         return true;
     }
 
-    function add() {
+    function add(): LineInfo {
         const newLine: LineInfo = {
             edit: true,
             work_time: {
@@ -141,6 +141,7 @@ export const useLinesStore = defineStore('lines', () => {
             has_plans: ref(false)
         }
         lines.value.push(newLine);
+        return newLine;
     }
 
     function serialize(line: any): LineInfo {
