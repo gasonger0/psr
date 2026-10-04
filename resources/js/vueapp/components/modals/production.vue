@@ -177,122 +177,138 @@ const saveSettings = async () => {
         wrap-class-name="modal production" class="modal production" :footer="null">
         <Tabs tab-position="left">
             <TabPane key="lines" tab="Линии">
-                <div style="display:flex; gap:8px; margin-bottom:8px;">
-                    <Button type="primary" @click="addLine">
-                        <PlusOutlined /> Добавить линию
-                    </Button>
-                    <Button :disabled="selectedLineIds.length == 0" @click="bulkModalOpen = true">
-                        Изменить выделенные
-                    </Button>
+                <div class="pane-scroll">
+                    <div class="pane-toolbar">
+                        <Button type="primary" @click="addLine">
+                            <PlusOutlined /> Добавить линию
+                        </Button>
+                        <Button :disabled="selectedLineIds.length == 0" @click="bulkModalOpen = true">
+                            Изменить выделенные
+                        </Button>
+                    </div>
+                    <div class="pane-table">
+                        <Table :columns="lineColumns" :data-source="production.registryLines"
+                            :row-key="(r: RegistryLine) => r.line_id"
+                            :row-selection="{ selectedRowKeys: selectedLineIds, onChange: onSelectLines }"
+                            :pagination="false" size="small"
+                            :loading="production.registryLoading">
+                            <template #bodyCell="{ column, record }">
+                                <template v-if="column.dataIndex == 'title'">
+                                    <Input v-model:value="record.title" />
+                                </template>
+                                <template v-else-if="column.dataIndex == 'perfomance'">
+                                    <Input v-model:value="record.perfomance" />
+                                </template>
+                                <template v-else-if="column.dataIndex == 'type_id'">
+                                    <Select v-model:value="record.type_id" style="width:100%"
+                                        :options="[{ value: '1', label: 'Варка' }, { value: '2', label: 'Упаковка' }, { value: '3', label: 'Сборка ящиков' }]" />
+                                </template>
+                                <template v-else-if="['prep_time', 'after_time', 'workers_count'].includes(column.dataIndex)">
+                                    <InputNumber v-model:value="record[column.dataIndex]" :min="0" style="width:100%" />
+                                </template>
+                                <template v-else-if="column.dataIndex == 'return_type'">
+                                    <Select v-model:value="record.return_type" style="width:100%" :allowClear="true"
+                                        placeholder="Не участвует" :options="production.returnTypeOptions" />
+                                </template>
+                                <template v-else-if="column.dataIndex == 'use_dating'">
+                                    <Checkbox v-model:checked="record.use_dating" />
+                                </template>
+                                <template v-else-if="column.dataIndex == 'color'">
+                                    <input type="color" v-model="record.color" />
+                                </template>
+                                <template v-else-if="column.dataIndex == 'actions'">
+                                    <Button type="primary" size="small" @click="saveLineRow(record)">
+                                        <SaveOutlined />
+                                    </Button>
+                                    <Popconfirm title="Удалить линию?" @confirm="deleteLine(record)">
+                                        <Button type="dashed" danger size="small">
+                                            <DeleteOutlined />
+                                        </Button>
+                                    </Popconfirm>
+                                </template>
+                            </template>
+                        </Table>
+                    </div>
                 </div>
-                <Table :columns="lineColumns" :data-source="production.registryLines"
-                    :row-key="(r: RegistryLine) => r.line_id"
-                    :row-selection="{ selectedRowKeys: selectedLineIds, onChange: onSelectLines }"
-                    :pagination="false" size="small" :scroll="{ x: 1200, y: 420 }"
-                    :loading="production.registryLoading">
-                    <template #bodyCell="{ column, record }">
-                        <template v-if="column.dataIndex == 'title'">
-                            <Input v-model:value="record.title" />
-                        </template>
-                        <template v-else-if="column.dataIndex == 'perfomance'">
-                            <Input v-model:value="record.perfomance" />
-                        </template>
-                        <template v-else-if="column.dataIndex == 'type_id'">
-                            <Select v-model:value="record.type_id" style="width:100%"
-                                :options="[{ value: '1', label: 'Варка' }, { value: '2', label: 'Упаковка' }, { value: '3', label: 'Сборка ящиков' }]" />
-                        </template>
-                        <template v-else-if="['prep_time', 'after_time', 'workers_count'].includes(column.dataIndex)">
-                            <InputNumber v-model:value="record[column.dataIndex]" :min="0" style="width:100%" />
-                        </template>
-                        <template v-else-if="column.dataIndex == 'return_type'">
-                            <Select v-model:value="record.return_type" style="width:100%" :allowClear="true"
-                                placeholder="Не участвует" :options="production.returnTypeOptions" />
-                        </template>
-                        <template v-else-if="column.dataIndex == 'use_dating'">
-                            <Checkbox v-model:checked="record.use_dating" />
-                        </template>
-                        <template v-else-if="column.dataIndex == 'color'">
-                            <input type="color" v-model="record.color" />
-                        </template>
-                        <template v-else-if="column.dataIndex == 'actions'">
-                            <Button type="primary" size="small" @click="saveLineRow(record)">
-                                <SaveOutlined />
-                            </Button>
-                            <Popconfirm title="Удалить линию?" @confirm="deleteLine(record)">
-                                <Button type="dashed" danger size="small">
-                                    <DeleteOutlined />
-                                </Button>
-                            </Popconfirm>
-                        </template>
-                    </template>
-                </Table>
             </TabPane>
 
             <TabPane key="hardwares" tab="Оборудование">
-                <Button type="primary" style="margin-bottom:8px;" @click="addHardware">
-                    <PlusOutlined /> Добавить оборудование
-                </Button>
-                <Table :columns="hardwareColumns" :data-source="production.hardwares"
-                    :row-key="(r: HardwareInfo) => r.hardware_id" :pagination="false" size="small">
-                    <template #bodyCell="{ column, record }">
-                        <template v-if="column.dataIndex == 'title'">
-                            <Input v-model:value="record.title" />
-                        </template>
-                        <template v-else-if="column.dataIndex == 'full_title'">
-                            <Input v-model:value="record.full_title" />
-                        </template>
-                        <template v-else-if="column.dataIndex == 'type'">
-                            <Select v-model:value="record.type" style="width:100%"
-                                :options="[{ value: 1, label: 'Варка' }, { value: 2, label: 'Упаковка' }]" />
-                        </template>
-                        <template v-else-if="column.dataIndex == 'actions'">
-                            <Button type="primary" size="small" @click="saveHardware(record)">
-                                <SaveOutlined />
-                            </Button>
-                            <Popconfirm title="Удалить оборудование?" @confirm="deleteHardware(record)">
-                                <Button type="dashed" danger size="small">
-                                    <DeleteOutlined />
-                                </Button>
-                            </Popconfirm>
-                        </template>
-                    </template>
-                </Table>
+                <div class="pane-scroll">
+                    <div class="pane-toolbar">
+                        <Button type="primary" @click="addHardware">
+                            <PlusOutlined /> Добавить оборудование
+                        </Button>
+                    </div>
+                    <div class="pane-table">
+                        <Table :columns="hardwareColumns" :data-source="production.hardwares"
+                            :row-key="(r: HardwareInfo) => r.hardware_id" :pagination="false" size="small">
+                            <template #bodyCell="{ column, record }">
+                                <template v-if="column.dataIndex == 'title'">
+                                    <Input v-model:value="record.title" />
+                                </template>
+                                <template v-else-if="column.dataIndex == 'full_title'">
+                                    <Input v-model:value="record.full_title" />
+                                </template>
+                                <template v-else-if="column.dataIndex == 'type'">
+                                    <Select v-model:value="record.type" style="width:100%"
+                                        :options="[{ value: 1, label: 'Варка' }, { value: 2, label: 'Упаковка' }]" />
+                                </template>
+                                <template v-else-if="column.dataIndex == 'actions'">
+                                    <Button type="primary" size="small" @click="saveHardware(record)">
+                                        <SaveOutlined />
+                                    </Button>
+                                    <Popconfirm title="Удалить оборудование?" @confirm="deleteHardware(record)">
+                                        <Button type="dashed" danger size="small">
+                                            <DeleteOutlined />
+                                        </Button>
+                                    </Popconfirm>
+                                </template>
+                            </template>
+                        </Table>
+                    </div>
+                </div>
             </TabPane>
 
             <TabPane key="return_types" tab="Возвратные массы">
-                <Button type="primary" style="margin-bottom:8px;" @click="addReturnType">
-                    <PlusOutlined /> Добавить режим
-                </Button>
-                <Table :columns="returnTypeColumns" :data-source="production.returnTypes"
-                    :row-key="(r: ReturnTypeInfo) => r.return_type_id" :pagination="false" size="small">
-                    <template #bodyCell="{ column, record }">
-                        <template v-if="column.dataIndex == 'title'">
-                            <Input v-model:value="record.title" />
-                        </template>
-                        <template v-else-if="column.dataIndex == 'formula_type'">
-                            <Select v-model:value="record.formula_type" style="width:100%"
-                                :options="[{ value: 'fixed', label: 'Фикс. значение' }, { value: 'coef', label: 'Коэффициент' }]" />
-                        </template>
-                        <template v-else-if="column.dataIndex == 'fixed_value'">
-                            <InputNumber v-if="record.formula_type == 'fixed'" v-model:value="record.fixed_value"
-                                :min="0" style="width:100%" />
-                        </template>
-                        <template v-else-if="['coef_z', 'coef_s', 'coef_k'].includes(column.dataIndex)">
-                            <InputNumber v-if="record.formula_type == 'coef'" v-model:value="record[column.dataIndex]"
-                                :min="0" style="width:100%" />
-                        </template>
-                        <template v-else-if="column.dataIndex == 'actions'">
-                            <Button type="primary" size="small" @click="saveReturnType(record)">
-                                <SaveOutlined />
-                            </Button>
-                            <Popconfirm title="Удалить режим?" @confirm="deleteReturnType(record)">
-                                <Button type="dashed" danger size="small">
-                                    <DeleteOutlined />
-                                </Button>
-                            </Popconfirm>
-                        </template>
-                    </template>
-                </Table>
+                <div class="pane-scroll">
+                    <div class="pane-toolbar">
+                        <Button type="primary" @click="addReturnType">
+                            <PlusOutlined /> Добавить режим
+                        </Button>
+                    </div>
+                    <div class="pane-table">
+                        <Table :columns="returnTypeColumns" :data-source="production.returnTypes"
+                            :row-key="(r: ReturnTypeInfo) => r.return_type_id" :pagination="false" size="small">
+                            <template #bodyCell="{ column, record }">
+                                <template v-if="column.dataIndex == 'title'">
+                                    <Input v-model:value="record.title" />
+                                </template>
+                                <template v-else-if="column.dataIndex == 'formula_type'">
+                                    <Select v-model:value="record.formula_type" style="width:100%"
+                                        :options="[{ value: 'fixed', label: 'Фикс. значение' }, { value: 'coef', label: 'Коэффициент' }]" />
+                                </template>
+                                <template v-else-if="column.dataIndex == 'fixed_value'">
+                                    <InputNumber v-if="record.formula_type == 'fixed'" v-model:value="record.fixed_value"
+                                        :min="0" style="width:100%" />
+                                </template>
+                                <template v-else-if="['coef_z', 'coef_s', 'coef_k'].includes(column.dataIndex)">
+                                    <InputNumber v-if="record.formula_type == 'coef'" v-model:value="record[column.dataIndex]"
+                                        :min="0" style="width:100%" />
+                                </template>
+                                <template v-else-if="column.dataIndex == 'actions'">
+                                    <Button type="primary" size="small" @click="saveReturnType(record)">
+                                        <SaveOutlined />
+                                    </Button>
+                                    <Popconfirm title="Удалить режим?" @confirm="deleteReturnType(record)">
+                                        <Button type="dashed" danger size="small">
+                                            <DeleteOutlined />
+                                        </Button>
+                                    </Popconfirm>
+                                </template>
+                            </template>
+                        </Table>
+                    </div>
+                </div>
             </TabPane>
 
             <TabPane key="settings" tab="Постоянные величины">

@@ -437,7 +437,34 @@ section.worker .tools {
 .modal.production .ant-tabs-content-holder {
     flex: 1;
     min-height: 0;
-    overflow: auto;
+    overflow: hidden;
+}
+
+.modal.production .pane-scroll {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.modal.production .pane-toolbar {
+    flex: none;
+    margin-bottom: 8px;
+    display: flex;
+    gap: 8px;
+}
+
+.modal.production .pane-table {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.modal.production .pane-table .ant-table-thead > tr > th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: #fafafa;
 }
 
 .modal.products div.products {
