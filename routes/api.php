@@ -3,6 +3,7 @@
 use App\Http\Controllers\CompaniesController;
 use App\Http\Controllers\LinesController;
 use App\Http\Controllers\LogsController;
+use App\Http\Controllers\ProductionController;
 use App\Http\Controllers\ProductsCategoriesController;
 use App\Http\Controllers\ProductsDictionaryController;
 use App\Http\Controllers\ProductsPlanController;
@@ -13,8 +14,8 @@ use App\Http\Controllers\TableController;
 use App\Http\Controllers\WorkersController;
 use App\Http\Middleware\ForceJsonResponse;
 use App\Http\Middleware\ParseSession;
-use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 
 Route::group(['middleware' => ['web', ParseSession::class]], function () {
     /*******
@@ -31,6 +32,29 @@ Route::group(['middleware' => ['web', ParseSession::class]], function () {
             Route::delete('/delete', 'delete');
             // actions
             Route::put('/down', 'down');
+            Route::get('/registry', 'registry');
+            Route::post('/bulk-update', 'bulkUpdate');
+        });
+
+    /************
+     * PRODUCTION
+     ***********/
+    Route::controller(ProductionController::class)
+        ->prefix('/production')
+        ->middleware(ForceJsonResponse::class)
+        ->group(function () {
+            Route::get('/hardwares/get', 'getHardwares');
+            Route::post('/hardwares/create', 'createHardware');
+            Route::put('/hardwares/update', 'updateHardware');
+            Route::delete('/hardwares/delete', 'deleteHardware');
+
+            Route::get('/return_types/get', 'getReturnTypes');
+            Route::post('/return_types/create', 'createReturnType');
+            Route::put('/return_types/update', 'updateReturnType');
+            Route::delete('/return_types/delete', 'deleteReturnType');
+
+            Route::get('/settings/get', 'getSettings');
+            Route::put('/settings/update', 'updateSettings');
         });
 
     /*********
@@ -78,7 +102,6 @@ Route::group(['middleware' => ['web', ParseSession::class]], function () {
             Route::delete('/delete', 'delete');
         });
 
-
     /*********************
      * PRODUCTS_DICTIONARY
      ********************/
@@ -107,7 +130,6 @@ Route::group(['middleware' => ['web', ParseSession::class]], function () {
             Route::put('/update', 'update');
             Route::delete('/delete', 'delete');
         });
-
 
     /****************
      * PRODUCTS_PLANS
@@ -162,7 +184,6 @@ Route::group(['middleware' => ['web', ParseSession::class]], function () {
             Route::get('/get_plans', 'getPlans');
         });
 
-
     Route::post('/load_xlsx', [TableController::class, 'loadFile']);
     // Route::post('/load_order', [TableController::class, 'loadOrder']);
     Route::post('/load_defaults', [TableController::class, 'loadDefaults']);
@@ -176,13 +197,12 @@ Route::group(['middleware' => ['web', ParseSession::class]], function () {
     /******
      * LOGS
      *****/
-        Route::controller(LogsController::class)
+    Route::controller(LogsController::class)
         ->prefix('/logs')
         ->group(function () {
             Route::get('/get', 'get')->middleware(ForceJsonResponse::class);
             Route::get('/load', 'print');
         });
-
 
     /********
      * SESSION
@@ -196,6 +216,7 @@ Route::group(['middleware' => ['web', ParseSession::class]], function () {
         $response = response('Set Cookie');
         $response->cookie('date', $dateValue, 60000);
         $response->cookie('isDay', $timeValue, 60000);
+
         return $response;
     });
 });

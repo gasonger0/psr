@@ -3,18 +3,18 @@
 namespace App\Http\Controllers;
 
 use App\Models\Lines;
+use App\Models\LinesDefault;
 use App\Models\LinesExtra;
 use App\Models\ProductsPlan;
-use Illuminate\Http\Request;
-use Carbon\Carbon;
 use App\Util;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
 
 class LinesController extends Controller
 {
+    public const LINE_NOT_FOUND = 'Такой линии не существует.';
 
-    public const LINE_NOT_FOUND = "Такой линии не существует.";
     public const LINE_ALREADY_EXISTS = 'Такая линия уже существует';
-
 
     /* CRUD */
     public function get(Request $request)
@@ -28,7 +28,7 @@ class LinesController extends Controller
                 $query->where('date', $session['date'])
                     ->where('isDay', $session['isDay']);
             },
-            'linesExtra'
+            'linesExtra',
         ])->chunk(200, function ($lines) use (&$result, $request) {
             foreach ($lines as $line) {
                 $extra = LinesExtra::withSession($request)->getOrInsert($line, $request);
@@ -48,14 +48,14 @@ class LinesController extends Controller
 
     public function create(Request $request)
     {
-        $exists = Util::checkDublicate(new Lines(), ['title'], $request->post());
+        $exists = Util::checkDublicate(new Lines, ['title'], $request->post());
         if ($exists) {
             return Util::errorMsg(self::LINE_ALREADY_EXISTS);
         }
         // Создаём базу
         $id = Lines::insertGetId($request->only((new Lines)->getFillable()));
 
-        if (!$id) {
+        if (! $id) {
             return Util::errorMsg($id, 400);
         }
         // Заполняем динию на смену
@@ -64,7 +64,7 @@ class LinesController extends Controller
         if ($extra_id) {
             return Util::successMsg([
                 'line_id' => $id,
-                'line_extra_id' => $extra_id
+                'line_extra_id' => $extra_id,
             ], 201);
         } else {
             return Util::errorMsg($extra_id, 400);
@@ -74,7 +74,7 @@ class LinesController extends Controller
     public function update(Request $request)
     {
         $line = LinesExtra::find($request->post('line_extra_id'));
-        if (!$line) {
+        if (! $line) {
             return Util::errorMsg(self::LINE_NOT_FOUND, 404);
         }
 
@@ -82,7 +82,7 @@ class LinesController extends Controller
 
         $line->update(
             $request->only((new LinesExtra)->getFillable())
-            );
+        );
         Lines::find($line->line_id)->update($request->only((new Lines)->getFillable()));
 
         // Сохранение подготовительного/заключительного времени как значений по умолчанию
@@ -98,17 +98,67 @@ class LinesController extends Controller
             // TODO Ищем старый лог с такой причиной
             $log = LogsController::create([
                 'line_id' => $line->line_id,
-                'action' => 'Перенос начала работы линии по причине: ' . $request->post('cancel_reason_string'),
+                'action' => 'Перенос начала работы линии по причине: '.$request->post('cancel_reason_string'),
                 'started_at' => $old['started_at'],
-                'ended_at' => Util::getCurrentTime($request)
+                'ended_at' => Util::getCurrentTime($request),
             ] + Util::getSessionAsArray($request));
         }
         SlotsController::afterLineUpdate($request, $old);
+
         return Util::successMsg($log ? $log : []);
+    }
+
+    /**
+     * Данные реестра линий: правила (lines) + шаблон смены (lines_defaults)
+     */
+    public function registry(Request $request)
+    {
+        $lines = Lines::with('linesDefault')->orderBy('line_id')->get()->map(function (Lines $line) {
+            $default = $line->linesDefault;
+
+            return array_merge($line->toArray(), [
+                'perfomance' => $default->perfomance ?? null,
+                'prep_time' => $default->prep_time ?? null,
+                'after_time' => $default->after_time ?? null,
+                'workers_count' => $default->workers_count ?? null,
+            ]);
+        });
+
+        return Util::successMsg($lines->toArray());
+    }
+
+    /**
+     * Массовое обновление линий: правила → lines, шаблон смены → lines_defaults.
+     * Поля, отсутствующие в fields, не трогаются.
+     */
+    public function bulkUpdate(Request $request)
+    {
+        $lineIds = $request->post('line_ids', []);
+        $fields = $request->post('fields', []);
+        if (! is_array($lineIds) || empty($lineIds) || ! is_array($fields) || empty($fields)) {
+            return Util::errorMsg('Нет данных для обновления');
+        }
+
+        $lineFields = array_intersect_key($fields, array_flip(['title', 'color', 'type_id', 'return_type', 'use_dating']));
+        $defaultFields = array_intersect_key($fields, array_flip(['perfomance', 'workers_count', 'prep_time', 'after_time']));
+
+        foreach ($lineIds as $lineId) {
+            if ($lineFields) {
+                Lines::where('line_id', $lineId)->update($lineFields);
+            }
+            if ($defaultFields) {
+                LinesDefault::updateOrCreate(['line_id' => $lineId], $defaultFields);
+            }
+        }
+
+        return Util::successMsg('Линии обновлены');
     }
 
     public function delete(Request $request)
     {
+        if (ProductsPlan::whereHas('slot', fn ($q) => $q->where('line_id', $request->post('line_id')))->exists()) {
+            return Util::errorMsg('Линия используется в планах');
+        }
         $delete = Lines::find($request->post('line_id'))->delete();
         if ($delete) {
             return Util::successMsg('Линия удалена', 200);
@@ -116,7 +166,6 @@ class LinesController extends Controller
             return Util::errorMsg($delete, 400);
         }
     }
-
 
     /* ACTIONS */
     public static function down(Request $request)
@@ -140,10 +189,10 @@ class LinesController extends Controller
 
         $logData = [
             'line_id' => $line->line_id,
-            'action' => "Остановка работы линии по причине: " . $request->post('reason'),
+            'action' => 'Остановка работы линии по причине: '.$request->post('reason'),
         ] + Util::getSessionAsArray($request) +
-        ($downFrom ? ["ended_at" => $downTime->format('Y-m-d H:i:s')] : 
-            ["started_at" => $downTime->format('Y-m-d H:i:s')]);
+        ($downFrom ? ['ended_at' => $downTime->format('Y-m-d H:i:s')] :
+            ['started_at' => $downTime->format('Y-m-d H:i:s')]);
 
         $log = $downFrom ? LogsController::update($logData) : LogsController::create($logData);
 
@@ -154,7 +203,7 @@ class LinesController extends Controller
     {
         foreach ($plansOrder as $line_id => $plans) {
             $firstPlan = reset($plans);
-            if (!$firstPlan) {
+            if (! $firstPlan) {
                 continue;
             }
             $start = Carbon::parse($firstPlan['started_at']);
@@ -166,7 +215,7 @@ class LinesController extends Controller
                 ->get()->each(function ($line) use ($start, $end) {
                     $line->update([
                         'started_at' => $start->addMinutes(-$line->prep_time),
-                        'ended_at' => $end->addMinutes($line->after_time)
+                        'ended_at' => $end->addMinutes($line->after_time),
                     ]);
                 });
         }
