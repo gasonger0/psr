@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 import { useModalsStore } from '@/store/modal';
 import { HardwareInfo, RegistryLine, ReturnTypeInfo, useProductionStore } from '@/store/production';
 import { useLinesStore } from '@/store/lines';
@@ -12,7 +12,11 @@ const modal = useModalsStore();
 const production = useProductionStore();
 const linesStore = useLinesStore();
 
-production._loadRegistry();
+watch(() => modal.visibility['production'], (open) => {
+    if (open && production.registryLines.length === 0) {
+        production._loadRegistry();
+    }
+});
 
 /* ===== Линии ===== */
 const selectedLineIds = ref<number[]>([]);
@@ -184,7 +188,8 @@ const saveSettings = async () => {
                 <Table :columns="lineColumns" :data-source="production.registryLines"
                     :row-key="(r: RegistryLine) => r.line_id"
                     :row-selection="{ selectedRowKeys: selectedLineIds, onChange: onSelectLines }"
-                    :pagination="false" size="small" :scroll="{ x: 1200 }">
+                    :pagination="false" size="small" :scroll="{ x: 1200, y: 420 }"
+                    :loading="production.registryLoading">
                     <template #bodyCell="{ column, record }">
                         <template v-if="column.dataIndex == 'title'">
                             <Input v-model:value="record.title" />
@@ -194,7 +199,7 @@ const saveSettings = async () => {
                         </template>
                         <template v-else-if="column.dataIndex == 'type_id'">
                             <Select v-model:value="record.type_id" style="width:100%"
-                                :options="[{ value: 1, label: 'Варка' }, { value: 2, label: 'Упаковка' }, { value: 3, label: 'Сборка ящиков' }]" />
+                                :options="[{ value: '1', label: 'Варка' }, { value: '2', label: 'Упаковка' }, { value: '3', label: 'Сборка ящиков' }]" />
                         </template>
                         <template v-else-if="['prep_time', 'after_time', 'workers_count'].includes(column.dataIndex)">
                             <InputNumber v-model:value="record[column.dataIndex]" :min="0" style="width:100%" />
@@ -312,7 +317,7 @@ const saveSettings = async () => {
         <Modal v-model:open="bulkModalOpen" title="Изменить выделенные линии" @ok="applyBulk">
             <div style="display:flex; flex-direction:column; gap:8px;">
                 <Select v-model:value="bulk.type_id" placeholder="Тип — не менять" :allowClear="true"
-                    :options="[{ value: 1, label: 'Варка' }, { value: 2, label: 'Упаковка' }, { value: 3, label: 'Сборка ящиков' }]" />
+                    :options="[{ value: '1', label: 'Варка' }, { value: '2', label: 'Упаковка' }, { value: '3', label: 'Сборка ящиков' }]" />
                 <Select v-model:value="bulk.return_type" placeholder="Возвратные массы — не менять"
                     :options="[...production.returnTypeOptions, { value: '__clear__', label: 'Очистить (не участвует)' }]" />
                 <Select v-model:value="bulk.use_dating" placeholder="Датирование — не менять"

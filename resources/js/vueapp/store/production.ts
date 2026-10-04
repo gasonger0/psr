@@ -43,6 +43,7 @@ export const useProductionStore = defineStore('production', () => {
     const hardwares = ref<HardwareInfo[]>([]);
     const returnTypes = ref<ReturnTypeInfo[]>([]);
     const registryLines = ref<RegistryLine[]>([]);
+    const registryLoading = ref(false);
     const settings = ref<SettingsInfo>({
         interval_boil: 10,
         interval_pack: 15,
@@ -71,7 +72,15 @@ export const useProductionStore = defineStore('production', () => {
     }
 
     async function _loadRegistry(): Promise<void> {
-        registryLines.value = await getRequest('/api/lines/registry');
+        registryLoading.value = true;
+        try {
+            const rows = await getRequest('/api/lines/registry');
+            registryLines.value = rows.map((l: RegistryLine) => ({ ...l, color: l.color || '#4096ff' }));
+        } catch (err) {
+            console.error('Не удалось загрузить реестр линий:', err);
+        } finally {
+            registryLoading.value = false;
+        }
     }
 
     const boilHardwares = computed(() => [
@@ -155,7 +164,7 @@ export const useProductionStore = defineStore('production', () => {
     }
 
     return {
-        hardwares, returnTypes, registryLines, settings,
+        hardwares, returnTypes, registryLines, registryLoading, settings,
         boilHardwares, packHardwares, slotHardwareOptions, returnTypeOptions,
         getByID,
         _load, _loadRegistry,
