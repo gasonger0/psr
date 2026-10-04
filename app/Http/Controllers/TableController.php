@@ -42,7 +42,7 @@ class TableController extends Controller
     {
         $hardware = Hardware::find($hardwareId);
 
-        return $hardware ? ($hardware->full_title ?? $hardware->title) : 'Без оборудования';
+        return $hardware ? ($hardware->full_title ?: $hardware->title) : 'Без оборудования';
     }
 
     private static function makeArrayHeader($session, $type)

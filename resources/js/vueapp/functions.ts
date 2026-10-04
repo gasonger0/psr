@@ -42,7 +42,7 @@ export async function postRequest(
             })
             .catch((err) => {
                 if (errHandler) errHandler(err);
-                handleResponse(err);
+                handleResponse(err.response);
                 reject(err);
             })
     })
@@ -63,7 +63,7 @@ export async function putRequest(
             })
             .catch((err) => {
                 if (errHandler) errHandler(err);
-                handleResponse(err);
+                handleResponse(err.response);
                 reject(err);
             })
     })
@@ -84,7 +84,7 @@ export async function deleteRequest(
             })
             .catch((err) => {
                 if (errHandler) errHandler(err);
-                handleResponse(err);
+                handleResponse(err.response);
                 reject(err);
             })
     })

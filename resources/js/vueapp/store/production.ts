@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 import { computed, ref } from "vue";
-import { deleteRequest, getRequest, postRequest, putRequest } from "@/functions";
+import { deleteRequest, getRequest, notify, postRequest, putRequest } from "@/functions";
 
 export type HardwareInfo = {
     hardware_id: number,
@@ -51,19 +51,23 @@ export const useProductionStore = defineStore('production', () => {
     });
 
     async function _load(): Promise<void> {
-        const [hw, rt, st] = await Promise.all([
-            getRequest('/api/production/hardwares/get'),
-            getRequest('/api/production/return_types/get'),
-            getRequest('/api/production/settings/get')
-        ]);
-        hardwares.value = hw;
-        returnTypes.value = rt;
-        settings.value = {
-            interval_boil: Number(st.interval_boil ?? 10),
-            interval_pack: Number(st.interval_pack ?? 15),
-            zm_perfomance: Number(st.zm_perfomance ?? 143.5),
-            zm_perfomance2: Number(st.zm_perfomance2 ?? 287)
-        };
+        try {
+            const [hw, rt, st] = await Promise.all([
+                getRequest('/api/production/hardwares/get'),
+                getRequest('/api/production/return_types/get'),
+                getRequest('/api/production/settings/get')
+            ]);
+            hardwares.value = hw;
+            returnTypes.value = rt;
+            settings.value = {
+                interval_boil: Number(st.interval_boil ?? 10),
+                interval_pack: Number(st.interval_pack ?? 15),
+                zm_perfomance: Number(st.zm_perfomance ?? 143.5),
+                zm_perfomance2: Number(st.zm_perfomance2 ?? 287)
+            };
+        } catch (err) {
+            console.error('Не удалось загрузить данные производства:', err);
+        }
     }
 
     async function _loadRegistry(): Promise<void> {
@@ -106,7 +110,11 @@ export const useProductionStore = defineStore('production', () => {
     }
 
     async function _deleteHardware(id: number): Promise<void> {
-        await deleteRequest('/api/production/hardwares/delete', { hardware_id: id });
+        try {
+            await deleteRequest('/api/production/hardwares/delete', { hardware_id: id });
+        } catch (err: any) {
+            notify('error', err?.response?.data?.error ?? 'Ошибка сохранения');
+        }
     }
 
     async function _createReturnType(r: ReturnTypeInfo): Promise<void> {
@@ -119,7 +127,11 @@ export const useProductionStore = defineStore('production', () => {
     }
 
     async function _deleteReturnType(id: number): Promise<void> {
-        await deleteRequest('/api/production/return_types/delete', { return_type_id: id });
+        try {
+            await deleteRequest('/api/production/return_types/delete', { return_type_id: id });
+        } catch (err: any) {
+            notify('error', err?.response?.data?.error ?? 'Ошибка сохранения');
+        }
     }
 
     async function _saveSettings(): Promise<void> {
@@ -127,11 +139,19 @@ export const useProductionStore = defineStore('production', () => {
     }
 
     async function _bulkUpdateLines(lineIds: number[], fields: object): Promise<void> {
-        await postRequest('/api/lines/bulk-update', { line_ids: lineIds, fields });
+        try {
+            await postRequest('/api/lines/bulk-update', { line_ids: lineIds, fields });
+        } catch (err: any) {
+            notify('error', err?.response?.data?.error ?? 'Ошибка сохранения');
+        }
     }
 
     async function _deleteLine(lineId: number): Promise<void> {
-        await deleteRequest('/api/lines/delete', { line_id: lineId });
+        try {
+            await deleteRequest('/api/lines/delete', { line_id: lineId });
+        } catch (err: any) {
+            notify('error', err?.response?.data?.error ?? 'Ошибка сохранения');
+        }
     }
 
     return {
