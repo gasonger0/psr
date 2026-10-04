@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { LineInfo, useLinesStore } from '../../store/lines';
-import { cancelReasons, lineReturnTypes } from '../../store/dicts';
+import { cancelReasons } from '../../store/dicts';
 import { ResponsibleInfo, useResponsiblesStore } from '../../store/responsibles';
 import { DefaultOptionType } from 'ant-design-vue/es/select';
-import { Card, Input, Switch, Tooltip, Popconfirm, Select, SelectOption, TimePicker, RadioGroup, RadioButton, Checkbox } from 'ant-design-vue';
+import { Card, Input, Switch, Tooltip, Popconfirm, Select, SelectOption, TimePicker, Checkbox } from 'ant-design-vue';
 import { InfoCircleOutlined, ForwardOutlined, StopOutlined, ExperimentOutlined, InboxOutlined } from '@ant-design/icons-vue';
 import { ColorPicker } from 'vue-color-kit';
 const props = defineProps<{
@@ -88,8 +88,6 @@ const currentWorkerCount = computed(() => {
                 <br>
                 <span>{{ data.extra_title }}</span>
             </div>
-            <Input v-show="data.edit" class="line_title line-input" v-model:value="data.title"
-                placeholder="Наименование" />
             <Input v-show="data.edit" class="line_title line-input" v-model:value="data.extra_title"
                 placeholder="Производительность" />
             <div class="line-card_section">
@@ -149,17 +147,6 @@ const currentWorkerCount = computed(() => {
                     Сохранить как значение по умолчанию
                 </Checkbox>
                 <br>
-                <RadioGroup v-model:value="data.type_id" class="select resp">
-                    <RadioButton value="1">Варка</RadioButton>
-                    <RadioButton value="2">Упаковка</RadioButton>
-                    <RadioButton value="3">Сборка ящиков</RadioButton>
-                </RadioGroup>
-                <span>Возвратные массы:</span>
-                <Select v-model:value="data.return_type" placeholder="Не участвует" :allowClear="true"
-                    :options="lineReturnTypes" class="select" />
-                <Checkbox v-model:checked="data.use_dating">
-                    Учитывать в датировании
-                </Checkbox>
                 <span>Ответственные:</span>
                 <Select v-model:value="data.master" class="select" :dropdown-match-select-width="false"
                     :options="selectResponsible" />
