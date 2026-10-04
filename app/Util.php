@@ -1,35 +1,41 @@
 <?php
 
 namespace App;
+
 use App\Models\Lines;
 use App\Models\LinesDefault;
 use App\Models\ProductsDictionary;
 use App\Models\ProductsPlan;
 use App\Models\ProductsSlots;
+use App\Models\ReturnType;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 
 class Util
 {
     /**
      * Получает стандартыне значения для линии
-     * @param mixed $line_id ИД линии
+     *
+     * @param  mixed  $line_id  ИД линии
      */
     public static function getDefaults($line_id = false): array|bool
     {
         if ($line_id !== false) {
             $default = LinesDefault::where('line_id', $line_id)->first();
-            if (!$default) {
+            if (! $default) {
                 return false;
             }
             $data = $default->toArray();
             unset($data['lines_default_id'], $data['line_id']);
+
             return $data;
         }
 
         return LinesDefault::get()->map(function ($item) {
             unset($item['lines_default_id']);
+
             return $item;
         })->toArray();
     }
@@ -37,19 +43,19 @@ class Util
     /**
      * Сохраняет значение параметра линии по умолчанию.
      *
-     * @param int $line_id ИД линии
-     * @param string $field Название поля
-     * @param mixed $value Новое значение
+     * @param  int  $line_id  ИД линии
+     * @param  string  $field  Название поля
+     * @param  mixed  $value  Новое значение
      */
     public static function setDefault(int $line_id, string $field, $value): bool
     {
         $allowed = ['perfomance', 'workers_count', 'prep_time', 'after_time'];
-        if (!in_array($field, $allowed, true)) {
+        if (! in_array($field, $allowed, true)) {
             return false;
         }
 
         $attributes = ['line_id' => $line_id];
-        if (!LinesDefault::where('line_id', $line_id)->exists()) {
+        if (! LinesDefault::where('line_id', $line_id)->exists()) {
             $seed = self::getDefaults($line_id);
             if (is_array($seed) && $seed !== false) {
                 $attributes = array_merge($attributes, array_intersect_key($seed, array_flip($allowed)));
@@ -58,15 +64,15 @@ class Util
         $attributes[$field] = $value;
 
         LinesDefault::updateOrCreate(['line_id' => $line_id], $attributes);
+
         return true;
     }
 
     /**
      * Проверяет добавляемые данные на наличие дубликатов
-     * @param Model $model
-     * @param array $fields поля по которым проверка
-     * @param array $values значения 
-     * @return boolean
+     *
+     * @param  array  $fields  поля по которым проверка
+     * @param  array  $values  значения
      */
     public static function checkDublicate(Model $model, array $fields, array $values, bool $strong = false): bool
     {
@@ -81,13 +87,15 @@ class Util
                 }
             }
         }
+
         return false;
     }
 
     /**
      * Генерирует успешный ответ
-     * @param array|string $data Данные
-     * @param int $status HTTP-код
+     *
+     * @param  array|string  $data  Данные
+     * @param  int  $status  HTTP-код
      * @return \Illuminate\Http\Response
      */
     public static function successMsg(array|string|null $data = null, int $status = 200)
@@ -97,38 +105,42 @@ class Util
                 'message' => [
                     'type' => 'success',
                     'title' => $data,
-                ]
+                ],
             ], $status);
         }
+
         return Response($data, $status);
     }
 
     /**
      * Генерирует ответ с ошибкой
-     * @param array|string $data Данные
-     * @param int $status HTTP-код
+     *
+     * @param  array|string  $data  Данные
+     * @param  int  $status  HTTP-код
      * @return \Illuminate\Http\Response
      */
     public static function errorMsg(array|string $data, int $status = 400)
     {
         if (is_string($data)) {
             return Response([
-                'error' => $data
+                'error' => $data,
             ], $status);
         }
+
         return Response($data, $status);
     }
 
     /**
      * Добавляет данные сессии (isDay, date) в переданный запрос
-     * @param \Illuminate\Http\Request $request Запрос
+     *
+     * @param  \Illuminate\Http\Request  $request  Запрос
      * @return void
      */
     public static function appendSessionToData(Request &$request)
     {
         $request->merge([
             'date' => $request->attributes->get('date') ?? null,
-            'isDay' => $request->attributes->get('isDay') ?? null
+            'isDay' => $request->attributes->get('isDay') ?? null,
         ]);
     }
 
@@ -136,52 +148,39 @@ class Util
     {
         return [
             'date' => $request->attributes->get('date'),
-            'isDay' => $request->attributes->get('isDay')
+            'isDay' => $request->attributes->get('isDay'),
         ];
     }
 
     /**
      * Рассчитывает длительность по слоту
-     * @param \App\Models\ProductsDictionary $product ГП
-     * @param int $amount Объём изготовления
-     * @param \App\Models\ProductsSlots $slot Слот изготовления
-     * @return float
+     *
+     * @param  \App\Models\ProductsDictionary  $product  ГП
+     * @param  int  $amount  Объём изготовления
+     * @param  \App\Models\ProductsSlots  $slot  Слот изготовления
      */
     public static function calcDuration(ProductsDictionary $product, int $amount, ProductsSlots $slot): float
     {
         if ($slot->line->type_id == 3) {     // сборка ящиков
             // если телевизоры, то по штукам в ящике + ящикам, иначе по ящикам
-            $newAmount = eval ("return $amount * $product->amount2parts;");
+            $newAmount = eval("return $amount * $product->amount2parts;");
             if ($product->televisor) {
                 $newAmount += $amount;
             }
-            return eval ("return $newAmount / $slot->perfomance;");
-        }
-        return
-            eval ("return $product->parts2kg*$amount*$product->amount2parts;") /
-            $slot->perfomance;
-    }
 
-    /**
-     * Расчёт длительности для завёрточных машин
-     * @param \App\Models\ProductsDictionary $product ГП
-     * @param int $amount Объём изготовления
-     * @param int $hardware ЗМ
-     * @return float|int
-     */
-    public static function calcDurationForZM(ProductsDictionary $product, int $amount, int $hardware): float
-    {
-        $duration = eval ("return $product->parts2kg*$amount*$product->amount2parts;") / 143.5;
-        if ($hardware == 3) {
-            $duration *= 2;
+            return eval("return $newAmount / $slot->perfomance;");
         }
-        return $duration;
+
+        return
+            eval("return $product->parts2kg*$amount*$product->amount2parts;") /
+            $slot->perfomance;
     }
 
     public static function getCurrentTime(Request $request): Carbon
     {
         $session_date = Carbon::parse(Util::getSessionAsArray($request)['date']);
-        return Carbon::now("Europe/Moscow")
+
+        return Carbon::now('Europe/Moscow')
             ->setDate(
                 $session_date->year,
                 $session_date->month,
@@ -192,7 +191,7 @@ class Util
 
     public static function createDate(array $data, Request $request, Lines $line)
     {
-        $isDay = $request->attributes->get("isDay");
+        $isDay = $request->attributes->get('isDay');
         $date = Carbon::createFromFormat('Y-m-d', $request->attributes->get('date'));
         switch ($line->type_id) {
             case 1:
@@ -217,21 +216,41 @@ class Util
         return $data;
     }
 
-    // Правила возвратных масс задаются в линии (return_type)
+    /**
+     * Правила возвратных масс задаются в справочнике return_types,
+     * линия ссылается на режим через return_type.
+     */
     public static function calcReturnMass(array $line, array $sum, string $type): string|bool
     {
-        $m = "<f>=(" . implode("+", $sum) . ") * ";
-        return match ((int)($line['return_type'] ?? 0)) {
-            1 => 25, // Непрерывная линия
-            2 => match ($type) { // Шоколадная линия: по названию (зефир/суфле)
-                'z' => $m . 0.015 . "</f>",
-                's' => $m . 0.00405 . "</f>",
-                default => false,
-            },
-            3 => $m . 0.025 . "</f>", // Линия-полуавтомат
-            4 => $m . 0.005 . "</f>", // One-Shot
-            default => false,
+        $mode = self::getReturnTypes()->get($line['return_type'] ?? 0);
+        if (! $mode) {
+            return false;
+        }
+        $m = '<f>=('.implode('+', $sum).') * ';
+        if ($mode->formula_type === 'fixed') {
+            return (float) $mode->fixed_value;
+        }
+        $coef = match ($type) {
+            'z' => $mode->coef_z,
+            's' => $mode->coef_s,
+            'k' => $mode->coef_k,
+            default => null,
         };
+
+        return $coef !== null && $coef !== '' ? $m.$coef.'</f>' : false;
+    }
+
+    /**
+     * Справочник режимов возвратных масс, кэш на время запроса.
+     */
+    public static function getReturnTypes(): Collection
+    {
+        static $returnTypes = null;
+        if ($returnTypes === null) {
+            $returnTypes = ReturnType::all()->keyBy('return_type_id');
+        }
+
+        return $returnTypes;
     }
 
     public static function getLinesPersonalTime(Request $request): array
@@ -241,15 +260,15 @@ class Util
             ->with(['slot', 'line', 'product'])
             ->each(function (ProductsPlan $pl) use (&$array) {
                 $line_id = $pl->line->line_id;
-                if (!isset($array[$line_id])) {
+                if (! isset($array[$line_id])) {
                     $array[$line_id] = [
                         'amount' => [
                             'z' => 0,
                             's' => 0,
-                            'k' => 0
+                            'k' => 0,
                         ],
                         // 'amountByPeopleHours' => 0,
-                        'totalPeople' => 0
+                        'totalPeople' => 0,
                     ];
                 }
 
@@ -260,9 +279,9 @@ class Util
 
                 if (mb_strpos(mb_strtolower($pl->product->title), 'зефир') !== false) {
                     $array[$line_id]['amount']['z'] += $amount;
-                } else if (mb_strpos(mb_strtolower($pl->product->title), 'суфле') !== false) {
+                } elseif (mb_strpos(mb_strtolower($pl->product->title), 'суфле') !== false) {
                     $array[$line_id]['amount']['s'] += $amount;
-                } else if (mb_strpos(mb_strtolower($pl->product->title), 'конфет') !== false) {
+                } elseif (mb_strpos(mb_strtolower($pl->product->title), 'конфет') !== false) {
                     $array[$line_id]['amount']['k'] += $amount;
                 } else {
                     // Если не сработал ни один паттерн, считаем, что это зефир
@@ -274,49 +293,50 @@ class Util
                 //     // / $pl->slot->perfomance
                 //     * $pl->slot->people_count;
             });
+
         return $array;
     }
 
-    public static function makeCounts(int $row_index, array $product, string $letter = 'B', int $amount = null)
+    public static function makeCounts(int $row_index, array $product, string $letter = 'B', ?int $amount = null)
     {
         $index = ord($letter) - 65 + 1;
-        $i = fn(int $m = 0) => chr($index + 65 + $m);
+        $i = fn (int $m = 0) => chr($index + 65 + $m);
 
-        $cars = $i(3) . "$row_index*$product[cars]";
+        $cars = $i(3)."$row_index*$product[cars]";
+
         return [
-            $index => (float)$amount,
-            "<f>=" . $i(0) . "$row_index*$product[amount2parts]</f>",
-            "<f>=" . $i(1) . "$row_index*$product[parts2kg]</f>",
-            isset($product['kg2boil']) ? "<f>=" . $i(2) . "$row_index*$product[kg2boil]</f>" : 0,
+            $index => (float) $amount,
+            '<f>='.$i(0)."$row_index*$product[amount2parts]</f>",
+            '<f>='.$i(1)."$row_index*$product[parts2kg]</f>",
+            isset($product['kg2boil']) ? '<f>='.$i(2)."$row_index*$product[kg2boil]</f>" : 0,
             isset($product['cars']) ? "<f>=ROUNDDOWN($cars, 0)</f>" : 0,
             '<b>т</b>',
-            "<f>=ROUNDUP((($cars) - " . $i(4) . "$row_index)*$product[cars2plates], 0)</f>",
-            '<b>под</b>'
+            "<f>=ROUNDUP((($cars) - ".$i(4)."$row_index)*$product[cars2plates], 0)</f>",
+            '<b>под</b>',
         ];
     }
 
     public static function makeResult(string $letter, array $sum, array $catRows, bool $is_boil)
     {
         $title = match ($letter) {
-            'z' => "зефира",
-            's' => "суфле",
-            'k' => "конфет"
+            'z' => 'зефира',
+            's' => 'суфле',
+            'k' => 'конфет'
         };
 
-        $mapCat = fn($l) => 
-                count($catRows[$letter]) > 0 ? 
-                    '<f>=' . 
-                        implode('+', array_map(fn($r) => $l . $r, $catRows[$letter])) . "</f>"
+        $mapCat = fn ($l) => count($catRows[$letter]) > 0 ?
+                    '<f>='.
+                        implode('+', array_map(fn ($r) => $l.$r, $catRows[$letter])).'</f>'
                 : '';
-            
+
         return [
-            1 =>  "<b>Итого $title</b>",
-            4 =>  (count($sum[$letter][0]) > 0) ? "<f>=" . implode("+", $sum[$letter][0]) . "</f>" : '',
-            5 =>  (count($sum[$letter][1]) > 0 && $is_boil) ? "<f>=" . implode("+", $sum[$letter][1]) . "</f>" : '',
+            1 => "<b>Итого $title</b>",
+            4 => (count($sum[$letter][0]) > 0) ? '<f>='.implode('+', $sum[$letter][0]).'</f>' : '',
+            5 => (count($sum[$letter][1]) > 0 && $is_boil) ? '<f>='.implode('+', $sum[$letter][1]).'</f>' : '',
             // 15 => $mapCat('P'),
-            16 => $mapCat('Q'), 
-            17 => $mapCat('R'), 
-            18 => $is_boil ? $mapCat('S') : '', 
+            16 => $mapCat('Q'),
+            17 => $mapCat('R'),
+            18 => $is_boil ? $mapCat('S') : '',
             // 19 => $is_boil ? $mapCat('T') : ''
         ];
     }

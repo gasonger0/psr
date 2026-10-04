@@ -3,13 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\Companies;
+use App\Models\Hardware;
 use App\Models\Lines;
 use App\Models\LinesExtra;
-use App\Models\ProductsCategories;
 use App\Models\ProductsDictionary;
 use App\Models\ProductsOrder;
 use App\Models\ProductsPlan;
-use App\Models\ProductsSlots;
 use App\Models\Responsible;
 use App\Models\Slots;
 use App\Models\Workers;
@@ -18,123 +17,132 @@ use Carbon\Carbon;
 use DateTime;
 use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Shuchkin\SimpleXLSX;
 use Shuchkin\SimpleXLSXGen;
 
 class TableController extends Controller
 {
     private $file = [];
-    static $MCS = '<center><middle>';
-    static $MCE = '</middle></center>';
+
+    public static $MCS = '<center><middle>';
+
+    public static $MCE = '</middle></center>';
+
     private static $skipPhrases = ['подготовительное время', 'заключительное время'];
+
     private static $colons = [
         0 => '',
         '' => '',
         1 => 'Варочная колонка №1',
         2 => 'Варочная колонка №2',
-        3 => 'Варочные колонки №1 и №2'
+        3 => 'Варочные колонки №1 и №2',
     ];
-    private static $hardware = [
-        0 => 'Без оборудования',
-        "" => 'Без оборудования',
-        2 => 'Мондомикс',
-        1 => 'Торнадо',
-        3 => 'Китайский аэрос',
-        4 => 'Завёрточная машина №1',
-        5 => 'Завёрточная машина №2',
-        6 => 'Завёрточные машины №1, №2'
-    ];
+
+    private static ?Collection $hardwaresMap = null;
+
+    private static function hardwareTitle($hardwareId): string
+    {
+        if (! $hardwareId) {
+            return 'Без оборудования';
+        }
+        if (self::$hardwaresMap === null) {
+            self::$hardwaresMap = Hardware::pluck('title', 'hardware_id');
+        }
+
+        return self::$hardwaresMap[$hardwareId] ?? 'Без оборудования';
+    }
 
     private static function makeArrayHeader($session, $type)
     {
         return
             [
                 self::makeRow([
-                    2 => self::$MCS . '2' . self::$MCE,
-                    self::$MCS . '3' . self::$MCE,
-                    self::$MCS . '4' . self::$MCE,
-                    self::$MCS . '5' . self::$MCE,
-                    self::$MCS . '6' . self::$MCE,
-                    self::$MCS . '7' . self::$MCE,
-                    self::$MCS . '8' . self::$MCE,
-                    self::$MCS . '9' . self::$MCE,
-                    self::$MCS . '10' . self::$MCE,
-                    self::$MCS . '11' . self::$MCE,
-                    self::$MCS . '12' . self::$MCE,
-                    self::$MCS . '13' . self::$MCE,
-                    self::$MCS . '14' . self::$MCE,
-                    self::$MCS . '15' . self::$MCE,
-                    self::$MCS . '16' . self::$MCE,
-                    self::$MCS . '17' . self::$MCE,
-                    self::$MCS . '18' . self::$MCE,
-                    self::$MCS . '19' . self::$MCE,
-                    self::$MCS . '20' . self::$MCE,
-                    self::$MCS . '21' . self::$MCE,
-                    self::$MCS . '22' . self::$MCE,
-                    self::$MCS . '23' . self::$MCE,
-                    self::$MCS . '24' . self::$MCE,
-                    self::$MCS . '25' . self::$MCE,
-                    self::$MCS . '26' . self::$MCE,
-                    self::$MCS . '27' . self::$MCE,
-                    self::$MCS . '28' . self::$MCE,
+                    2 => self::$MCS.'2'.self::$MCE,
+                    self::$MCS.'3'.self::$MCE,
+                    self::$MCS.'4'.self::$MCE,
+                    self::$MCS.'5'.self::$MCE,
+                    self::$MCS.'6'.self::$MCE,
+                    self::$MCS.'7'.self::$MCE,
+                    self::$MCS.'8'.self::$MCE,
+                    self::$MCS.'9'.self::$MCE,
+                    self::$MCS.'10'.self::$MCE,
+                    self::$MCS.'11'.self::$MCE,
+                    self::$MCS.'12'.self::$MCE,
+                    self::$MCS.'13'.self::$MCE,
+                    self::$MCS.'14'.self::$MCE,
+                    self::$MCS.'15'.self::$MCE,
+                    self::$MCS.'16'.self::$MCE,
+                    self::$MCS.'17'.self::$MCE,
+                    self::$MCS.'18'.self::$MCE,
+                    self::$MCS.'19'.self::$MCE,
+                    self::$MCS.'20'.self::$MCE,
+                    self::$MCS.'21'.self::$MCE,
+                    self::$MCS.'22'.self::$MCE,
+                    self::$MCS.'23'.self::$MCE,
+                    self::$MCS.'24'.self::$MCE,
+                    self::$MCS.'25'.self::$MCE,
+                    self::$MCS.'26'.self::$MCE,
+                    self::$MCS.'27'.self::$MCE,
+                    self::$MCS.'28'.self::$MCE,
                 ]),
                 [
                     '<style height="52">Дата</style>',
-                    '<style height="52">' . $session['date'] . '</style>'
+                    '<style height="52">'.$session['date'].'</style>',
                 ],
                 self::makeRow([
                     0 => '<style height="52">Смена:</style>',
                     $session['isDay'] ? 'День' : 'Ночь',
                     3 => 'план:',
                     15 => 'факт:',
-                    21 => self::$MCS . 'Зам. ген.директора ООО КФ "Сокол"' . self::$MCE,
+                    21 => self::$MCS.'Зам. ген.директора ООО КФ "Сокол"'.self::$MCE,
                 ]),
                 self::makeRow([
-                    0 => self::$MCS . '<b>№</b>' . self::$MCE,
-                    '<style border="#000000" font-size="20">' .
-                    self::$MCS .
-                    '<b>Наименование</b>' .
-                    self::$MCE .
+                    0 => self::$MCS.'<b>№</b>'.self::$MCE,
+                    '<style border="#000000" font-size="20">'.
+                    self::$MCS.
+                    '<b>Наименование</b>'.
+                    self::$MCE.
                     '</style>',
-                    self::$MCS . '<b>Плановое кол-во корпуса</b>' . self::$MCE,
-                    11 => self::$MCS . '<b>План</b>' . self::$MCE,
+                    self::$MCS.'<b>Плановое кол-во корпуса</b>'.self::$MCE,
+                    11 => self::$MCS.'<b>План</b>'.self::$MCE,
                     // 10 => self::$MCS . '<b>Зефирная масса, кг</b>' . self::$MCE,
                     // 16 => self::$MCS . '<b>ПРИМЕЧАНИЕ</b>' . self::$MCE,
-                    15 => self::$MCS . '<b>Факт</b>' . self::$MCE,
-                    27 => self::$MCS . '<b>ПРИМЕЧАНИЕ</b>' . self::$MCE,
+                    15 => self::$MCS.'<b>Факт</b>'.self::$MCE,
+                    27 => self::$MCS.'<b>ПРИМЕЧАНИЕ</b>'.self::$MCE,
                 ]),
                 self::makeRow([
-                    11 => self::$MCS . '<wraptext><b>кол-во людей</b></wraptext>' . self::$MCE,
-                    12 => self::$MCS . '<b>Время, ч</b>' . self::$MCE,
-                    24 => self::$MCS . '<wraptext><b>кол-во людей</b></wraptext>' . self::$MCE,
-                    25 => self::$MCS . '<b>Время, ч</b>' . self::$MCE,
+                    11 => self::$MCS.'<wraptext><b>кол-во людей</b></wraptext>'.self::$MCE,
+                    12 => self::$MCS.'<b>Время, ч</b>'.self::$MCE,
+                    24 => self::$MCS.'<wraptext><b>кол-во людей</b></wraptext>'.self::$MCE,
+                    25 => self::$MCS.'<b>Время, ч</b>'.self::$MCE,
                 ]),
                 self::makeRow([
                     0 => '<style height="57"></style>',
-                    2 => self::$MCS . '<b>ящ</b>' . self::$MCE,
-                    self::$MCS . '<b>шт</b>' . self::$MCE,
-                    self::$MCS . '<b>кг</b>' . self::$MCE,
-                    self::$MCS . ($type == 1 ? '<b>Варка</b>' : '') . self::$MCE,
-                    self::$MCS . '<b>Телеги</b>' . self::$MCE,
-                    12 => self::$MCS . '<b>начало</b>' . self::$MCE,
-                    self::$MCS . '<b>окончание</b>' . self::$MCS,
-                    15 => self::$MCS . '<b>ящ</b>' . self::$MCE,
-                    self::$MCS . '<b>шт</b>' . self::$MCE,
-                    self::$MCS . '<b>кг</b>' . self::$MCE,
-                    self::$MCS . ($type == 1 ? '<b>Варка</b>' : '') . self::$MCE,
-                    self::$MCS . '<b>Телеги</b>' . self::$MCE,
-                    25 => self::$MCS . '<b>начало</b>' . self::$MCE,
-                    self::$MCS . '<b>окончание</b>' . self::$MCS,
-                    28 => self::$MCS . '<b>Чел-часов по плану</b>' . self::$MCE,
-                    self::$MCS . '<b>Чел-часов по закрытой ГП</b>' . self::$MCE,
-                    self::$MCS . '<b>Чел-часов по факту</b>' . self::$MCE
-                ])
+                    2 => self::$MCS.'<b>ящ</b>'.self::$MCE,
+                    self::$MCS.'<b>шт</b>'.self::$MCE,
+                    self::$MCS.'<b>кг</b>'.self::$MCE,
+                    self::$MCS.($type == 1 ? '<b>Варка</b>' : '').self::$MCE,
+                    self::$MCS.'<b>Телеги</b>'.self::$MCE,
+                    12 => self::$MCS.'<b>начало</b>'.self::$MCE,
+                    self::$MCS.'<b>окончание</b>'.self::$MCS,
+                    15 => self::$MCS.'<b>ящ</b>'.self::$MCE,
+                    self::$MCS.'<b>шт</b>'.self::$MCE,
+                    self::$MCS.'<b>кг</b>'.self::$MCE,
+                    self::$MCS.($type == 1 ? '<b>Варка</b>' : '').self::$MCE,
+                    self::$MCS.'<b>Телеги</b>'.self::$MCE,
+                    25 => self::$MCS.'<b>начало</b>'.self::$MCE,
+                    self::$MCS.'<b>окончание</b>'.self::$MCS,
+                    28 => self::$MCS.'<b>Чел-часов по плану</b>'.self::$MCE,
+                    self::$MCS.'<b>Чел-часов по закрытой ГП</b>'.self::$MCE,
+                    self::$MCS.'<b>Чел-часов по факту</b>'.self::$MCE,
+                ]),
             ];
     }
 
     public function loadOrder(Request $request)
     {
-        if (!$request->files) {
+        if (! $request->files) {
             return 'Файл не предоставлен';
         }
 
@@ -150,27 +158,30 @@ class TableController extends Controller
                 // Ловим категории
                 if ($category = ProductsCategoriesController::getByName($row[1])) {
                     $curCat = $category;
+
                     continue;
                 }
                 // Ловим продукты
                 if ($curCat && ($product = ProductsDictionary::where('title', $row[1])->first())) {
                     $amounts[] = [
                         'product_id' => $product->product_id,
-                        'amount' => $row[3]
+                        'amount' => $row[3],
                     ];
+
                     continue;
-                } else if ($curCat && !strtotime($row[1]) && ($row[2] || $row[3] || $row[4])) {
+                } elseif ($curCat && ! strtotime($row[1]) && ($row[2] || $row[3] || $row[4])) {
                     $product = ProductsDictionary::create([
                         'title' => $row[1],
-                        'category_id' => $curCat->category_id
+                        'category_id' => $curCat->category_id,
                     ]);
                     $amounts[] = [
                         'product_id' => $product->product_id,
-                        'amount' => $row[3]
+                        'amount' => $row[3],
                     ];
+
                     continue;
                 }
-                if ($curCat && !strtotime($row[1])) {
+                if ($curCat && ! strtotime($row[1])) {
                     $unrecognized[$k] = $row[1];
                 }
             }
@@ -187,7 +198,7 @@ class TableController extends Controller
                             [
                                 'product_id' => $amount['product_id'],
                                 'isDay' => $request->attributes->get('isDay'),
-                                'date' => $request->attributes->get('date')
+                                'date' => $request->attributes->get('date'),
                             ],
                             ['amount' => $val]
                         );
@@ -197,16 +208,18 @@ class TableController extends Controller
                             'product_id' => $rec->product_id,
                             'amount' => $rec->amount,
                         ],
-                        'product' => ProductsDictionary::find($rec->product_id)->toArray()
+                        'product' => ProductsDictionary::find($rec->product_id)->toArray(),
                     ];
                 }
             }
+
             return Util::successMsg([
                 'uncategorized' => $unrecognized,
-                'amounts' => $amounts
+                'amounts' => $amounts,
             ], 201);
         }
     }
+
     public function getPlans(Request $request)
     {
         // Подготовка
@@ -220,16 +233,16 @@ class TableController extends Controller
         // Создаём шапки листов
         $arr = [
             1 => self::makeArrayHeader($session, 1),
-            2 => self::makeArrayHeader($session, 2)
+            2 => self::makeArrayHeader($session, 2),
         ];
 
         // Распределяем линии по листам
         $linesSheets = [
             1 => [],
-            2 => []
+            2 => [],
         ];
         Lines::each(function ($line) use (&$linesSheets, $session) {
-            $pls = array_filter($line->plans->toArray(), fn($p) => $p['date'] == $session['date'] && $p['isDay'] == $session['isDay']);
+            $pls = array_filter($line->plans->toArray(), fn ($p) => $p['date'] == $session['date'] && $p['isDay'] == $session['isDay']);
             if ($pls) {
                 // Сборка ящиков (type_id = 3) отображается на листе упаковки
                 $linesSheets[$line->type_id == 3 ? 2 : $line->type_id][] = $line;
@@ -243,17 +256,17 @@ class TableController extends Controller
             $returnMassCells = [
                 'z' => [],
                 'k' => [],
-                's' => []
+                's' => [],
             ];
             $globalKG = [
                 'z' => [],
                 'k' => [],
-                's' => []
+                's' => [],
             ];
             $globalB = [
                 'z' => [],
                 'k' => [],
-                's' => []
+                's' => [],
             ];
             $globalBy = [
                 'a' => [[], []],
@@ -289,11 +302,11 @@ class TableController extends Controller
                 if (count($hardwares) != 0) {
                     foreach ($hardwares as $hw) {
                         $line['items'][$hw] = [
-                            'hwTitle' => self::$hardware[$hw],
-                            'items' => []
+                            'hwTitle' => self::hardwareTitle($hw),
+                            'items' => [],
                         ];
                     }
-                    // Группируем планы по оборудованию 
+                    // Группируем планы по оборудованию
                     $linePlans->each(function ($p) use (&$line) {
                         $line['items'][$p->hardware]['items'][] =
                             $p->toArray() +
@@ -303,27 +316,27 @@ class TableController extends Controller
                     });
                 } else {
                     $line['items'][0] = [
-                        'items' => $linePlans
+                        'items' => $linePlans,
                     ];
                 }
 
-                // Делаем ФИО Отсветсвенных 
+                // Делаем ФИО Отсветсвенных
                 $line['master'] = $line['master'] ? explode(' ', Responsible::find($line['master'])->title) : '';
                 $line['engineer'] = $line['engineer'] ? explode(' ', Responsible::find($line['engineer'])->title) : '';
                 if (is_array($line['master'])) {
-                    $line['master'] = $line['master'][0] ." ". (count($line['master']) > 1 ? (mb_substr($line['master'][1], 0, 1) . '.') : "");
+                    $line['master'] = $line['master'][0].' '.(count($line['master']) > 1 ? (mb_substr($line['master'][1], 0, 1).'.') : '');
                 }
                 if (is_array($line['engineer'])) {
-                    $line['engineer'] = $line['engineer'][0] ." ". (count($line['engineer']) > 1 ? (mb_substr($line['engineer'][1], 0, 1) . '.') : "");
+                    $line['engineer'] = $line['engineer'][0].' '.(count($line['engineer']) > 1 ? (mb_substr($line['engineer'][1], 0, 1).'.') : '');
                 }
 
                 // Делаем шапку линии
                 $array[] = self::makeRow([
                     1 => "<style bgcolor=\"#D8E4BC\"><b>$line[title]</b></style>",
-                    4 => ($line['extra_title'] ? "($line[extra_title])" : ""),
+                    4 => ($line['extra_title'] ? "($line[extra_title])" : ''),
                     11 => $line['workers_count'],
-                    12 => "<b>" . $line['started_at']->format('H:i') . "</b>",
-                    13 => "<b>" . $line['ended_at']->format("H:i") . "</b>"
+                    12 => '<b>'.$line['started_at']->format('H:i').'</b>',
+                    13 => '<b>'.$line['ended_at']->format('H:i').'</b>',
                 ]);
 
                 // Ставим детектор
@@ -336,17 +349,16 @@ class TableController extends Controller
                     $array[] = self::makeRow([
                         1 => '<style bgcolor="#FC8C03"><b><i>МЕТАЛЛОДЕТЕКТОР</i></b></style>',
                         12 => $line['detector_start'],
-                        13 => $line['detector_end']
+                        13 => $line['detector_end'],
                     ]);
                 }
 
                 // Ответственные
                 if ($line['master'] || $line['engineer']) {
                     $array[] = self::makeRow([
-                        1 =>
-                            "<style bgcolor=\"#B7DEE8\"><b>" .
-                            "ОТВЕТСТВЕННЫЕ: $line[master], $line[engineer]" .
-                            "</b></style>"
+                        1 => '<style bgcolor="#B7DEE8"><b>'.
+                            "ОТВЕТСТВЕННЫЕ: $line[master], $line[engineer]".
+                            '</b></style>',
                     ]);
                 }
 
@@ -354,10 +366,10 @@ class TableController extends Controller
                     $array[] = self::makeRow([
                         1 => '<style bgcolor="#FFC263"><b><i>Подготовительное время</i></b></style>',
                         11 => $line['workers_count'],
-                        12 => $line['started_at']->format("H:i"),
+                        12 => $line['started_at']->format('H:i'),
                         13 => $line['started_at']
                             ->addMinutes($line['prep_time'])
-                            ->format('H:i')
+                            ->format('H:i'),
                     ]);
                 }
 
@@ -365,7 +377,7 @@ class TableController extends Controller
                 $sum = [
                     'z' => [[], []],
                     's' => [[], []],
-                    'k' => [[], []]
+                    'k' => [[], []],
                 ];
                 // Суммы по подкатегориям зефира (агар, фруктоза, без сахара)
                 $sumBy = [
@@ -380,25 +392,25 @@ class TableController extends Controller
                 $catRows = [
                     'z' => [],
                     's' => [],
-                    'k' => []
+                    'k' => [],
                 ];
 
                 // Обрабатываем оборудование
                 foreach ($line['items'] as &$hw) {
                     if (isset($hw['hwTitle']) && $line['type_id'] == 1) {
                         $array[] = self::makeRow([
-                            1 => '<style bgcolor="#D8E4BC"><b>' . mb_strtoupper($hw['hwTitle']) . '</b></style>'
+                            1 => '<style bgcolor="#D8E4BC"><b>'.mb_strtoupper($hw['hwTitle']).'</b></style>',
                         ]);
                     }
                     // Выделяем колонки
                     if ($line['type_id'] == 1) {
-                        $colons = array_map(fn($i) => $i['colon'], $hw['items']);
+                        $colons = array_map(fn ($i) => $i['colon'], $hw['items']);
 
                         $colons = array_filter(array_unique($colons));
                         if (count($colons) > 1 || array_search(3, $colons) !== false) {
-                            $array[] = self::makeRow([1 => '<b>' . self::$colons[3] . '</b>']);
+                            $array[] = self::makeRow([1 => '<b>'.self::$colons[3].'</b>']);
                         } else {
-                            $array[] = self::makeRow([1 => '<b>' . self::$colons[array_shift($colons)] . '</b>']);
+                            $array[] = self::makeRow([1 => '<b>'.self::$colons[array_shift($colons)].'</b>']);
                         }
                     }
 
@@ -427,12 +439,12 @@ class TableController extends Controller
                             mb_strpos(mb_strtolower($product['title']), 'зефир') !== false
                         ) {
                             $cat = 'z';
-                        } else if (
+                        } elseif (
                             mb_strpos(mb_strtolower($category), 'суфле') !== false ||
                             mb_strpos(mb_strtolower($product['title']), 'суфле') !== false
                         ) {
                             $cat = 's';
-                        } else if (
+                        } elseif (
                             mb_strpos(mb_strtolower($category), 'конфет') !== false ||
                             mb_strpos(mb_strtolower($product['title']), 'конфет') !== false
                         ) {
@@ -441,15 +453,15 @@ class TableController extends Controller
                         $sum[$cat][0][] = "E$row_index";
                         $sum[$cat][1][] = "F$row_index";
 
-                        if ($sheet == 1 && $cat == 'z'){
+                        if ($sheet == 1 && $cat == 'z') {
                             $titleLower = mb_strtolower($product['title']);
 
                             $map = [
-                                'агар'                                       => 'a',
-                                'желатин'                                     => 'z',
-                                '/без\s+(добавления\s+)?сахар[а]?/u'          => 'n',
-                                'фруктоз'                                     => 'f',
-                                'крем-десерт'                                 => 'c',
+                                'агар' => 'a',
+                                'желатин' => 'z',
+                                '/без\s+(добавления\s+)?сахар[а]?/u' => 'n',
+                                'фруктоз' => 'f',
+                                'крем-десерт' => 'c',
                             ];
 
                             $key = 'p'; // по умолчанию «на пектине»
@@ -479,7 +491,7 @@ class TableController extends Controller
                         }
 
                         // Запоминаем строку продукта для формул факта в итогах
-                        if ($cat == "z" && $sheet == 1) {
+                        if ($cat == 'z' && $sheet == 1) {
                             if (array_search($line['line_id'], [8, 9, 10, 11, 12]) !== false) {
                                 $catRows[$cat][] = $row_index;
                             }
@@ -495,7 +507,7 @@ class TableController extends Controller
                         1 => '<style bgcolor="#FFC263"><b><i>Заключительное время</i></b></style>',
                         11 => $line['workers_count'],
                         12 => $lastTime->addMinutes(-$line['after_time'])->format('H:i'),
-                        13 => $lastTime->addMinutes($line['after_time'])->format('H:i')
+                        13 => $lastTime->addMinutes($line['after_time'])->format('H:i'),
                     ]);
                 }
                 $array[] = [];
@@ -504,23 +516,23 @@ class TableController extends Controller
                     foreach ([
                         'z' => 'зеф.массы',
                         's' => 'суфле',
-                        'k' => 'конфет'
+                        'k' => 'конфет',
                     ] as $i => $t) {
                         if (count($sum[$i][0]) > 0) {
                             $val = Util::calcReturnMass($line, $sum[$i][0], $i);
                             if ($val != false) {
                                 $array[] = self::makeRow([1 => "Возвратные отходы $t:", 4 => "<i>$val</i>"]);
-                                $returnMassCells[$i][] = "E" . count($array);
+                                $returnMassCells[$i][] = 'E'.count($array);
                             }
                         }
                     }
 
                     $array[] = [];
-                } else if (array_search($line['line_id'], [8, 9, 10, 11, 12])) {
+                } elseif (array_search($line['line_id'], [8, 9, 10, 11, 12])) {
                     $val = Util::calcReturnMass($line, $sum['z'][0], 'z');
                     // if ($val != false) {
-                        $array[] = self::makeRow([1 => "Возвратные отходы зеф.массы:", 4 => "<i>$val</i>"]);
-                        $returnMassCells['z'][] = "E" . count($array);
+                    $array[] = self::makeRow([1 => 'Возвратные отходы зеф.массы:', 4 => "<i>$val</i>"]);
+                    $returnMassCells['z'][] = 'E'.count($array);
                     // }
                 }
 
@@ -580,7 +592,7 @@ class TableController extends Controller
                 $sum = [
                     'z' => [0, 0],
                     's' => [0, 0],
-                    'k' => [0, 0]
+                    'k' => [0, 0],
                 ];
 
                 $sumBy = [
@@ -604,15 +616,15 @@ class TableController extends Controller
 
                 $array[] = self::makeRow([
                     1 => '<style bgcolor="#D8E4BC"><b>ДАТИРОВАНИЕ</b></style>',
-                    3 => (count($dateCount) > 0 ? ("<f>=" . implode("+", $dateCount) . "</f>") : '0'),
+                    3 => (count($dateCount) > 0 ? ('<f>='.implode('+', $dateCount).'</f>') : '0'),
                     11 => $dating['workers_count'],
-                    12 => Carbon::parse($dating['started_at'])->format("H:i"),
-                    13 => Carbon::parse($dating['ended_at'])->format("H:i")
+                    12 => Carbon::parse($dating['started_at'])->format('H:i'),
+                    13 => Carbon::parse($dating['ended_at'])->format('H:i'),
                 ]);
                 if ($dating['master'] || $dating['engineer']) {
                     $array[] = [
                         '',
-                        '<style bgcolor="#B7DEE8"><b>ОТВЕТСТВЕННЫЕ: ' . $dating['master'] . ',' . $dating['engineer'] . '</b></style>'
+                        '<style bgcolor="#B7DEE8"><b>ОТВЕТСТВЕННЫЕ: '.$dating['master'].','.$dating['engineer'].'</b></style>',
                     ];
                 }
             }
@@ -625,17 +637,17 @@ class TableController extends Controller
                     'n' => 'без сахара',
                     'f' => 'фруктозы',
                     'p' => 'на пектине',
-                    'c' => 'крем-десерты'
+                    'c' => 'крем-десерты',
                 ] as $key => $title) {
                     if (count($globalBy[$key][0]) > 0) {
-                        $kg = implode("+", $globalBy[$key][0]);
-                        $boils = implode("+", $globalBy[$key][1]);
+                        $kg = implode('+', $globalBy[$key][0]);
+                        $boils = implode('+', $globalBy[$key][1]);
                         $array[] = self::makeRow([
                             1 => "ИТОГО $title",
                             4 => "<f>=$kg</f>",
                             5 => "<f>=$boils</f>",
-                            17 => "<f>=" . str_replace('E', 'R', $kg) . "</f>",
-                            18 => "<f>=" . str_replace('F', 'S', $boils) . "</f>",
+                            17 => '<f>='.str_replace('E', 'R', $kg).'</f>',
+                            18 => '<f>='.str_replace('F', 'S', $boils).'</f>',
                         ]);
                     }
                 }
@@ -644,17 +656,17 @@ class TableController extends Controller
             foreach ([
                 'z' => 'ЗЕФИРА',
                 's' => 'СУФЛЕ',
-                'k' => 'КОНФЕТ'
+                'k' => 'КОНФЕТ',
             ] as $i => $t) {
                 if ($i != 'z' && ($line['type_id'] == 2 || $line['type_id'] == 3) || $i == 'z') {
-                    $kg = count($globalKG[$i]) > 0 ? implode("+", $globalKG[$i]) : '0';
-                    $boils = $line['type_id'] == 1 && $i == 'z' && count($globalB[$i]) > 0 ? implode("+", $globalB[$i]) : '';
+                    $kg = count($globalKG[$i]) > 0 ? implode('+', $globalKG[$i]) : '0';
+                    $boils = $line['type_id'] == 1 && $i == 'z' && count($globalB[$i]) > 0 ? implode('+', $globalB[$i]) : '';
                     $array[] = self::makeRow([
                         1 => "ИТОГО $t",
                         4 => count($globalKG[$i]) > 0 ? "<f>=$kg</f>" : '',
                         5 => $sheet == 1 && count($globalB[$i]) > 0 ? "<f>=$boils</f>" : '',
-                        17 => count($globalKG[$i]) > 0 ? "<f>=" . str_replace('E', 'R', $kg) . "</f>" : '',
-                        18 => $sheet == 1 && count($globalB[$i]) > 0 ? "<f>=" . str_replace('F', 'S', $boils) . "</f>" : '',
+                        17 => count($globalKG[$i]) > 0 ? '<f>='.str_replace('E', 'R', $kg).'</f>' : '',
+                        18 => $sheet == 1 && count($globalB[$i]) > 0 ? '<f>='.str_replace('F', 'S', $boils).'</f>' : '',
                     ]);
                 }
             }
@@ -662,23 +674,23 @@ class TableController extends Controller
             if ($sheet == 1) {
                 if (count($returnMassCells['z']) > 0) {
                     $array[] = self::makeRow([
-                        1 => "ИТОГО ВОЗВРАТНОЙ МАССЫ",
-                        4 => "<f>=" . implode(" + ", $returnMassCells['z']) . "</f>"
+                        1 => 'ИТОГО ВОЗВРАТНОЙ МАССЫ',
+                        4 => '<f>='.implode(' + ', $returnMassCells['z']).'</f>',
                     ]);
                 }
             } else {
                 $kg = array_merge($globalKG['k'], $globalKG['z'], $globalKG['s']);
-                $kg = count($kg) > 0 ? implode("+", $kg) : '0';
+                $kg = count($kg) > 0 ? implode('+', $kg) : '0';
                 $array[] = self::makeRow([
-                    1 => "ИТОГО ГП",
+                    1 => 'ИТОГО ГП',
                     4 => "<f>=$kg</f>",
-                    17 => "<f>=" . str_replace('E', 'R', $kg) . "</f>",
+                    17 => '<f>='.str_replace('E', 'R', $kg).'</f>',
                 ]);
                 $array[] = [];
 
                 foreach ($returnMassCells as $k => $s) {
                     if (count($s) > 0) {
-                        $title = match($k) {
+                        $title = match ($k) {
                             'z' => 'ЗЕФИРНОЙ МАССЫ',
                             's' => 'СУФЛЕ',
                             'k' => 'КОНФЕТ',
@@ -686,7 +698,7 @@ class TableController extends Controller
 
                         $array[] = self::makeRow([
                             1 => "ИТОГО ВОЗВРАТНЫЕ ОТХОДЫ $title",
-                            4 => "<f>=" . implode(" + ", $returnMassCells[$k]) . "</f>"
+                            4 => '<f>='.implode(' + ', $returnMassCells[$k]).'</f>',
                         ]);
                     }
                 }
@@ -696,8 +708,8 @@ class TableController extends Controller
                 $array,
                 [],
                 [],
-                self::makeRow([1 => "<b><i>ЗАДАНИЕ СОСТАВИЛ</i></b>"]),
-                self::makeRow([1 => "<b><i>ЗАДАНИЕ ПОЛУЧИЛ</i></b>"])
+                self::makeRow([1 => '<b><i>ЗАДАНИЕ СОСТАВИЛ</i></b>']),
+                self::makeRow([1 => '<b><i>ЗАДАНИЕ ПОЛУЧИЛ</i></b>'])
             );
             $arr[$sheet] = $array;
             $dateCount = 0;
@@ -782,7 +794,7 @@ class TableController extends Controller
             ->mergeCells('AB4:AB6')
             ->mergeCells('Z5:AA5');
 
-        $name = 'План_' . date('d_m_Y', strtotime($session['date'])) . '.xlsx';
+        $name = 'План_'.date('d_m_Y', strtotime($session['date'])).'.xlsx';
         $xlsx->downloadAs($name);
 
         // return $name;
@@ -794,7 +806,7 @@ class TableController extends Controller
         $session = Util::getSessionAsArray($request);
 
         $dateString =
-            (new DateTime($session['date']))->format('d.m.Y') . '_' . ($session['isDay'] == 1 ? 'день' : 'ночь');
+            (new DateTime($session['date']))->format('d.m.Y').'_'.($session['isDay'] == 1 ? 'день' : 'ночь');
 
         $lines = Lines::all()->toArray();
         foreach ($lines as &$line) {
@@ -814,7 +826,7 @@ class TableController extends Controller
         foreach (Companies::get() as $comp) {
             $companies[$comp->company_id] = [
                 'title' => $comp->title,
-                'indexes' => []
+                'indexes' => [],
             ];
         }
 
@@ -829,19 +841,18 @@ class TableController extends Controller
                 'Итого часов',
                 'КТУ',
                 'Итого часов с КТУ',
-                'Примечание'
-            ]
+                'Примечание',
+            ],
         ];
 
         // Получаем объём изготовления по каждой из продукций на линиях
         $times = Util::getLinesPersonalTime($request);
 
-
         foreach ($lines as $line) {
             if ($line['slots'] && count($line['slots']) > 0) {
 
                 $columns[] = [
-                    '<style bgcolor="' . ($line['color'] ? $line['color'] : '#1677ff') . '">' . $line['title'] . '</style>',
+                    '<style bgcolor="'.($line['color'] ? $line['color'] : '#1677ff').'">'.$line['title'].'</style>',
                     '',
                     '',
                     '',
@@ -861,7 +872,7 @@ class TableController extends Controller
                      */
                     $workTime = self::setFloat(self::getWorkTime($slot['started_at'], $slot['ended_at']));
                     $ktu = $data[array_search($slot['worker_id'], array_column($data, 'worker_id'))]['ktu'];
-                    if (!$worker) {
+                    if (! $worker) {
                         // var_dump($slot);
                     }
                     $row_num = count($columns) + 1;
@@ -873,7 +884,7 @@ class TableController extends Controller
                         self::setFloat($slot['down_time'] / 60),
                         "<f>=C$row_num - D$row_num</f>",
                         $ktu,
-                        "<f>=E$row_num * F$row_num</f>"
+                        "<f>=E$row_num * F$row_num</f>",
                     ];
 
                     $columns[] = $row;
@@ -881,7 +892,7 @@ class TableController extends Controller
                     $companies[$worker->company_id]['indexes'][] = $row_num;
 
                     // Человек от данной компании на конкретной линии
-                    if (!isset($companies[$worker->company_id]['lines'][$line['line_id']])) {
+                    if (! isset($companies[$worker->company_id]['lines'][$line['line_id']])) {
                         $companies[$worker->company_id]['lines'][$line['line_id']] = 0;
                     }
                     $companies[$worker->company_id]['lines'][$line['line_id']] += 1;
@@ -889,12 +900,12 @@ class TableController extends Controller
                 $count1 = count($columns);
                 $columns[] = [
                     '<style bgcolor="#FDE9D9">ИТОГО</style>',
-                    '<style bgcolor="#FDE9D9">' . "<f>=SUM(B$count:B$count1)</f>" . '</style>',
-                    '<style bgcolor="#FDE9D9">' . "<f>=SUM(C$count:C$count1)</f>" . '</style>',
-                    '<style bgcolor="#FDE9D9">' . "<f>=SUM(D$count:D$count1)</f>" . '</style>',
-                    '<style bgcolor="#FDE9D9">' . "<f>=SUM(E$count:E$count1)</f>" . '</style>',
+                    '<style bgcolor="#FDE9D9">'."<f>=SUM(B$count:B$count1)</f>".'</style>',
+                    '<style bgcolor="#FDE9D9">'."<f>=SUM(C$count:C$count1)</f>".'</style>',
+                    '<style bgcolor="#FDE9D9">'."<f>=SUM(D$count:D$count1)</f>".'</style>',
+                    '<style bgcolor="#FDE9D9">'."<f>=SUM(E$count:E$count1)</f>".'</style>',
                     '',
-                    '<style bgcolor="#FDE9D9">' . "<f>=SUM(G$count:G$count1)</f>" . '</style>',
+                    '<style bgcolor="#FDE9D9">'."<f>=SUM(G$count:G$count1)</f>".'</style>',
                 ];
 
                 // Человек суммарно на данной линии
@@ -902,13 +913,13 @@ class TableController extends Controller
                     $times[$line['line_id']]['totalPeople'] = $count1 - $count + 1;
                 }
                 foreach (['B', 'C', 'D', 'E', 'F', 'G'] as $k => $i) {
-                    $sum[$k + 1][] = $i . count($columns);
-                    $sumByLines[$k + 1][] = $i . $count - 1;
+                    $sum[$k + 1][] = $i.count($columns);
+                    $sumByLines[$k + 1][] = $i.$count - 1;
                 }
             }
         }
 
-        $columns[3][7] = "ТОННАЖ ПЛАН";
+        $columns[3][7] = 'ТОННАЖ ПЛАН';
         $columns[4][7] = array_sum(
             array_map(
                 function ($i) {
@@ -920,40 +931,40 @@ class TableController extends Controller
                 $times
             )
         );
-        $columns[5][7] = "ТОННАЖ ФАКТ";
-        $columns[7][7] = "ОТКЛОНЕНИЕ";
-        $columns[8][7] = "<f>=H5-H7</f>";
+        $columns[5][7] = 'ТОННАЖ ФАКТ';
+        $columns[7][7] = 'ОТКЛОНЕНИЕ';
+        $columns[8][7] = '<f>=H5-H7</f>';
         $columns[] = [''];
-        $sumByLines = array_map(fn($i) => "<f>=" . implode(" + ", $i) . "</f>", $sumByLines);
-        $columns[] = ["ИТОГО ПО ЗАДАНИЮ", ...$sumByLines];
-        $sum = array_map(fn($i) => "<f>=" . implode(" + ", $i) . "</f>", $sum);
-        $columns[] = ["ИТОГО ПО РАСПИСАННЫМ ЛЮДЯМ", ...$sum];
+        $sumByLines = array_map(fn ($i) => '<f>='.implode(' + ', $i).'</f>', $sumByLines);
+        $columns[] = ['ИТОГО ПО ЗАДАНИЮ', ...$sumByLines];
+        $sum = array_map(fn ($i) => '<f>='.implode(' + ', $i).'</f>', $sum);
+        $columns[] = ['ИТОГО ПО РАСПИСАННЫМ ЛЮДЯМ', ...$sum];
         $columns[] = [];
         $columns[] = [
-            "КОМПАНИИ",
-            "Отработано часов по плану",
-            "Отработано часов по факту",
-            "Простои",
-            "Итого часов",
-            "КТУ",
-            "Итого часов с КТУ",
-            "Тоннаж (зефир)",
-            "Тоннаж (конфеты)",
-            "Тоннаж (суфле)"
+            'КОМПАНИИ',
+            'Отработано часов по плану',
+            'Отработано часов по факту',
+            'Простои',
+            'Итого часов',
+            'КТУ',
+            'Итого часов с КТУ',
+            'Тоннаж (зефир)',
+            'Тоннаж (конфеты)',
+            'Тоннаж (суфле)',
         ];
 
         foreach ($companies as $company) {
             $amount = [
                 's' => [],
                 'z' => [],
-                'k' => []
+                'k' => [],
             ];
             if (isset($company['lines'])) {
                 foreach ($company['lines'] as $line_id => $people_count) {
                     if (isset($times[$line_id])) {
                         foreach (['s', 'z', 'k'] as $index) {
-                            $amount[$index][] = $times[$line_id]['amount'][$index] . "/" .
-                                $times[$line_id]['totalPeople'] . "*" .
+                            $amount[$index][] = $times[$line_id]['amount'][$index].'/'.
+                                $times[$line_id]['totalPeople'].'*'.
                                 $people_count;
                         }
                     }
@@ -969,9 +980,9 @@ class TableController extends Controller
                 '',
                 // self::summarize($company['indexes'], 'F'),
                 self::summarize($company['indexes'], 'G'),
-                count($amount['z']) > 0 ? "<f>=" . implode("+", $amount['z']) . "</f>" : '',
-                count($amount['k']) > 0 ? "<f>=" . implode("+", $amount['k']) . "</f>" : '',
-                count($amount['s']) > 0 ? "<f>=" . implode("+", $amount['s']) . "</f>" : '',
+                count($amount['z']) > 0 ? '<f>='.implode('+', $amount['z']).'</f>' : '',
+                count($amount['k']) > 0 ? '<f>='.implode('+', $amount['k']).'</f>' : '',
+                count($amount['s']) > 0 ? '<f>='.implode('+', $amount['s']).'</f>' : '',
             ];
         }
 
@@ -979,10 +990,10 @@ class TableController extends Controller
             $columns,
             [],
             [],
-            ["Заместитель генерального директора", '', '', '', '', '', "Корнилова Л.А."],
-            ["Начальник производства"],
-            ["Начальник смены"],
-            ["Мастер варки"]
+            ['Заместитель генерального директора', '', '', '', '', '', 'Корнилова Л.А.'],
+            ['Начальник производства'],
+            ['Начальник смены'],
+            ['Мастер варки']
         );
         // Тоннаж: масса по линии * кол-во человек по компаниям (count($company['indexes']) / сумму)
 
@@ -990,34 +1001,39 @@ class TableController extends Controller
         //     $columns[$i][7] = "<f>=".
         // }
 
-
         $xlsx = SimpleXLSXGen::fromArray($columns);
-        $name = 'Отчёт_' . $dateString . '.xlsx';
+        $name = 'Отчёт_'.$dateString.'.xlsx';
 
         $xlsx->saveAs($name);
+
         return $name;
         // return $xlsx->download();
     }
-    static private function getWorkTime($start, $end)
+
+    private static function getWorkTime($start, $end)
     {
         $start = new \DateTime($start);
         $end = new \DateTime($end);
         $diff = $start->diff($end);
+
         return $diff->h + ($diff->i / 60);
     }
-    static private function setFloat(float $num)
+
+    private static function setFloat(float $num)
     {
         return number_format((float) $num, 2, '.', '');
     }
-    static private function summarize(array $arr, string $letter)
+
+    private static function summarize(array $arr, string $letter)
     {
         if (count($arr) == 0) {
             return '';
         }
         foreach ($arr as &$index) {
-            $index = $letter . $index;
+            $index = $letter.$index;
         }
-        return '<f>=(' . implode('+', $arr) . ')</f>';
+
+        return '<f>=('.implode('+', $arr).')</f>';
         // return '<f>=(' . implode('+', $arr) . ')/' . count($arr) . '</f>';
     }
 
@@ -1032,15 +1048,16 @@ class TableController extends Controller
         if (preg_match('/^<style\s([^>]*)>/', $cell, $m)) {
             $attrs = $m[1];
             $additions = [];
-            if ($addBorder && !str_contains($attrs, 'border')) {
+            if ($addBorder && ! str_contains($attrs, 'border')) {
                 $additions[] = 'border="thin"';
             }
-            if ($addBgcolor && !str_contains($attrs, 'bgcolor')) {
+            if ($addBgcolor && ! str_contains($attrs, 'bgcolor')) {
                 $additions[] = 'bgcolor="#fbcc5e"';
             }
             if ($additions) {
-                $cell = preg_replace('/^<style\s/', '<style ' . implode(' ', $additions) . ' ', $cell, 1);
+                $cell = preg_replace('/^<style\s/', '<style '.implode(' ', $additions).' ', $cell, 1);
             }
+
             return $cell;
         }
 
@@ -1053,8 +1070,9 @@ class TableController extends Controller
             $attrs[] = 'bgcolor="#fbcc5e"';
         }
         if ($attrs) {
-            return '<style ' . implode(' ', $attrs) . '>' . $cell . '</style>';
+            return '<style '.implode(' ', $attrs).'>'.$cell.'</style>';
         }
+
         return $cell;
     }
 
@@ -1064,6 +1082,7 @@ class TableController extends Controller
         foreach ($items as $k => $v) {
             $new[$k] = $v;
         }
+
         return $new;
     }
 
