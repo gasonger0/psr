@@ -16,7 +16,8 @@ class DatabaseSeeder extends Seeder
             ProductsCategoriesSeeder::class,
             ResponsibleSeeder::class,
             WorkerSeeder::class,
-            LinesDefaultsSeeder::class
+            LinesDefaultsSeeder::class,
+            ProductionSeeder::class,
         ]);
     }
 }
