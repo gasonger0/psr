@@ -1,0 +1,19 @@
+$old = [
+    1 => fn ($t) => 25,
+    2 => fn ($t) => match ($t) {
+        "z" => "<f>=(1+2) * 0.015</f>",
+        "s" => "<f>=(1+2) * 0.00405</f>",
+        default => false,
+    },
+    3 => fn ($t) => "<f>=(1+2) * 0.025</f>",
+    4 => fn ($t) => "<f>=(1+2) * 0.005</f>",
+];
+foreach ([1, 2, 3, 4] as $id) {
+    $line = ["return_type" => $id];
+    foreach (["z", "s", "k"] as $t) {
+        $new = \App\Util::calcReturnMass($line, [1, 2], $t);
+        $o = $old[$id]($t);
+        $same = $new == $o ? "YES" : "DIFF";
+        echo "mode=$id type=$t new=" . var_export($new, true) . " old=" . var_export($o, true) . " => $same" . PHP_EOL;
+    }
+}
