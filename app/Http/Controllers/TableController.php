@@ -233,6 +233,10 @@ class TableController extends Controller
             1 => [],
             2 => [],
         ];
+
+        // Строки для листа «Экспорт» (данные листа упаковки в плоском виде)
+        $importRows = [];
+
         Lines::each(function ($line) use (&$linesSheets, $session) {
             $pls = array_filter($line->plans->toArray(), fn ($p) => $p['date'] == $session['date'] && $p['isDay'] == $session['isDay']);
             if ($pls) {
@@ -283,6 +287,23 @@ class TableController extends Controller
                 );
                 $line['started_at'] = Carbon::parse($line['started_at']);
                 $line['ended_at'] = Carbon::parse($line['ended_at']);
+
+                // Лист «Экспорт»: собираем планы упаковки (все, включая дубли продукции)
+                if ($sheet == 2) {
+                    foreach ($linePlans as $p) {
+                        $importRows[] = [
+                            'line_id' => $line['line_id'],
+                            'line_title' => $line['title']
+                                .(! empty($line['extra_title']) ? " ({$line['extra_title']})" : ''),
+                            'product' => $p->slot->product->title,
+                            'start' => Carbon::parse($p->started_at),
+                            'end' => Carbon::parse($p->ended_at),
+                            'prep_time' => (int) $line['prep_time'],
+                            'after_time' => (int) $line['after_time'],
+                        ];
+                    }
+                }
+
                 $line['items'] = [];
 
                 // Собираем список оборудования с планов
@@ -707,6 +728,25 @@ class TableController extends Controller
             $dateCount = 0;
         }
 
+        // Лист «Экспорт»: первая позиция на линии — минус подготовительное время,
+        // последняя — плюс заключительное (планы на линии не пересекаются,
+        // поэтому порядок по start == порядок по end)
+        $byLine = [];
+        foreach ($importRows as $i => $row) {
+            $byLine[$row['line_id']][] = $i;
+        }
+        foreach ($byLine as $indexes) {
+            $firstIndex = $indexes[0];
+            $lastIndex = $indexes[count($indexes) - 1];
+            $importRows[$firstIndex]['start'] = $importRows[$firstIndex]['start']
+                ->copy()->subMinutes($importRows[$firstIndex]['prep_time']);
+            $importRows[$lastIndex]['end'] = $importRows[$lastIndex]['end']
+                ->copy()->addMinutes($importRows[$lastIndex]['after_time']);
+        }
+
+        // Глобальная сортировка по времени начала (требование 3)
+        usort($importRows, fn ($a, $b) => $a['start'] <=> $b['start']);
+
         // Добавляем рамки ко всем ячейкам
         foreach ($arr as $sheet => &$rows) {
             foreach ($rows as $rowIndex => &$row) {
@@ -785,6 +825,21 @@ class TableController extends Controller
             ->mergeCells('Y5:Y6')
             ->mergeCells('AB4:AB6')
             ->mergeCells('Z5:AA5');
+
+        // Лист «Экспорт»: присутствует всегда, кроме пустой упаковки (требование 5)
+        if (count($importRows) > 0) {
+            $importSheet = [['Дата', 'Локация', 'Наименование', 'EK_SKU', 'Время смены']];
+            foreach ($importRows as $row) {
+                $importSheet[] = [
+                    Carbon::parse($session['date'])->format('d.m.Y'),
+                    $row['line_title'],
+                    $row['product'],
+                    $row['product'],
+                    $row['start']->format('H:i').' - '.$row['end']->format('H:i'),
+                ];
+            }
+            $xlsx->addSheet($importSheet, 'Экспорт');
+        }
 
         $name = 'План_'.date('d_m_Y', strtotime($session['date'])).'.xlsx';
         $xlsx->downloadAs($name);
