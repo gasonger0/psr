@@ -116,7 +116,7 @@ class LinesController extends Controller
         $lines = Lines::with('linesDefault')->orderBy('line_id')->get()->map(function (Lines $line) {
             $default = $line->linesDefault;
 
-            return array_merge($line->toArray(), [
+            return array_merge($line->makeHidden('linesDefault')->toArray(), [
                 'perfomance' => $default->perfomance ?? null,
                 'prep_time' => $default->prep_time ?? null,
                 'after_time' => $default->after_time ?? null,
@@ -139,6 +139,11 @@ class LinesController extends Controller
             return Util::errorMsg('Нет данных для обновления');
         }
 
+        $existing = array_map('intval', Lines::whereIn('line_id', $lineIds)->pluck('line_id')->toArray());
+        if (array_diff(array_map('intval', $lineIds), $existing)) {
+            return Util::errorMsg('Линия не найдена');
+        }
+
         $lineFields = array_intersect_key($fields, array_flip(['title', 'color', 'type_id', 'return_type', 'use_dating']));
         $defaultFields = array_intersect_key($fields, array_flip(['perfomance', 'workers_count', 'prep_time', 'after_time']));
 
@@ -156,10 +161,14 @@ class LinesController extends Controller
 
     public function delete(Request $request)
     {
-        if (ProductsPlan::whereHas('slot', fn ($q) => $q->where('line_id', $request->post('line_id')))->exists()) {
+        $line = Lines::find($request->post('line_id'));
+        if (! $line) {
+            return Util::errorMsg(self::LINE_NOT_FOUND, 404);
+        }
+        if (ProductsPlan::whereHas('slot', fn ($q) => $q->where('line_id', $line->line_id))->exists()) {
             return Util::errorMsg('Линия используется в планах');
         }
-        $delete = Lines::find($request->post('line_id'))->delete();
+        $delete = $line->delete();
         if ($delete) {
             return Util::successMsg('Линия удалена', 200);
         } else {

@@ -97,11 +97,12 @@ class ProductionController extends Controller
     public function getSettings()
     {
         $values = Setting::pluck('value', 'key')->toArray();
+        $result = [];
         foreach (self::SETTING_KEYS as $key) {
-            $values[$key] = $values[$key] ?? null;
+            $result[$key] = $values[$key] ?? null;
         }
 
-        return Util::successMsg($values);
+        return Util::successMsg($result);
     }
 
     public function updateSettings(Request $request)
