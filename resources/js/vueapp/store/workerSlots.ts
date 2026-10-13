@@ -179,7 +179,7 @@ export const useWorkerSlotsStore = defineStore('workersSlots', () => {
             if (slot.ended_at.isBefore(slot.started_at)) {
                 // Ситуация: 02/01 23:59 - 02/01 05:00
                 slot.ended_at.add(1, "day");
-            } else if (Math.abs(slot.ended_at.diff(slot.started_at)) > 13) {
+            } else if (Math.abs(slot.ended_at.diff(slot.started_at, 'hour')) > 13) {
                 // Ситуация: 01/02 22:49 - 02/02 22:54
                 slot.ended_at.subtract(1, "day");
             }
