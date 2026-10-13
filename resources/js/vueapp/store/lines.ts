@@ -194,5 +194,14 @@ export const useLinesStore = defineStore('lines', () => {
 
         }
     };
-    return { lines, _load, _create, _update, _delete, _sendStop, getIfDone, add, splice, getByID, updateVersion }
+    const bumpVersion = (lineId: number) => {
+        if (lineId == -1) {
+            return;
+        }
+        const line = lines.value.find(l => l.line_id === lineId);
+        if (line) {
+            line.version = (line.version || 0) + 1;
+        }
+    };
+    return { lines, _load, _create, _update, _delete, _sendStop, getIfDone, add, splice, getByID, updateVersion, bumpVersion }
 })

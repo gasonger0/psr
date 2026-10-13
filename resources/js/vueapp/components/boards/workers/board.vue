@@ -38,7 +38,7 @@ const handleCardChange = (line_ids: number[], worker_id: number) => {
         workerRefs[worker_id].$forceUpdate();
     }
     line_ids.forEach(id => {
-        linesStore.updateVersion(id);
+        linesStore.bumpVersion(id);
     });
 }
 
@@ -167,7 +167,7 @@ onUpdated(async () => {
                     handleCardChange([line_id], worker.worker_id);
                 }
                 if (old_line) {
-                    linesStore.updateVersion(old_line.line_id);
+                    linesStore.bumpVersion(old_line.line_id);
                 }
                 
                 clearInterval(monitorInterval.value);
