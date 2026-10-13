@@ -8,8 +8,12 @@ import { useProductsStore } from "./products";
  * Менеджер окон
  */
 
+type windowType = 'production'|'workers'|'graph'|'logs'|'plan'|'products'|'result';
+
+type Visibility = { [key in windowType]: Ref<boolean, boolean> }
+
 export const useModalsStore = defineStore('modals', () => {
-    const visibility: Object = {
+    const visibility: Visibility = {
         workers: ref(false),
         products: ref(false),
         production: ref(false),
@@ -25,7 +29,7 @@ export const useModalsStore = defineStore('modals', () => {
      * Открывает модальное окно
      * @param modal Имя окна
      */
-    const open = (modal: string) => {
+    const open = (modal: windowType) => {
         visibility[modal].value = true;
     }
 
@@ -33,7 +37,7 @@ export const useModalsStore = defineStore('modals', () => {
      * Закрывает окно
      * @param modal Имя окна
      */
-    const close = (modal: string) => {
+    const close = (modal: windowType) => {
         visibility[modal].value = false;
     } 
 

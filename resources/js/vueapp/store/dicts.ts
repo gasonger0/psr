@@ -296,7 +296,7 @@ export const categoriesTableColumns = [
 /**
  * ИД линий, которые показываем при drag'n'drop даже если варка уже есть
  */
-export const alwaysShowLines = [8, 9, 10, 11, 12];
+export const alwaysShowLines = [8, 9, 10, 11, 12, 50];
 
 export const logColumns = [{
     title: 'Начало',

@@ -542,11 +542,10 @@ class TableController extends Controller
 
                     $array[] = [];
                 } elseif (array_search($line['line_id'], [8, 9, 10, 11, 12])) {
+                    // TODO: добавить в расчётные массф режим "Не участвует", чтобы не считать
                     $val = Util::calcReturnMass($line, $sum['z'][0], 'z');
-                    // if ($val != false) {
                     $array[] = self::makeRow([1 => 'Возвратные отходы зеф.массы:', 4 => "<i>$val</i>"]);
                     $returnMassCells['z'][] = 'E'.count($array);
-                    // }
                 }
 
                 $add = function ($i, $sum) use (&$globalB, &$globalKG, &$globalBy, &$sumBy) {
