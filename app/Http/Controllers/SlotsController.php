@@ -223,8 +223,9 @@ class SlotsController extends Controller
             $lines->each(function ($line) use ($request, $worker, &$workerRows) {
                 $slots = Slots::withSession($request)
                     ->where('line_id', $line->line_id)
-                    ->where('worker_id', $worker->worker_id);
-                if ($slots) {
+                    ->where('worker_id', $worker->worker_id)
+                    ->get();
+                if ($slots->isNotEmpty()) {
                     $slots->each(function ($sl, $k) use (&$workerRows) {
                         if (!isset($workerRows[$k])) {
                             $workerRows[$k] = array_fill(0, count($workerRows[0]) - 2, '');
