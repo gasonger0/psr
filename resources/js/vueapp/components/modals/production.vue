@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
 import { useModalsStore } from '@/store/modal';
-import { HardwareInfo, RegistryLine, ReturnTypeInfo, useProductionStore } from '@/store/production';
+import { HardwareInfo, RegistryLine, ReturnTypeInfo, ZephyrTypeInfo, useProductionStore } from '@/store/production';
 import { useLinesStore } from '@/store/lines';
 import {
     Modal, Tabs, TabPane, Table, Button, Input, InputNumber, Select, Checkbox, Popconfirm
@@ -13,8 +13,13 @@ const production = useProductionStore();
 const linesStore = useLinesStore();
 
 watch(() => modal.visibility['production'], (open) => {
-    if (open && production.registryLines.length === 0) {
-        production._loadRegistry();
+    if (open) {
+        if (!production.loaded) {
+            production._load();
+        }
+        if (production.registryLines.length === 0) {
+            production._loadRegistry();
+        }
     }
 });
 
@@ -25,6 +30,8 @@ const bulk = ref<{
     type_id?: number | null;
     return_type?: string | number | null;
     use_dating?: number | null;
+    calc_boil?: number | null;
+    pack_categories?: string[] | null;
     perfomance?: string;
     prep_time?: number | null;
     after_time?: number | null;
@@ -44,6 +51,8 @@ const lineColumns = [
     { title: 'Рабочие', dataIndex: 'workers_count', key: 'workers_count', width: 90 },
     { title: 'Возвратные массы', dataIndex: 'return_type', key: 'return_type', width: 190 },
     { title: 'Датирование', dataIndex: 'use_dating', key: 'use_dating', width: 110 },
+    { title: 'Варка', dataIndex: 'calc_boil', key: 'calc_boil', width: 90 },
+    { title: 'Упаковка', dataIndex: 'pack_categories', key: 'pack_categories', width: 180 },
     { title: 'Цвет', dataIndex: 'color', key: 'color', width: 60 },
     { title: '', key: 'actions', width: 90 }
 ];
@@ -58,6 +67,8 @@ const saveLineRow = async (row: RegistryLine) => {
         workers_count: row.workers_count ?? null,
         return_type: row.return_type ?? null,
         use_dating: row.use_dating ?? false,
+        calc_boil: row.calc_boil ?? false,
+        pack_categories: row.pack_categories ?? [],
         color: row.color ?? null
     });
     await production._loadRegistry();
@@ -90,6 +101,14 @@ const applyBulk = async () => {
         fields.use_dating = true;
     } else if (bulk.value.use_dating === 0) {
         fields.use_dating = false;
+    }
+    if (bulk.value.calc_boil === 1) {
+        fields.calc_boil = true;
+    } else if (bulk.value.calc_boil === 0) {
+        fields.calc_boil = false;
+    }
+    if (bulk.value.pack_categories && bulk.value.pack_categories.length > 0) {
+        fields.pack_categories = bulk.value.pack_categories;
     }
     if (bulk.value.perfomance) {
         fields.perfomance = bulk.value.perfomance;
@@ -167,6 +186,31 @@ const addReturnType = () => {
     });
 };
 
+/* ===== Типы зефира ===== */
+const zephyrTypeColumns = [
+    { title: 'Название', dataIndex: 'title', key: 'title' },
+    { title: 'По умолчанию', dataIndex: 'is_default', key: 'is_default', width: 130 },
+    { title: '', key: 'actions', width: 90 }
+];
+
+const saveZephyrType = async (z: ZephyrTypeInfo) => {
+    if (z.zephyr_type_id) {
+        await production._updateZephyrType(z);
+    } else {
+        await production._createZephyrType(z);
+    }
+    await production._load();
+};
+
+const deleteZephyrType = async (z: ZephyrTypeInfo) => {
+    await production._deleteZephyrType(z.zephyr_type_id);
+    await production._load();
+};
+
+const addZephyrType = () => {
+    production.zephyrTypes.push({ zephyr_type_id: 0, title: '', is_default: false });
+};
+
 const saveSettings = async () => {
     await production._saveSettings();
 };
@@ -212,6 +256,13 @@ const saveSettings = async () => {
                                 </template>
                                 <template v-else-if="column.dataIndex == 'use_dating'">
                                     <Checkbox v-model:checked="record.use_dating" />
+                                </template>
+                                <template v-else-if="column.dataIndex == 'calc_boil'">
+                                    <Checkbox v-model:checked="record.calc_boil" />
+                                </template>
+                                <template v-else-if="column.dataIndex == 'pack_categories'">
+                                    <Select v-model:value="record.pack_categories" mode="multiple" style="width:100%"
+                                        :options="production.packCategoryOptions" />
                                 </template>
                                 <template v-else-if="column.dataIndex == 'color'">
                                     <input type="color" v-model="record.color" />
@@ -311,6 +362,39 @@ const saveSettings = async () => {
                 </div>
             </TabPane>
 
+            <TabPane key="zephyr_types" tab="Типы зефира">
+                <div class="pane-scroll">
+                    <div class="pane-toolbar">
+                        <Button type="primary" @click="addZephyrType">
+                            <PlusOutlined /> Добавить тип
+                        </Button>
+                    </div>
+                    <div class="pane-table">
+                        <Table :columns="zephyrTypeColumns" :data-source="production.zephyrTypes"
+                            :row-key="(r: ZephyrTypeInfo) => r.zephyr_type_id" :pagination="false" size="small">
+                            <template #bodyCell="{ column, record }">
+                                <template v-if="column.dataIndex == 'title'">
+                                    <Input v-model:value="record.title" />
+                                </template>
+                                <template v-else-if="column.dataIndex == 'is_default'">
+                                    <Checkbox v-model:checked="record.is_default" />
+                                </template>
+                                <template v-else-if="column.dataIndex == 'actions'">
+                                    <Button type="primary" size="small" @click="saveZephyrType(record)">
+                                        <SaveOutlined />
+                                    </Button>
+                                    <Popconfirm title="Удалить тип?" @confirm="deleteZephyrType(record)">
+                                        <Button type="dashed" danger size="small">
+                                            <DeleteOutlined />
+                                        </Button>
+                                    </Popconfirm>
+                                </template>
+                            </template>
+                        </Table>
+                    </div>
+                </div>
+            </TabPane>
+
             <TabPane key="settings" tab="Постоянные величины">
                 <div style="display:flex; flex-direction:column; gap:12px; max-width:420px;">
                     <label>Интервал варки (мин):
@@ -338,6 +422,10 @@ const saveSettings = async () => {
                     :options="[...production.returnTypeOptions, { value: '__clear__', label: 'Очистить (не участвует)' }]" />
                 <Select v-model:value="bulk.use_dating" placeholder="Датирование — не менять"
                     :options="[{ value: 1, label: 'Да' }, { value: 0, label: 'Нет' }]" />
+                <Select v-model:value="bulk.calc_boil" placeholder="Варка — не менять"
+                    :options="[{ value: 1, label: 'Да' }, { value: 0, label: 'Нет' }]" />
+                <Select v-model:value="bulk.pack_categories" mode="multiple" placeholder="Упаковка — не менять"
+                    :options="production.packCategoryOptions" />
                 <Input v-model:value="bulk.perfomance" placeholder="Производительность" />
                 <InputNumber v-model:value="bulk.prep_time" placeholder="Подготовительное время" :min="0" />
                 <InputNumber v-model:value="bulk.after_time" placeholder="Заключительное время" :min="0" />
