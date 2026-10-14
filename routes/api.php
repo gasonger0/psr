@@ -53,6 +53,11 @@ Route::group(['middleware' => ['web', ParseSession::class]], function () {
             Route::put('/return_types/update', 'updateReturnType');
             Route::delete('/return_types/delete', 'deleteReturnType');
 
+            Route::get('/zephyr_types/get', 'getZephyrTypes');
+            Route::post('/zephyr_types/create', 'createZephyrType');
+            Route::put('/zephyr_types/update', 'updateZephyrType');
+            Route::delete('/zephyr_types/delete', 'deleteZephyrType');
+
             Route::get('/settings/get', 'getSettings');
             Route::put('/settings/update', 'updateSettings');
         });
