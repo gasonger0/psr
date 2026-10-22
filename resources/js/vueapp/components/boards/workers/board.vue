@@ -240,7 +240,7 @@ const emit = defineEmits(['ready']);
             </section>
         </div>
         <div class="line" v-for="line in linesStore.lines" :data-id="line.line_id!" :class="getLineClass(line)"
-            v-show="!hideEmpty || hasWorkers(line)" :key="`line-${line.line_id}-${line.version}`">
+            v-show="!hideEmpty || (hideEmpty && line.has_plans)" :key="`line-${line.line_id}-${line.version}`">
             <LineForm :data="line" />
             <section class="line_items">
                 <ItemCard v-for="(v, k) in workersStore.getByLine(line.line_id!, editMode)" :cardData="v"

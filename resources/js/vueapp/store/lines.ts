@@ -107,7 +107,7 @@ export const useLinesStore = defineStore('lines', () => {
         let timeString = getTimeString();
         if ((line.work_time.started_at <= timeString
             &&
-            timeString <= line.work_time.ended_at) ||
+            line.work_time.ended_at >= timeString) ||
             !timeString.isSame(dayjs.default(), 'day')
         ) {
             return false;
@@ -146,8 +146,16 @@ export const useLinesStore = defineStore('lines', () => {
         line.showDelete = ref(false);
         line.date = dayjs.default(line.date);
         line.work_time = ref({
-            started_at: dayjs.default(line.started_at),
+            // Временный фикс, TODO!!!
+            started_at: dayjs.default(line.started_at)
+                .set('date', line.date.get('date'))
+                .set('month', line.date.get('month'))
+                .set('year', line.date.get('year')),
             ended_at: dayjs.default(line.ended_at)
+                .set('date', line.date.get('date'))
+                .set('month', line.date.get('month'))
+                .set('year', line.date.get('year'))
+                .add(sessionStorage.getItem('isDay') == '0' ? 1 : 0, 'day')
         });
         line.detector = ref({
             has_detector: Boolean(line.has_detector),
