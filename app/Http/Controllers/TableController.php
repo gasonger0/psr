@@ -521,10 +521,11 @@ class TableController extends Controller
 
                     $array[] = [];
                 } elseif ($line['calc_boil']) {
-                    // TODO: добавить в расчётные массф режим "Не участвует", чтобы не считать
                     $val = Util::calcReturnMass($line, $sum['z'][0], 'z');
-                    $array[] = self::makeRow([1 => 'Возвратные отходы зеф.массы:', 4 => "<i>$val</i>"]);
-                    $returnMassCells['z'][] = 'E'.count($array);
+                    if ($val != false) {
+                        $array[] = self::makeRow([1 => 'Возвратные отходы зеф.массы:', 4 => "<i>$val</i>"]);
+                        $returnMassCells['z'][] = 'E'.count($array);
+                    }
                 }
 
                 $add = function ($i, $sum) use (&$globalB, &$globalKG, &$globalBy, &$sumBy) {
@@ -557,10 +558,15 @@ class TableController extends Controller
                             $add($i, $sum);
                         }
                     } else {
+                        // Варка: накапливаем все категории линий с флагом «Варка»;
+                        // фильтр начинки/переваривания — только для зефира
                         if (
-                            $i == 'z' && $line['calc_boil']
-                            && (str_contains($product['title'], 'начинка') === false
-                                || str_contains($product['title'], 'переваривание') === false)
+                            $line['calc_boil']
+                            && (
+                                $i != 'z'
+                                || (str_contains($product['title'], 'начинка') === false
+                                    || str_contains($product['title'], 'переваривание') === false)
+                            )
                         ) {
                             $add($i, $sum);
                         }
@@ -626,7 +632,11 @@ class TableController extends Controller
                 's' => 'СУФЛЕ',
                 'k' => 'КОНФЕТ',
             ] as $i => $t) {
-                if ($i != 'z' && ($line['type_id'] == 2 || $line['type_id'] == 3) || $i == 'z') {
+                if (
+                    $i == 'z'
+                    || ($sheet == 2 && ($line['type_id'] == 2 || $line['type_id'] == 3))
+                    || ($sheet == 1 && count($globalKG[$i]) > 0)
+                ) {
                     $kg = count($globalKG[$i]) > 0 ? implode('+', $globalKG[$i]) : '0';
                     $boils = $line['type_id'] == 1 && $i == 'z' && count($globalB[$i]) > 0 ? implode('+', $globalB[$i]) : '';
                     $array[] = self::makeRow([
@@ -643,7 +653,7 @@ class TableController extends Controller
                 if (count($returnMassCells['z']) > 0) {
                     $array[] = self::makeRow([
                         1 => 'ИТОГО ВОЗВРАТНОЙ МАССЫ',
-                        4 => '<f>='.implode(' + ', $returnMassCells['z']).'</f>',
+                        4 => '<f>='.implode('+', $returnMassCells['z']).'</f>',
                     ]);
                 }
             } else {
@@ -666,7 +676,7 @@ class TableController extends Controller
 
                         $array[] = self::makeRow([
                             1 => "ИТОГО ВОЗВРАТНЫЕ ОТХОДЫ $title",
-                            4 => '<f>='.implode(' + ', $returnMassCells[$k]).'</f>',
+                            4 => '<f>='.implode('+', $returnMassCells[$k]).'</f>',
                         ]);
                     }
                 }
@@ -937,9 +947,9 @@ class TableController extends Controller
         $columns[7][7] = 'ОТКЛОНЕНИЕ';
         $columns[8][7] = '<f>=H5-H7</f>';
         $columns[] = [''];
-        $sumByLines = array_map(fn ($i) => '<f>='.implode(' + ', $i).'</f>', $sumByLines);
+        $sumByLines = array_map(fn ($i) => '<f>='.implode('+', $i).'</f>', $sumByLines);
         $columns[] = ['ИТОГО ПО ЗАДАНИЮ', ...$sumByLines];
-        $sum = array_map(fn ($i) => '<f>='.implode(' + ', $i).'</f>', $sum);
+        $sum = array_map(fn ($i) => '<f>='.implode('+', $i).'</f>', $sum);
         $columns[] = ['ИТОГО ПО РАСПИСАННЫМ ЛЮДЯМ', ...$sum];
         $columns[] = [];
         $columns[] = [

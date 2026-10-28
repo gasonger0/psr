@@ -52,9 +52,9 @@ return new class extends Migration
                 ->updateOrInsert(['zephyr_type_id' => $row['zephyr_type_id']], $row);
         }
 
-        // Варка: старые захардкоженные линии [8..12]
+        // Варка: старые захардкоженные линии [8..12] + варка суфле
         DB::table('lines')
-            ->whereIn('line_id', [8, 9, 10, 11, 12])
+            ->whereIn('line_id', [8, 9, 10, 11, 12, 44, 45])
             ->update(['calc_boil' => true]);
 
         // Упаковка: старые захардкоженные категории по линиям
@@ -67,6 +67,7 @@ return new class extends Migration
             25 => ['z'],
             41 => ['z'],
             31 => ['k'],
+            51 => ['z'], // ПЕРЕФАСОВКА-упаковка
         ] as $lineId => $cats) {
             DB::table('lines')
                 ->where('line_id', $lineId)
