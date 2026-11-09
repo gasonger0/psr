@@ -13,6 +13,7 @@ use Illuminate\Http\Response;
 class ProductsDictionaryController extends Controller
 {
     private const PRODUCT_ALREADY_EXISTS = 'Такая продукция уже существует';
+
     private const PRODUCT_NOT_EXISTS = 'Такой продукции не существует.';
 
     public function get(Request $request)
@@ -22,6 +23,7 @@ class ProductsDictionaryController extends Controller
         if ($category_id !== 0 && $category_id !== null) {
             // TODO Если ткнули в категорию НЕ нижнего уровня, надо найти все дочерние
             $categories = ProductsCategories::with('childrenRecursive')->find($category_id);
+
             return ProductsDictionary::where('category_id', $category_id)->get()->toArray();
         }
 
@@ -32,36 +34,37 @@ class ProductsDictionaryController extends Controller
                 ProductsDictionary::all()->map(function ($el) use ($session) {
                     $el->order = ProductsOrder::where('product_id', $el['product_id'])->where('date', $session['date'])->get()->first();
 
-                    $slots = $el->slots()->get()->map(function($el) {
-                            return $el->product_slot_id;
-                        })->toArray();
+                    $slots = $el->slots()->get()->map(function ($el) {
+                        return $el->product_slot_id;
+                    })->toArray();
 
                     // Если есть заказ, получаем планы с другой смены
                     if ($el->order) {
                         $backed = [
                             1 => [],
-                            2 => []
+                            2 => [],
                         ];
 
-                        $session['isDay'] = !$session['isDay'];
+                        $session['isDay'] = ! $session['isDay'];
                         // var_dump($slots);
                         ProductsPlan::where('date', $session['date'])
                             ->with('line')
                             ->where('isDay', $session['isDay'])
                             ->whereIn('slot_id', $slots)
-                            ->each(function ($plan) use(&$backed) {
+                            ->each(function ($plan) use (&$backed) {
                                 // Сборка ящиков (type_id = 3) учитывается как упаковка
                                 $index = $plan->line->type_id == 3 ? 2 : $plan->line->type_id;
                                 $backed[$index][] = $plan->amount;
                             });
-                        
+
                         $backed[1] = array_sum(array_unique($backed[1]));
                         $backed[2] = array_sum(array_unique($backed[2]));
-                        $el->order->amount -=  max($backed);
+                        $el->order->amount -= max($backed);
                     }
                     $el->plans = ProductsPlan::withSession($session)
                         ->whereIn('slot_id', $slots)
                         ->get()->count();
+
                     return $el;
                 })->filter(function ($product) {
                     return $product->order || $product->always_show || $product->plans;
@@ -75,11 +78,14 @@ class ProductsDictionaryController extends Controller
         if ($exists) {
             return Util::errorMsg(self::PRODUCT_ALREADY_EXISTS, 400);
         }
+        if ($error = self::validateParens($request->post())) {
+            return $error;
+        }
         $request->mergeIfMissing(['category_id' => $request->post('category')['category_id']]);
 
         $result = ProductsDictionary::create(
             $request->only(
-                (new ProductsDictionary())->getFillable()
+                (new ProductsDictionary)->getFillable()
             )
         );
 
@@ -93,13 +99,16 @@ class ProductsDictionaryController extends Controller
     public function update(Request $request)
     {
         $product = ProductsDictionary::find($request->post('product_id'));
-        if (!$product) {
+        if (! $product) {
             return Util::errorMsg(self::PRODUCT_NOT_EXISTS, 404);
+        }
+        if ($error = self::validateParens($request->post())) {
+            return $error;
         }
 
         $result = $product->update(
             $request->only(
-                (new ProductsDictionary())->getFillable()
+                (new ProductsDictionary)->getFillable()
             )
         );
 
@@ -108,6 +117,22 @@ class ProductsDictionaryController extends Controller
         } else {
             return Util::errorMsg($result, 400);
         }
+    }
+
+    /**
+     * Валидация формул «Телеги»/«Поддоны»: скобки должны быть сбалансированы,
+     * иначе ломаются формулы xlsx-отчёта и Excel запускает восстановление файла.
+     */
+    private static function validateParens(array $data): ?\Illuminate\Http\Response
+    {
+        foreach (['cars' => 'Телеги', 'cars2plates' => 'Поддоны'] as $field => $label) {
+            $value = $data[$field] ?? null;
+            if ($value !== null && substr_count((string) $value, '(') !== substr_count((string) $value, ')')) {
+                return Util::errorMsg('Несбалансированные скобки в поле «'.$label.'»');
+            }
+        }
+
+        return null;
     }
 
     public function delete(Request $request)
@@ -123,18 +148,21 @@ class ProductsDictionaryController extends Controller
 
     public function deleteProduct(Request $request)
     {
-        if (!$request->post('product_id'))
-            die(new Response('Нет ID продукта', 400));
+        if (! $request->post('product_id')) {
+            exit(new Response('Нет ID продукта', 400));
+        }
         $prod = ProductsDictionary::find($request->post('product_id'));
         if ($prod) {
             $prod->delete();
         }
+
         return 0;
     }
 
-    static public function clear()
+    public static function clear()
     {
         ProductsDictionary::truncate();
+
         return 1;
     }
 }

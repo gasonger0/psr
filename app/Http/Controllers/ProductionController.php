@@ -4,9 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\Hardware;
 use App\Models\Lines;
+use App\Models\ProductsDictionary;
 use App\Models\ProductsSlots;
 use App\Models\ReturnType;
 use App\Models\Setting;
+use App\Models\ZephyrType;
 use App\Util;
 use Illuminate\Http\Request;
 
@@ -114,5 +116,44 @@ class ProductionController extends Controller
         }
 
         return Util::successMsg('Настройки сохранены');
+    }
+
+    /* ===== Типы зефира ===== */
+
+    public function getZephyrTypes()
+    {
+        return Util::successMsg(ZephyrType::orderBy('zephyr_type_id')->get()->toArray());
+    }
+
+    public function createZephyrType(Request $request)
+    {
+        $zephyrType = ZephyrType::create($request->only(['title', 'is_default']));
+
+        return Util::successMsg($zephyrType->toArray(), 201);
+    }
+
+    public function updateZephyrType(Request $request)
+    {
+        $zephyrType = ZephyrType::find($request->post('zephyr_type_id'));
+        if (! $zephyrType) {
+            return Util::errorMsg('Тип зефира не найден', 404);
+        }
+        $zephyrType->update($request->only(['title', 'is_default']));
+
+        return Util::successMsg($zephyrType->toArray());
+    }
+
+    public function deleteZephyrType(Request $request)
+    {
+        $zephyrType = ZephyrType::find($request->post('zephyr_type_id'));
+        if (! $zephyrType) {
+            return Util::errorMsg('Тип зефира не найден', 404);
+        }
+        if (ProductsDictionary::where('zephyr_type_id', $zephyrType->zephyr_type_id)->exists()) {
+            return Util::errorMsg('Тип используется в продукции');
+        }
+        $zephyrType->delete();
+
+        return Util::successMsg('Тип зефира удалён');
     }
 }

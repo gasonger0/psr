@@ -20,6 +20,7 @@ class ProductsDictionary extends Model
         'cars2plates',
         'always_show',
         'televisor',
+        'zephyr_type_id',
         'created_at',
         'updated_at'
     ];

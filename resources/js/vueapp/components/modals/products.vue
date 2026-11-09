@@ -5,7 +5,7 @@ import { ProductInfo, useProductsStore } from '@/store/products';
 import { ProductSlot, useProductsSlotsStore } from '@/store/productsSlots';
 import { Modal, Divider, Tree, List, ListItem, Input, Tabs, TabPane, Empty, Button, InputNumber, Select, SelectOption, Checkbox, Table, TableSummary, TableSummaryRow, TableSummaryCell, Tooltip } from 'ant-design-vue';
 import { Key } from 'ant-design-vue/es/_util/type';
-import { computed, ref, Ref } from 'vue';
+import { computed, ref, Ref, watch } from 'vue';
 import { EditOutlined, DeleteOutlined, SaveOutlined, ForkOutlined, PullRequestOutlined, PlusCircleOutlined, ArrowRightOutlined, InfoCircleOutlined } from '@ant-design/icons-vue';
 import { categoriesTableColumns, productsTableColumns, productsTabs } from '@/store/dicts';
 import { useProductionStore } from '@/store/production';
@@ -17,6 +17,12 @@ const productsStore = useProductsStore();
 const slotsStore = useProductsSlotsStore();
 const linesStore = useLinesStore();
 const production = useProductionStore();
+
+watch(() => modal.visibility['products'], (open) => {
+    if (open && !production.loaded) {
+        production._load();
+    }
+});
 
 const activeCategory: Ref<CategoryInfo> = ref();
 const products: Ref<ProductInfo[]> = ref([]);
@@ -214,7 +220,12 @@ const exit = () => {
                                                     <InfoCircleOutlined />
                                                 </Tooltip>
                                             </span>
-                                            <div v-if="v.addon !== false">
+                                            <div v-if="v.widget == 'select'">
+                                                <Select v-model:value="activeProduct[v.dataIndex]"
+                                                    style="max-width:300px;" :allowClear="true"
+                                                    placeholder="Не выбран" :options="production.zephyrTypeOptions" />
+                                            </div>
+                                            <div v-else-if="v.addon !== false">
                                                 <Input v-model:value="activeProduct[v.dataIndex]"
                                                     style="max-width:300px;" :addon-before="v.addon" />
                                             </div>

@@ -12,6 +12,7 @@ use App\Models\ProductsPlan;
 use App\Models\Responsible;
 use App\Models\Slots;
 use App\Models\Workers;
+use App\Models\ZephyrType;
 use App\Util;
 use Carbon\Carbon;
 use DateTime;
@@ -222,6 +223,10 @@ class TableController extends Controller
 
         $responsibles = Responsible::get(['responsible_id', 'title']);
 
+        // Подтипы зефира для строк «ИТОГО» (заменяет старый расчёт по названию)
+        $zefTypes = ZephyrType::orderBy('zephyr_type_id')->get();
+        $zefDefaultId = $zefTypes->firstWhere('is_default')?->zephyr_type_id;
+
         // Создаём шапки листов
         $arr = [
             1 => self::makeArrayHeader($session, 1),
@@ -264,14 +269,10 @@ class TableController extends Controller
                 'k' => [],
                 's' => [],
             ];
-            $globalBy = [
-                'a' => [[], []],
-                'z' => [[], []],
-                'n' => [[], []],
-                'f' => [[], []],
-                'p' => [[], []],
-                'c' => [[], []],
-            ];
+            $globalBy = [];
+            foreach ($zefTypes as $t) {
+                $globalBy[$t->zephyr_type_id] = [[], []];
+            }
             // Обработка линий на листе
             foreach ($lines as &$line) {
                 // Получаем планы на текущую смену, отсортированные по времени начала
@@ -392,15 +393,11 @@ class TableController extends Controller
                     's' => [[], []],
                     'k' => [[], []],
                 ];
-                // Суммы по подкатегориям зефира (агар, фруктоза, без сахара)
-                $sumBy = [
-                    'a' => [[], []],
-                    'z' => [[], []],
-                    'n' => [[], []],
-                    'f' => [[], []],
-                    'p' => [[], []],
-                    'c' => [[], []],
-                ];
+                // Суммы по подтипам зефира (ключ — zephyr_type_id)
+                $sumBy = [];
+                foreach ($zefTypes as $t) {
+                    $sumBy[$t->zephyr_type_id] = [[], []];
+                }
                 // Строки продуктов по категориям (для формул факта в итогах)
                 $catRows = [
                     'z' => [],
@@ -467,29 +464,11 @@ class TableController extends Controller
                         $sum[$cat][1][] = "F$row_index";
 
                         if ($sheet == 1 && $cat == 'z') {
-                            $titleLower = mb_strtolower($product['title']);
-
-                            $map = [
-                                'агар' => 'a',
-                                'желатин' => 'z',
-                                '/без\s+(добавления\s+)?сахар[а]?/u' => 'n',
-                                'фруктоз' => 'f',
-                                'крем-десерт' => 'c',
-                            ];
-
-                            $key = 'p'; // по умолчанию «на пектине»
-                            foreach ($map as $pattern => $k) {
-                                if ($pattern[0] === '/'
-                                    ? preg_match($pattern, $titleLower)
-                                    : str_contains($titleLower, $pattern)
-                                ) {
-                                    $key = $k;
-                                    break;
-                                }
+                            $key = $product['zephyr_type_id'] ?? $zefDefaultId;
+                            if ($key !== null && isset($sumBy[$key])) {
+                                $sumBy[$key][0][] = "E$row_index";
+                                $sumBy[$key][1][] = "F$row_index";
                             }
-
-                            $sumBy[$key][0][] = "E$row_index";
-                            $sumBy[$key][1][] = "F$row_index";
                         }
 
                         $array[] = self::makeRow($counts);
@@ -505,7 +484,7 @@ class TableController extends Controller
 
                         // Запоминаем строку продукта для формул факта в итогах
                         if ($cat == 'z' && $sheet == 1) {
-                            if (array_search($line['line_id'], [8, 9, 10, 11, 12]) !== false) {
+                            if ($line['calc_boil']) {
                                 $catRows[$cat][] = $row_index;
                             }
                         } else {
@@ -541,11 +520,12 @@ class TableController extends Controller
                     }
 
                     $array[] = [];
-                } elseif (array_search($line['line_id'], [8, 9, 10, 11, 12])) {
-                    // TODO: добавить в расчётные массф режим "Не участвует", чтобы не считать
+                } elseif ($line['calc_boil']) {
                     $val = Util::calcReturnMass($line, $sum['z'][0], 'z');
-                    $array[] = self::makeRow([1 => 'Возвратные отходы зеф.массы:', 4 => "<i>$val</i>"]);
-                    $returnMassCells['z'][] = 'E'.count($array);
+                    if ($val != false) {
+                        $array[] = self::makeRow([1 => 'Возвратные отходы зеф.массы:', 4 => "<i>$val</i>"]);
+                        $returnMassCells['z'][] = 'E'.count($array);
+                    }
                 }
 
                 $add = function ($i, $sum) use (&$globalB, &$globalKG, &$globalBy, &$sumBy) {
@@ -553,9 +533,10 @@ class TableController extends Controller
                     array_push($globalB[$i], ...$sum[$i][1]);
                 };
 
-                // Накапливаем подкатегории зефира (агар, фруктоза, без сахара) в глобальные суммы — только варка
-                if ($sheet == 1 && array_search($line['line_id'], [8, 9, 10, 11, 12]) !== false) {
-                    foreach (['a', 'z', 'n', 'f', 'p', 'c'] as $key) {
+                // Накапливаем подтипы зефира в глобальные суммы — только варка
+                if ($sheet == 1 && $line['calc_boil']) {
+                    foreach ($zefTypes as $t) {
+                        $key = $t->zephyr_type_id;
                         if (count($sumBy[$key][0]) > 0) {
                             array_push($globalBy[$key][0], ...$sumBy[$key][0]);
                             array_push($globalBy[$key][1], ...$sumBy[$key][1]);
@@ -573,28 +554,19 @@ class TableController extends Controller
                         3) Суфле - только по шл1
                     */
                     if ($sheet == 2) {
-                        switch ($i) {
-                            case 'z':
-                                if (array_search($line['line_id'], [14, 17, 18, 20, 24, 25, 41]) !== false) {
-                                    $add($i, $sum);
-                                }
-                                break;
-                            case 'k':
-                                if ($line['line_id'] == 31) {
-                                    $add($i, $sum);
-                                }
-                                break;
-                            case 's':
-                                if ($line['line_id'] == 20) {
-                                    $add($i, $sum);
-                                }
-                                break;
+                        if (in_array($i, $line['pack_categories'] ?? [], true)) {
+                            $add($i, $sum);
                         }
                     } else {
+                        // Варка: накапливаем все категории линий с флагом «Варка»;
+                        // фильтр начинки/переваривания — только для зефира
                         if (
-                            $i == 'z' && array_search($line['line_id'], [8, 9, 10, 11, 12]) !== false
-                            && (str_contains($product['title'], 'начинка') === false
-                                || str_contains($product['title'], 'переваривание') === false)
+                            $line['calc_boil']
+                            && (
+                                $i != 'z'
+                                || (str_contains($product['title'], 'начинка') === false
+                                    || str_contains($product['title'], 'переваривание') === false)
+                            )
                         ) {
                             $add($i, $sum);
                         }
@@ -607,14 +579,10 @@ class TableController extends Controller
                     'k' => [0, 0],
                 ];
 
-                $sumBy = [
-                    'a' => [[], []],
-                    'z' => [[], []],
-                    'n' => [[], []],
-                    'f' => [[], []],
-                    'p' => [[], []],
-                    'c' => [[], []],
-                ];
+                $sumBy = [];
+                foreach ($zefTypes as $t) {
+                    $sumBy[$t->zephyr_type_id] = [[], []];
+                }
 
                 $array[] = [];
             }
@@ -643,19 +611,13 @@ class TableController extends Controller
             $array[] = [];
 
             if ($sheet == 1) {
-                foreach ([
-                    'a' => 'агара',
-                    'z' => 'желатина',
-                    'n' => 'без сахара',
-                    'f' => 'фруктозы',
-                    'p' => 'на пектине',
-                    'c' => 'крем-десерты',
-                ] as $key => $title) {
+                foreach ($zefTypes as $t) {
+                    $key = $t->zephyr_type_id;
                     if (count($globalBy[$key][0]) > 0) {
                         $kg = implode('+', $globalBy[$key][0]);
                         $boils = implode('+', $globalBy[$key][1]);
                         $array[] = self::makeRow([
-                            1 => "ИТОГО $title",
+                            1 => "ИТОГО {$t->title}",
                             4 => "<f>=$kg</f>",
                             5 => "<f>=$boils</f>",
                             17 => '<f>='.str_replace('E', 'R', $kg).'</f>',
@@ -670,7 +632,11 @@ class TableController extends Controller
                 's' => 'СУФЛЕ',
                 'k' => 'КОНФЕТ',
             ] as $i => $t) {
-                if ($i != 'z' && ($line['type_id'] == 2 || $line['type_id'] == 3) || $i == 'z') {
+                if (
+                    $i == 'z'
+                    || ($sheet == 2 && ($line['type_id'] == 2 || $line['type_id'] == 3))
+                    || ($sheet == 1 && count($globalKG[$i]) > 0)
+                ) {
                     $kg = count($globalKG[$i]) > 0 ? implode('+', $globalKG[$i]) : '0';
                     $boils = $line['type_id'] == 1 && $i == 'z' && count($globalB[$i]) > 0 ? implode('+', $globalB[$i]) : '';
                     $array[] = self::makeRow([
@@ -687,7 +653,7 @@ class TableController extends Controller
                 if (count($returnMassCells['z']) > 0) {
                     $array[] = self::makeRow([
                         1 => 'ИТОГО ВОЗВРАТНОЙ МАССЫ',
-                        4 => '<f>='.implode(' + ', $returnMassCells['z']).'</f>',
+                        4 => '<f>='.implode('+', $returnMassCells['z']).'</f>',
                     ]);
                 }
             } else {
@@ -710,7 +676,7 @@ class TableController extends Controller
 
                         $array[] = self::makeRow([
                             1 => "ИТОГО ВОЗВРАТНЫЕ ОТХОДЫ $title",
-                            4 => '<f>='.implode(' + ', $returnMassCells[$k]).'</f>',
+                            4 => '<f>='.implode('+', $returnMassCells[$k]).'</f>',
                         ]);
                     }
                 }
@@ -986,9 +952,9 @@ class TableController extends Controller
         $columns[7][7] = 'ОТКЛОНЕНИЕ';
         $columns[8][7] = '<f>=H5-H7</f>';
         $columns[] = [''];
-        $sumByLines = array_map(fn ($i) => '<f>='.implode(' + ', $i).'</f>', $sumByLines);
+        $sumByLines = array_map(fn ($i) => '<f>='.implode('+', $i).'</f>', $sumByLines);
         $columns[] = ['ИТОГО ПО ЗАДАНИЮ', ...$sumByLines];
-        $sum = array_map(fn ($i) => '<f>='.implode(' + ', $i).'</f>', $sum);
+        $sum = array_map(fn ($i) => '<f>='.implode('+', $i).'</f>', $sum);
         $columns[] = ['ИТОГО ПО РАСПИСАННЫМ ЛЮДЯМ', ...$sum];
         $columns[] = [];
         $columns[] = [

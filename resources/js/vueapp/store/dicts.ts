@@ -285,6 +285,7 @@ export const productsTableColumns = {
         { title: 'Поддоны:', dataIndex: 'cars2plates', addon: '(Варка - Варка(цел)) ×' },
         { title: 'Телевизор', dataIndex: 'televisor', addon: false, hint: 'Добавлять шт в расчёт длительности' },
         { title: 'Отображать, даже если нет в анализе', dataIndex: 'always_show', addon: false },
+        { title: 'Тип зефира:', dataIndex: 'zephyr_type_id', widget: 'select' },
     ]
 };
 

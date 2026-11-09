@@ -22,6 +22,7 @@ export type ProductInfo = {
     cars2plates: string,
     always_show?: boolean,
     televisor?: boolean,
+    zephyr_type_id?: number | null,
     category: CategoryInfo,
     order?: ProductOrder,
     isEditing: boolean,
@@ -82,6 +83,7 @@ export const useProductsStore = defineStore('products', () => {
             category: category,
             always_show: false,
             televisor: false,
+            zephyr_type_id: null,
             isEditing: true,
         };
         products.value.push(newProduct as ProductInfo);

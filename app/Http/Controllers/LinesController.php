@@ -144,7 +144,12 @@ class LinesController extends Controller
             return Util::errorMsg('Линия не найдена');
         }
 
-        $lineFields = array_intersect_key($fields, array_flip(['title', 'color', 'type_id', 'return_type', 'use_dating']));
+        $lineFields = array_intersect_key($fields, array_flip(['title', 'color', 'type_id', 'return_type', 'use_dating', 'calc_boil', 'pack_categories']));
+        if (array_key_exists('pack_categories', $lineFields)) {
+            $lineFields['pack_categories'] = $lineFields['pack_categories'] === null
+                ? null
+                : json_encode($lineFields['pack_categories']);
+        }
         $defaultFields = array_intersect_key($fields, array_flip(['perfomance', 'workers_count', 'prep_time', 'after_time']));
 
         foreach ($lineIds as $lineId) {

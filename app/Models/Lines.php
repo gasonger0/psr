@@ -21,6 +21,13 @@ class Lines extends Model
         'type_id',
         'return_type',
         'use_dating',
+        'calc_boil',
+        'pack_categories',
+    ];
+
+    protected $casts = [
+        'calc_boil' => 'boolean',
+        'pack_categories' => 'array',
     ];
 
     public $timestamps = false;

@@ -19,6 +19,12 @@ export type ReturnTypeInfo = {
     coef_k?: number | null
 };
 
+export type ZephyrTypeInfo = {
+    zephyr_type_id: number,
+    title: string,
+    is_default?: boolean
+};
+
 export type RegistryLine = {
     line_id: number,
     title: string,
@@ -26,6 +32,8 @@ export type RegistryLine = {
     type_id: number,
     return_type?: number | null,
     use_dating?: boolean,
+    calc_boil?: boolean,
+    pack_categories?: string[] | null,
     perfomance?: string | null,
     prep_time?: number | null,
     after_time?: number | null,
@@ -42,7 +50,9 @@ export type SettingsInfo = {
 export const useProductionStore = defineStore('production', () => {
     const hardwares = ref<HardwareInfo[]>([]);
     const returnTypes = ref<ReturnTypeInfo[]>([]);
+    const zephyrTypes = ref<ZephyrTypeInfo[]>([]);
     const registryLines = ref<RegistryLine[]>([]);
+    const loaded = ref(false);
     const registryLoading = ref(false);
     const settings = ref<SettingsInfo>({
         interval_boil: 10,
@@ -53,19 +63,22 @@ export const useProductionStore = defineStore('production', () => {
 
     async function _load(): Promise<void> {
         try {
-            const [hw, rt, st] = await Promise.all([
+            const [hw, rt, st, zt] = await Promise.all([
                 getRequest('/api/production/hardwares/get'),
                 getRequest('/api/production/return_types/get'),
-                getRequest('/api/production/settings/get')
+                getRequest('/api/production/settings/get'),
+                getRequest('/api/production/zephyr_types/get')
             ]);
             hardwares.value = hw;
             returnTypes.value = rt;
+            zephyrTypes.value = zt;
             settings.value = {
                 interval_boil: Number(st.interval_boil ?? 10),
                 interval_pack: Number(st.interval_pack ?? 15),
                 zm_perfomance: Number(st.zm_perfomance ?? 143.5),
                 zm_perfomance2: Number(st.zm_perfomance2 ?? 287)
             };
+            loaded.value = true;
         } catch (err) {
             console.error('Не удалось загрузить данные производства:', err);
         }
@@ -75,7 +88,12 @@ export const useProductionStore = defineStore('production', () => {
         registryLoading.value = true;
         try {
             const rows = await getRequest('/api/lines/registry');
-            registryLines.value = rows.map((l: RegistryLine) => ({ ...l, color: l.color || '#4096ff' }));
+            registryLines.value = rows.map((l: RegistryLine) => ({
+                ...l,
+                color: l.color || '#4096ff',
+                calc_boil: !!l.calc_boil,
+                pack_categories: l.pack_categories || []
+            }));
         } catch (err) {
             console.error('Не удалось загрузить реестр линий:', err);
         } finally {
@@ -104,6 +122,16 @@ export const useProductionStore = defineStore('production', () => {
     const returnTypeOptions = computed(() =>
         returnTypes.value.map((r) => ({ value: r.return_type_id, label: r.title }))
     );
+
+    const zephyrTypeOptions = computed(() =>
+        zephyrTypes.value.map((z) => ({ value: z.zephyr_type_id, label: z.title }))
+    );
+
+    const packCategoryOptions = computed(() => [
+        { value: 'z', label: 'Зефир' },
+        { value: 'k', label: 'Конфеты' },
+        { value: 's', label: 'Суфле' }
+    ]);
 
     function getByID(id: number | null): HardwareInfo | undefined {
         return hardwares.value.find((h) => h.hardware_id === id);
@@ -143,6 +171,23 @@ export const useProductionStore = defineStore('production', () => {
         }
     }
 
+    async function _createZephyrType(z: ZephyrTypeInfo): Promise<void> {
+        const res = await postRequest('/api/production/zephyr_types/create', z);
+        z.zephyr_type_id = res.zephyr_type_id;
+    }
+
+    async function _updateZephyrType(z: ZephyrTypeInfo): Promise<void> {
+        await putRequest('/api/production/zephyr_types/update', z);
+    }
+
+    async function _deleteZephyrType(id: number): Promise<void> {
+        try {
+            await deleteRequest('/api/production/zephyr_types/delete', { zephyr_type_id: id });
+        } catch (err: any) {
+            notify('error', err?.response?.data?.error ?? 'Ошибка сохранения');
+        }
+    }
+
     async function _saveSettings(): Promise<void> {
         await putRequest('/api/production/settings/update', { ...settings.value });
     }
@@ -164,12 +209,14 @@ export const useProductionStore = defineStore('production', () => {
     }
 
     return {
-        hardwares, returnTypes, registryLines, registryLoading, settings,
+        hardwares, returnTypes, zephyrTypes, registryLines, registryLoading, settings, loaded,
         boilHardwares, packHardwares, slotHardwareOptions, returnTypeOptions,
+        zephyrTypeOptions, packCategoryOptions,
         getByID,
         _load, _loadRegistry,
         _createHardware, _updateHardware, _deleteHardware,
         _createReturnType, _updateReturnType, _deleteReturnType,
+        _createZephyrType, _updateZephyrType, _deleteZephyrType,
         _saveSettings, _bulkUpdateLines, _deleteLine
     };
 });
