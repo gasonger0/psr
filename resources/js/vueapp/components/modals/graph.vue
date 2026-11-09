@@ -151,7 +151,10 @@ watch(
 
 watch(
     () => modal.visibility['graph'],
-    () => {
+    async (visible) => {
+        if (visible && !lines.lines.some(l => l.edit)) {
+            await lines._load();
+        }
         processCells();
     },
     { deep: true }

@@ -38,13 +38,20 @@ const handleCardChange = (line_ids: number[], worker_id: number) => {
         workerRefs[worker_id].$forceUpdate();
     }
     line_ids.forEach(id => {
-        linesStore.updateVersion(id);
+        linesStore.bumpVersion(id);
     });
 }
 
 const newListText = computed(() => {
     return showList.value ? 'Скрыть' : 'Показать список рабочих';
 });
+const hideEmpty = ref(false);
+const hideEmptyLinesTitle = computed(() => {
+    return hideEmpty.value ? 'Показать пустые линии' : 'Скрыть пустые линии';
+});
+const hasWorkers = (line: LineInfo) => {
+    return workerSlotsStore.slots.some(s => s.line_id === line.line_id);
+};
 const getLineClass = (line: LineInfo) => {
     return linesStore.getIfDone(line) ? 'done-line ' : ''
 }
@@ -167,7 +174,7 @@ onUpdated(async () => {
                     handleCardChange([line_id], worker.worker_id);
                 }
                 if (old_line) {
-                    linesStore.updateVersion(old_line.line_id);
+                    linesStore.bumpVersion(old_line.line_id);
                 }
                 
                 clearInterval(monitorInterval.value);
@@ -202,6 +209,9 @@ const emit = defineEmits(['ready']);
         <Button type="dashed" @click="() => showList = !showList">
             {{ newListText }}
         </Button>
+        <Button type="dashed" @click="() => hideEmpty = !hideEmpty">
+            {{ hideEmptyLinesTitle }}
+        </Button>
         <Button type="default" @click="print_graph">
             <PrinterOutlined />
             Распечатать график
@@ -230,7 +240,7 @@ const emit = defineEmits(['ready']);
             </section>
         </div>
         <div class="line" v-for="line in linesStore.lines" :data-id="line.line_id!" :class="getLineClass(line)"
-            :key="`line-${line.line_id}-${line.version}`">
+            v-show="!hideEmpty || (hideEmpty && line.has_plans)" :key="`line-${line.line_id}-${line.version}`">
             <LineForm :data="line" />
             <section class="line_items">
                 <ItemCard v-for="(v, k) in workersStore.getByLine(line.line_id!, editMode)" :cardData="v"

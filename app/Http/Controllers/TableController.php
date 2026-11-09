@@ -910,24 +910,29 @@ class TableController extends Controller
 
                 $count = count($columns) + 1;
 
-                // $line
+                // $line: группируем слоты по работнику — одна строка на человека
+                $grouped = [];
                 foreach ($line['slots'] as $slot) {
-                    $worker = Workers::find($slot['worker_id']);
-                    /**
-                     * Обработать все слоты, на которых работал человек, а не каждый отдельно
-                     */
-                    $workTime = self::setFloat(self::getWorkTime($slot['started_at'], $slot['ended_at']));
-                    $ktu = $data[array_search($slot['worker_id'], array_column($data, 'worker_id'))]['ktu'];
-                    if (! $worker) {
-                        // var_dump($slot);
+                    $grouped[$slot['worker_id']][] = $slot;
+                }
+                foreach ($grouped as $worker_id => $workerSlots) {
+                    $worker = Workers::find($worker_id);
+                    if (!$worker) {
+                        continue;
                     }
+                    $workTime = 0;
+                    $downTime = 0;
+                    foreach ($workerSlots as $slot) {
+                        $workTime += self::getWorkTime($slot['started_at'], $slot['ended_at']);
+                        $downTime += (float) $slot['down_time'];
+                    }
+                    $ktu = $data[array_search($worker_id, array_column($data, 'worker_id'))]['ktu'];
                     $row_num = count($columns) + 1;
                     $row = [
                         $worker->title,
-                        // self::setFloat($slot['time_planned'] / 60),
-                        $workTime,
+                        self::setFloat($workTime),
                         0,
-                        self::setFloat($slot['down_time'] / 60),
+                        self::setFloat($downTime / 60),
                         "<f>=C$row_num - D$row_num</f>",
                         $ktu,
                         "<f>=E$row_num * F$row_num</f>",
@@ -1061,8 +1066,7 @@ class TableController extends Controller
         $start = new \DateTime($start);
         $end = new \DateTime($end);
         $diff = $start->diff($end);
-
-        return $diff->h + ($diff->i / 60);
+        return $diff->d * 24 + $diff->h + ($diff->i / 60) + ($diff->s / 3600);
     }
 
     private static function setFloat(float $num)
