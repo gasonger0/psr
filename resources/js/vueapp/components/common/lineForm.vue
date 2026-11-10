@@ -86,9 +86,9 @@ const currentWorkerCount = computed(() => {
             <div class="line_title" :data-id="data.line_id" v-show="!data.edit">
                 <b>{{ data.title }}</b>
                 <br>
-                <span>{{ data.extra_title }}</span>
+                <span>{{ data.defaults?.perfomance }}</span>
             </div>
-            <Input v-show="data.edit" class="line_title line-input" v-model:value="data.extra_title"
+            <Input v-show="data.edit" class="line_title line-input" v-model:value="data.defaults.perfomance"
                 placeholder="Производительность" />
             <div class="line-card_section">
                 <Switch v-model:checked="data.edit" checked-children="Редактирование" un-checked-children="Просмотр"

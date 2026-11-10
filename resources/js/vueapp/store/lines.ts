@@ -3,7 +3,7 @@ import { cancelReasons, format, Slot } from "@stores/dicts";
 import * as dayjs from 'dayjs'
 import { ResponsibleInfo } from "@stores/responsibles";
 import { reactive, Ref, ref } from "vue";
-import { deleteRequest, getRequest, getTimeString, postRequest, putRequest } from "@/functions";
+import { deleteRequest, getRequest, getTimeString, notify, postRequest, putRequest } from "@/functions";
 import { WorkerInfo } from "@stores/workers";
 import { AxiosResponse } from "axios";
 import { SelectValue } from "ant-design-vue/es/select/index";
@@ -16,6 +16,15 @@ import { usePlansStore } from "./productsPlans";
 /**
  * Независимые параметры линий
  */
+export type LinesDefault = {
+    lines_default_id?: number;
+    line_id?: number;
+    perfomance?: number | null;
+    workers_count?: number | null;
+    prep_time?: number | null;
+    after_time?: number | null;
+};
+
 export type LineInfo = {
     line_id?: number,
     title: string,
@@ -23,6 +32,9 @@ export type LineInfo = {
     type_id: number,
     return_type?: number | null,
     use_dating?: boolean,
+    defaults?: LinesDefault | null,
+    calc_boil?: boolean,
+    pack_categories?: string[] | null,
     count_current?: number,
     line_extra_id?: number,
     workers_count: number,
@@ -83,6 +95,30 @@ export const useLinesStore = defineStore('lines', () => {
         splice(line.line_id!);
     }
 
+    /** Массовое обновление правил линий (lines + lines_defaults) из окна «Производство» */
+    async function _bulkUpdateRules(lineIds: number[], fields: Record<string, any>): Promise<void> {
+        try {
+            await postRequest('/api/lines/bulk-update', { line_ids: lineIds, fields });
+            await _load();
+        } catch (err: any) {
+            notify('error', err?.response?.data?.error ?? 'Ошибка сохранения');
+        }
+    }
+
+    /** Удаление линий из окна «Производство» по id */
+    async function deleteRules(lineIds: number[]): Promise<void> {
+        let ok = true;
+        for (const id of lineIds) {
+            try {
+                await deleteRequest('/api/lines/delete', { line_id: id });
+            } catch (err: any) {
+                ok = false;
+                notify('error', err?.response?.data?.error ?? 'Ошибка удаления');
+            }
+        }
+        if (ok) await _load();
+    }
+
     async function _sendStop(line: LineInfo, reason?: number | undefined): Promise<void> {
         await putRequest('/api/lines/down', {
             line_id: line.line_id!,
@@ -129,6 +165,7 @@ export const useLinesStore = defineStore('lines', () => {
             type_id: 1,
             return_type: null,
             use_dating: false,
+            defaults: {} as LinesDefault,
             prep_time: 0,
             after_time: 0,
             prep_as_def: false,
@@ -168,6 +205,7 @@ export const useLinesStore = defineStore('lines', () => {
             detector_end: line.detector_end
         });
         line.has_plans = ref(false);
+        line.defaults = line.defaults ?? {} as LinesDefault;
         line.version = 1;
         delete line.started_at, line.ended_at, line.has_detector, line.detector_start, line.detector_end;
         return line as LineInfo;
@@ -221,5 +259,5 @@ export const useLinesStore = defineStore('lines', () => {
             line.version = (line.version || 0) + 1;
         }
     };
-    return { lines, _load, _create, _update, _delete, _sendStop, getIfDone, add, splice, getByID, updateVersion, bumpVersion }
+    return { lines, _load, _create, _update, _delete, _bulkUpdateRules, deleteRules, _sendStop, getIfDone, add, splice, getByID, updateVersion, bumpVersion }
 })

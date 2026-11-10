@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
 import { useModalsStore } from '@/store/modal';
-import { HardwareInfo, RegistryLine, ReturnTypeInfo, ZephyrTypeInfo, useProductionStore } from '@/store/production';
+import { HardwareInfo, ReturnTypeInfo, ZephyrTypeInfo, useProductionStore } from '@/store/production';
+import { LineInfo } from '@/store/lines';
 import { useLinesStore } from '@/store/lines';
 import {
     Modal, Tabs, TabPane, Table, Button, Input, InputNumber, Select, Checkbox, Popconfirm
@@ -17,8 +18,8 @@ watch(() => modal.visibility['production'], (open) => {
         if (!production.loaded) {
             production._load();
         }
-        if (production.registryLines.length === 0) {
-            production._loadRegistry();
+        if (linesStore.lines.length === 0) {
+            linesStore._load();
         }
     }
 });
@@ -59,43 +60,35 @@ const lineColumns = [
     { title: 'Цвет', dataIndex: 'color', key: 'color', width: 60 },
 ];
 
-const saveLineRow = async (row: RegistryLine) => {
-    await production._bulkUpdateLines([row.line_id], {
+const saveLineRow = async (row: LineInfo) => {
+    await linesStore._bulkUpdateRules([row.line_id!], {
         title: row.title,
-        perfomance: row.perfomance ?? null,
+        perfomance: row.defaults?.perfomance ?? null,
         type_id: row.type_id,
-        prep_time: row.prep_time ?? null,
-        after_time: row.after_time ?? null,
-        workers_count: row.workers_count ?? null,
+        prep_time: row.defaults?.prep_time ?? null,
+        after_time: row.defaults?.after_time ?? null,
+        workers_count: row.defaults?.workers_count ?? null,
         return_type: row.return_type ?? null,
         use_dating: row.use_dating ?? false,
         calc_boil: row.calc_boil ?? false,
         pack_categories: row.pack_categories ?? [],
         color: row.color ?? null
     });
-    await production._loadRegistry();
 };
 
 const addLine = async () => {
     const line = linesStore.add();
     await linesStore._create(line);
     await linesStore._load();
-    await production._loadRegistry();
 };
 
-const deleteLine = async (row: RegistryLine) => {
-    await production._deleteLine(row.line_id);
-    await linesStore._load();
-    await production._loadRegistry();
+const deleteLine = async (row: LineInfo) => {
+    await linesStore.deleteRules([row.line_id!]);
 };
 
 const deleteSelectedLines = async () => {
-    for (const id of selectedLineIds.value) {
-        await production._deleteLine(id);
-    }
+    await linesStore.deleteRules(selectedLineIds.value);
     selectedLineIds.value = [];
-    await linesStore._load();
-    await production._loadRegistry();
 };
 
 // const applyBulk = async () => {
@@ -133,10 +126,9 @@ const deleteSelectedLines = async () => {
 //     if (bulk.value.workers_count !== undefined && bulk.value.workers_count !== null) {
 //         fields.workers_count = bulk.value.workers_count;
 //     }
-//     await production._bulkUpdateLines(selectedLineIds.value, fields);
+//     await linesStore._bulkUpdateRules(selectedLineIds.value, fields);
 //     bulkModalOpen.value = false;
 //     bulk.value = {};
-//     await production._loadRegistry();
 // };
 
 /* ===== Оборудование ===== */
@@ -250,24 +242,29 @@ const saveSettings = async () => {
                         </Popconfirm>
                     </div>
                     <div class="pane-table">
-                        <Table :columns="lineColumns" :data-source="production.registryLines"
-                            :row-key="(r: RegistryLine) => r.line_id"
+                        <Table :columns="lineColumns" :data-source="linesStore.lines"
+                            :row-key="(r: LineInfo) => r.line_id"
                             :row-selection="{ selectedRowKeys: selectedLineIds, onChange: onSelectLines }"
-                            :pagination="false" size="small"
-                            :loading="production.registryLoading">
+                            :pagination="false" size="small">
                             <template #bodyCell="{ column, record }">
                                 <template v-if="column.dataIndex == 'title'">
                                     <Input v-model:value="record.title" />
                                 </template>
                                 <template v-else-if="column.dataIndex == 'perfomance'">
-                                    <Input v-model:value="record.perfomance" />
+                                    <Input v-model:value="record.defaults.perfomance" />
                                 </template>
                                 <template v-else-if="column.dataIndex == 'type_id'">
                                     <Select v-model:value="record.type_id" style="width:100%"
                                         :options="[{ value: '1', label: 'Варка' }, { value: '2', label: 'Упаковка' }, { value: '3', label: 'Сборка ящиков' }]" />
                                 </template>
-                                <template v-else-if="['prep_time', 'after_time', 'workers_count'].includes(column.dataIndex)">
-                                    <InputNumber v-model:value="record[column.dataIndex]" :min="0" style="width:100%" />
+                                <template v-else-if="column.dataIndex == 'prep_time'">
+                                    <InputNumber v-model:value="record.defaults.prep_time" :min="0" style="width:100%" />
+                                </template>
+                                <template v-else-if="column.dataIndex == 'after_time'">
+                                    <InputNumber v-model:value="record.defaults.after_time" :min="0" style="width:100%" />
+                                </template>
+                                <template v-else-if="column.dataIndex == 'workers_count'">
+                                    <InputNumber v-model:value="record.defaults.workers_count" :min="0" style="width:100%" />
                                 </template>
                                 <template v-else-if="column.dataIndex == 'return_type'">
                                     <Select v-model:value="record.return_type" style="width:100%" :allowClear="true"

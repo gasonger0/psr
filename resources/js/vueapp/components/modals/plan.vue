@@ -142,9 +142,11 @@ const changeTime = () => {
     const startTime = dayjs(localPlanData.value.started_at);
     if (!startTime.isValid()) return;
 
-    // Вычисляем время окончания
+    // Вычисляем время окончания; интервал между операциями — настраиваемая величина
     const hoursToAdd = time.value || 0;
-    const minutesToAdd = 10;
+    const minutesToAdd = state.slot.type_id === 1
+        ? production.settings.interval_boil
+        : production.settings.interval_pack ?? 10;
 
     const newEndTime = startTime
         .add(hoursToAdd, 'hour')
@@ -317,6 +319,7 @@ const initializeData = async () => {
         const slot = await loadSlotData(props.data.slot_id);
 
         await Promise.all([
+            production.loaded ? Promise.resolve() : production._load(),
             loadProductData(slot.product_id),
             loadLineData(slot.line_id),
             getPackOptions()

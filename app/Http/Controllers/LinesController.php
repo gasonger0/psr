@@ -29,6 +29,7 @@ class LinesController extends Controller
                     ->where('isDay', $session['isDay']);
             },
             'linesExtra',
+            'linesDefault',
         ])->chunk(200, function ($lines) use (&$result, $request) {
             foreach ($lines as $line) {
                 $extra = LinesExtra::withSession($request)->getOrInsert($line, $request);
@@ -38,6 +39,8 @@ class LinesController extends Controller
                 $result[] = array_merge(
                     $line->makeHidden('plans', 'linesExtra')->toArray(), // Скрываем plans из результата
                     $extra->toArray(),
+                    // Шаблон смены (правила линий): единый источник для реестра «Производства» и борда
+                    ['defaults' => $line->linesDefault ? $line->linesDefault->toArray() : null],
                     ['has_plans' => $has_plans]
                 );
             }
@@ -91,6 +94,10 @@ class LinesController extends Controller
         }
         if ($request->post('after_as_def')) {
             Util::setDefault($line->line_id, 'after_time', $request->post('after_time'));
+        }
+        // Производительность редактируется в шапке линии и в реестре — единый источник lines_defaults
+        if ($request->input('defaults.perfomance') !== null) {
+            Util::setDefault($line->line_id, 'perfomance', $request->input('defaults.perfomance'));
         }
 
         $log = null;

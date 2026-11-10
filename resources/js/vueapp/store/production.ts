@@ -25,21 +25,6 @@ export type ZephyrTypeInfo = {
     is_default?: boolean
 };
 
-export type RegistryLine = {
-    line_id: number,
-    title: string,
-    color?: string | null,
-    type_id: number,
-    return_type?: number | null,
-    use_dating?: boolean,
-    calc_boil?: boolean,
-    pack_categories?: string[] | null,
-    perfomance?: string | null,
-    prep_time?: number | null,
-    after_time?: number | null,
-    workers_count?: number | null
-};
-
 export type SettingsInfo = {
     interval_boil: number,
     interval_pack: number,
@@ -51,9 +36,7 @@ export const useProductionStore = defineStore('production', () => {
     const hardwares = ref<HardwareInfo[]>([]);
     const returnTypes = ref<ReturnTypeInfo[]>([]);
     const zephyrTypes = ref<ZephyrTypeInfo[]>([]);
-    const registryLines = ref<RegistryLine[]>([]);
     const loaded = ref(false);
-    const registryLoading = ref(false);
     const settings = ref<SettingsInfo>({
         interval_boil: 10,
         interval_pack: 15,
@@ -81,23 +64,6 @@ export const useProductionStore = defineStore('production', () => {
             loaded.value = true;
         } catch (err) {
             console.error('Не удалось загрузить данные производства:', err);
-        }
-    }
-
-    async function _loadRegistry(): Promise<void> {
-        registryLoading.value = true;
-        try {
-            const rows = await getRequest('/api/lines/registry');
-            registryLines.value = rows.map((l: RegistryLine) => ({
-                ...l,
-                color: l.color || '#4096ff',
-                calc_boil: !!l.calc_boil,
-                pack_categories: l.pack_categories || []
-            }));
-        } catch (err) {
-            console.error('Не удалось загрузить реестр линий:', err);
-        } finally {
-            registryLoading.value = false;
         }
     }
 
@@ -192,31 +158,15 @@ export const useProductionStore = defineStore('production', () => {
         await putRequest('/api/production/settings/update', { ...settings.value });
     }
 
-    async function _bulkUpdateLines(lineIds: number[], fields: object): Promise<void> {
-        try {
-            await postRequest('/api/lines/bulk-update', { line_ids: lineIds, fields });
-        } catch (err: any) {
-            notify('error', err?.response?.data?.error ?? 'Ошибка сохранения');
-        }
-    }
-
-    async function _deleteLine(lineId: number): Promise<void> {
-        try {
-            await deleteRequest('/api/lines/delete', { line_id: lineId });
-        } catch (err: any) {
-            notify('error', err?.response?.data?.error ?? 'Ошибка сохранения');
-        }
-    }
-
     return {
-        hardwares, returnTypes, zephyrTypes, registryLines, registryLoading, settings, loaded,
+        hardwares, returnTypes, zephyrTypes, settings, loaded,
         boilHardwares, packHardwares, slotHardwareOptions, returnTypeOptions,
         zephyrTypeOptions, packCategoryOptions,
         getByID,
-        _load, _loadRegistry,
+        _load,
         _createHardware, _updateHardware, _deleteHardware,
         _createReturnType, _updateReturnType, _deleteReturnType,
         _createZephyrType, _updateZephyrType, _deleteZephyrType,
-        _saveSettings, _bulkUpdateLines, _deleteLine
+        _saveSettings
     };
 });
