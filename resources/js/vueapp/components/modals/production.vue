@@ -25,24 +25,27 @@ watch(() => modal.visibility['production'], (open) => {
 
 /* ===== Линии ===== */
 const selectedLineIds = ref<number[]>([]);
-const bulkModalOpen = ref(false);
-const bulk = ref<{
-    type_id?: number | null;
-    return_type?: string | number | null;
-    use_dating?: number | null;
-    calc_boil?: number | null;
-    pack_categories?: string[] | null;
-    perfomance?: string;
-    prep_time?: number | null;
-    after_time?: number | null;
-    workers_count?: number | null;
-}>({});
+
+// Отключено по решению: массовое редактирование линий (bulk update) закомментировано
+// const bulkModalOpen = ref(false);
+// const bulk = ref<{
+//     type_id?: number | null;
+//     return_type?: string | number | null;
+//     use_dating?: number | null;
+//     calc_boil?: number | null;
+//     pack_categories?: string[] | null;
+//     perfomance?: string;
+//     prep_time?: number | null;
+//     after_time?: number | null;
+//     workers_count?: number | null;
+// }>({});
 
 const onSelectLines = (keys: (string | number)[]) => {
     selectedLineIds.value = keys as number[];
 };
 
 const lineColumns = [
+    { title: 'Действия', key: 'actions', width: 90 },
     { title: 'Наименование', dataIndex: 'title', key: 'title', width: 200 },
     { title: 'Производительность', dataIndex: 'perfomance', key: 'perfomance', width: 180 },
     { title: 'Тип', dataIndex: 'type_id', key: 'type_id', width: 140 },
@@ -54,7 +57,6 @@ const lineColumns = [
     { title: 'Варка', dataIndex: 'calc_boil', key: 'calc_boil', width: 90 },
     { title: 'Упаковка', dataIndex: 'pack_categories', key: 'pack_categories', width: 180 },
     { title: 'Цвет', dataIndex: 'color', key: 'color', width: 60 },
-    { title: '', key: 'actions', width: 90 }
 ];
 
 const saveLineRow = async (row: RegistryLine) => {
@@ -87,53 +89,62 @@ const deleteLine = async (row: RegistryLine) => {
     await production._loadRegistry();
 };
 
-const applyBulk = async () => {
-    const fields: Record<string, any> = {};
-    if (bulk.value.type_id !== undefined && bulk.value.type_id !== null) {
-        fields.type_id = bulk.value.type_id;
+const deleteSelectedLines = async () => {
+    for (const id of selectedLineIds.value) {
+        await production._deleteLine(id);
     }
-    if (bulk.value.return_type === '__clear__') {
-        fields.return_type = null;
-    } else if (bulk.value.return_type !== undefined && bulk.value.return_type !== null) {
-        fields.return_type = bulk.value.return_type;
-    }
-    if (bulk.value.use_dating === 1) {
-        fields.use_dating = true;
-    } else if (bulk.value.use_dating === 0) {
-        fields.use_dating = false;
-    }
-    if (bulk.value.calc_boil === 1) {
-        fields.calc_boil = true;
-    } else if (bulk.value.calc_boil === 0) {
-        fields.calc_boil = false;
-    }
-    if (bulk.value.pack_categories && bulk.value.pack_categories.length > 0) {
-        fields.pack_categories = bulk.value.pack_categories;
-    }
-    if (bulk.value.perfomance) {
-        fields.perfomance = bulk.value.perfomance;
-    }
-    if (bulk.value.prep_time !== undefined && bulk.value.prep_time !== null) {
-        fields.prep_time = bulk.value.prep_time;
-    }
-    if (bulk.value.after_time !== undefined && bulk.value.after_time !== null) {
-        fields.after_time = bulk.value.after_time;
-    }
-    if (bulk.value.workers_count !== undefined && bulk.value.workers_count !== null) {
-        fields.workers_count = bulk.value.workers_count;
-    }
-    await production._bulkUpdateLines(selectedLineIds.value, fields);
-    bulkModalOpen.value = false;
-    bulk.value = {};
+    selectedLineIds.value = [];
+    await linesStore._load();
     await production._loadRegistry();
 };
 
+// const applyBulk = async () => {
+//     const fields: Record<string, any> = {};
+//     if (bulk.value.type_id !== undefined && bulk.value.type_id !== null) {
+//         fields.type_id = bulk.value.type_id;
+//     }
+//     if (bulk.value.return_type === '__clear__') {
+//         fields.return_type = null;
+//     } else if (bulk.value.return_type !== undefined && bulk.value.return_type !== null) {
+//         fields.return_type = bulk.value.return_type;
+//     }
+//     if (bulk.value.use_dating === 1) {
+//         fields.use_dating = true;
+//     } else if (bulk.value.use_dating === 0) {
+//         fields.use_dating = false;
+//     }
+//     if (bulk.value.calc_boil === 1) {
+//         fields.calc_boil = true;
+//     } else if (bulk.value.calc_boil === 0) {
+//         fields.calc_boil = false;
+//     }
+//     if (bulk.value.pack_categories && bulk.value.pack_categories.length > 0) {
+//         fields.pack_categories = bulk.value.pack_categories;
+//     }
+//     if (bulk.value.perfomance) {
+//         fields.perfomance = bulk.value.perfomance;
+//     }
+//     if (bulk.value.prep_time !== undefined && bulk.value.prep_time !== null) {
+//         fields.prep_time = bulk.value.prep_time;
+//     }
+//     if (bulk.value.after_time !== undefined && bulk.value.after_time !== null) {
+//         fields.after_time = bulk.value.after_time;
+//     }
+//     if (bulk.value.workers_count !== undefined && bulk.value.workers_count !== null) {
+//         fields.workers_count = bulk.value.workers_count;
+//     }
+//     await production._bulkUpdateLines(selectedLineIds.value, fields);
+//     bulkModalOpen.value = false;
+//     bulk.value = {};
+//     await production._loadRegistry();
+// };
+
 /* ===== Оборудование ===== */
 const hardwareColumns = [
+    { title: '', key: 'Действия', width: 90 },
     { title: 'Название', dataIndex: 'title', key: 'title' },
     { title: 'Полное название', dataIndex: 'full_title', key: 'full_title' },
     { title: 'Тип', dataIndex: 'type', key: 'type', width: 160 },
-    { title: '', key: 'actions', width: 90 }
 ];
 
 const saveHardware = async (h: HardwareInfo) => {
@@ -156,13 +167,13 @@ const addHardware = () => {
 
 /* ===== Возвратные массы ===== */
 const returnTypeColumns = [
+    { title: 'Действия', key: 'actions', width: 90 },
     { title: 'Название', dataIndex: 'title', key: 'title' },
     { title: 'Формула', dataIndex: 'formula_type', key: 'formula_type', width: 160 },
     { title: 'Фикс. значение', dataIndex: 'fixed_value', key: 'fixed_value', width: 120 },
     { title: 'Зефир', dataIndex: 'coef_z', key: 'coef_z', width: 100 },
     { title: 'Суфле', dataIndex: 'coef_s', key: 'coef_s', width: 100 },
     { title: 'Конфеты', dataIndex: 'coef_k', key: 'coef_k', width: 100 },
-    { title: '', key: 'actions', width: 90 }
 ];
 
 const saveReturnType = async (r: ReturnTypeInfo) => {
@@ -188,9 +199,9 @@ const addReturnType = () => {
 
 /* ===== Типы зефира ===== */
 const zephyrTypeColumns = [
+    { title: 'Действия', key: 'actions', width: 90 },
     { title: 'Название', dataIndex: 'title', key: 'title' },
-    { title: 'По умолчанию', dataIndex: 'is_default', key: 'is_default', width: 130 },
-    { title: '', key: 'actions', width: 90 }
+    { title: 'По умолчанию', dataIndex: 'is_default', key: 'is_default', width: 130 }
 ];
 
 const saveZephyrType = async (z: ZephyrTypeInfo) => {
@@ -226,9 +237,17 @@ const saveSettings = async () => {
                         <Button type="primary" @click="addLine">
                             <PlusOutlined /> Добавить линию
                         </Button>
+                        <!-- Отключено: массовое редактирование линий
                         <Button :disabled="selectedLineIds.length == 0" @click="bulkModalOpen = true">
                             Изменить выделенные
                         </Button>
+                        -->
+                        <Popconfirm title="Удалить выделенные линии?" :disabled="selectedLineIds.length == 0"
+                            @confirm="deleteSelectedLines">
+                            <Button danger :disabled="selectedLineIds.length == 0">
+                                <DeleteOutlined /> Удалить выделенные
+                            </Button>
+                        </Popconfirm>
                     </div>
                     <div class="pane-table">
                         <Table :columns="lineColumns" :data-source="production.registryLines"
@@ -414,6 +433,7 @@ const saveSettings = async () => {
             </TabPane>
         </Tabs>
 
+        <!--
         <Modal v-model:open="bulkModalOpen" title="Изменить выделенные линии" @ok="applyBulk">
             <div style="display:flex; flex-direction:column; gap:8px;">
                 <Select v-model:value="bulk.type_id" placeholder="Тип — не менять" :allowClear="true"
@@ -432,5 +452,6 @@ const saveSettings = async () => {
                 <InputNumber v-model:value="bulk.workers_count" placeholder="Рабочие" :min="0" />
             </div>
         </Modal>
+        -->
     </Modal>
 </template>
