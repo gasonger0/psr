@@ -133,7 +133,7 @@ const deleteSelectedLines = async () => {
 
 /* ===== Оборудование ===== */
 const hardwareColumns = [
-    { title: '', key: 'Действия', width: 90 },
+    { title: 'Действия', key: 'actions', dataIndex: 'actions', width: 90 },
     { title: 'Название', dataIndex: 'title', key: 'title' },
     { title: 'Полное название', dataIndex: 'full_title', key: 'full_title' },
     { title: 'Тип', dataIndex: 'type', key: 'type', width: 160 },
@@ -310,17 +310,7 @@ const saveSettings = async () => {
                         <Table :columns="hardwareColumns" :data-source="production.hardwares"
                             :row-key="(r: HardwareInfo) => r.hardware_id" :pagination="false" size="small">
                             <template #bodyCell="{ column, record }">
-                                <template v-if="column.dataIndex == 'title'">
-                                    <Input v-model:value="record.title" />
-                                </template>
-                                <template v-else-if="column.dataIndex == 'full_title'">
-                                    <Input v-model:value="record.full_title" />
-                                </template>
-                                <template v-else-if="column.dataIndex == 'type'">
-                                    <Select v-model:value="record.type" style="width:100%"
-                                        :options="[{ value: 1, label: 'Варка' }, { value: 2, label: 'Упаковка' }]" />
-                                </template>
-                                <template v-else-if="column.dataIndex == 'actions'">
+                                <template v-if="column.dataIndex == 'actions'">
                                     <Button type="primary" size="small" @click="saveHardware(record)">
                                         <SaveOutlined />
                                     </Button>
@@ -329,6 +319,16 @@ const saveSettings = async () => {
                                             <DeleteOutlined />
                                         </Button>
                                     </Popconfirm>
+                                </template>
+                                <template v-else-if="column.dataIndex == 'title'">
+                                    <Input v-model:value="record.title" />
+                                </template>
+                                <template v-else-if="column.dataIndex == 'full_title'">
+                                    <Input v-model:value="record.full_title" />
+                                </template>
+                                <template v-else-if="column.dataIndex == 'type'">
+                                    <Select v-model:value="record.type" style="width:100%"
+                                        :options="[{ value: 1, label: 'Варка' }, { value: 2, label: 'Упаковка' }]" />
                                 </template>
                             </template>
                         </Table>

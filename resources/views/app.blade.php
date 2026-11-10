@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Производственная система</title>
     <link href="/favicoSokol.png" rel="icon">
-    <script type="module" src="/build/assets/app-BNCErBSM.js"></script>
+    <script type="module" src="/build/assets/app-D7Y_qOuM.js"></script>
     <link rel="stylesheet" href="/build/assets/app-BqjyREqJ.css">
     <link rel="stylesheet" href="/build/assets/app-D71TRX52.css">
     <link rel="manifest" href="/build/manifest.json">
