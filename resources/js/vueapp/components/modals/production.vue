@@ -45,7 +45,7 @@ const onSelectLines = (keys: (string | number)[]) => {
 };
 
 const lineColumns = [
-    { title: 'Действия', key: 'actions', width: 90 },
+    { title: 'Действия', key: 'actions', dataIndex: 'actions', width: 90 },
     { title: 'Наименование', dataIndex: 'title', key: 'title', width: 200 },
     { title: 'Производительность', dataIndex: 'perfomance', key: 'perfomance', width: 180 },
     { title: 'Тип', dataIndex: 'type_id', key: 'type_id', width: 140 },
@@ -167,7 +167,7 @@ const addHardware = () => {
 
 /* ===== Возвратные массы ===== */
 const returnTypeColumns = [
-    { title: 'Действия', key: 'actions', width: 90 },
+    { title: 'Действия', key: 'actions', dataIndex: 'actions', width: 90 },
     { title: 'Название', dataIndex: 'title', key: 'title' },
     { title: 'Формула', dataIndex: 'formula_type', key: 'formula_type', width: 160 },
     { title: 'Фикс. значение', dataIndex: 'fixed_value', key: 'fixed_value', width: 120 },
@@ -199,7 +199,7 @@ const addReturnType = () => {
 
 /* ===== Типы зефира ===== */
 const zephyrTypeColumns = [
-    { title: 'Действия', key: 'actions', width: 90 },
+    { title: 'Действия', key: 'actions', dataIndex: 'actions', width: 90 },
     { title: 'Название', dataIndex: 'title', key: 'title' },
     { title: 'По умолчанию', dataIndex: 'is_default', key: 'is_default', width: 130 }
 ];
