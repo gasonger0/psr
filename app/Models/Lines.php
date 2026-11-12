@@ -22,11 +22,13 @@ class Lines extends Model
         'return_type',
         'use_dating',
         'calc_boil',
+        'can_repeat',
         'pack_categories',
     ];
 
     protected $casts = [
         'calc_boil' => 'boolean',
+        'can_repeat' => 'boolean',
         'pack_categories' => 'array',
     ];
 

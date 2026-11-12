@@ -57,6 +57,7 @@ const lineColumns = [
     { title: 'Датирование', dataIndex: 'use_dating', key: 'use_dating', width: 110 },
     { title: 'Варка', dataIndex: 'calc_boil', key: 'calc_boil', width: 90 },
     { title: 'Упаковка', dataIndex: 'pack_categories', key: 'pack_categories', width: 180 },
+    { title: 'Повтор', dataIndex: 'can_repeat', key: 'can_repeat', width: 90 },
     { title: 'Цвет', dataIndex: 'color', key: 'color', width: 60 },
 ];
 
@@ -71,6 +72,7 @@ const saveLineRow = async (row: LineInfo) => {
         return_type: row.return_type ?? null,
         use_dating: row.use_dating ?? false,
         calc_boil: row.calc_boil ?? false,
+        can_repeat: row.can_repeat ?? false,
         pack_categories: row.pack_categories ?? [],
         color: row.color ?? null
     });
@@ -275,6 +277,9 @@ const saveSettings = async () => {
                                 </template>
                                 <template v-else-if="column.dataIndex == 'calc_boil'">
                                     <Checkbox v-model:checked="record.calc_boil" />
+                                </template>
+                                <template v-else-if="column.dataIndex == 'can_repeat'">
+                                    <Checkbox v-model:checked="record.can_repeat" />
                                 </template>
                                 <template v-else-if="column.dataIndex == 'pack_categories'">
                                     <Select v-model:value="record.pack_categories" mode="multiple" style="width:100%"

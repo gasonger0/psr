@@ -151,7 +151,7 @@ class LinesController extends Controller
             return Util::errorMsg('Линия не найдена');
         }
 
-        $lineFields = array_intersect_key($fields, array_flip(['title', 'color', 'type_id', 'return_type', 'use_dating', 'calc_boil', 'pack_categories']));
+        $lineFields = array_intersect_key($fields, array_flip(['title', 'color', 'type_id', 'return_type', 'use_dating', 'calc_boil', 'pack_categories', 'can_repeat']));
         if (array_key_exists('pack_categories', $lineFields)) {
             $lineFields['pack_categories'] = $lineFields['pack_categories'] === null
                 ? null

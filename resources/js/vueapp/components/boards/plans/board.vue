@@ -11,7 +11,7 @@ import { ProductPlan, usePlansStore } from '@/store/productsPlans';
 import ScrollButtons from '@/components/common/scrollButtons.vue';
 import { getNextElement, scrollToTop } from '@/functions';
 import { ProductSlot, useProductsSlotsStore } from '@/store/productsSlots';
-import { alwaysShowLines, format } from '@/store/dicts';
+import { format } from '@/store/dicts';
 import * as dayjs from 'dayjs';
 import PlanModal from '@modals/plan.vue';
 import { useModalsStore } from '@/store/modal';
@@ -132,7 +132,7 @@ onUpdated(async () => {
                             document.querySelector('.line[data-id="' + slots[2][i].line_id + '"]').classList.remove('hidden-hard');
                         }
                         let match = slots[1].filter(el =>
-                            alwaysShowLines.find(f => f == el.line_id)
+                            linesStore.getByID(el.line_id)?.can_repeat
                         );
                         for (let i in match) {
                             document.querySelector('.line[data-id="' + match[i].line_id + '"]').classList.remove('hidden-hard');
