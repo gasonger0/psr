@@ -966,7 +966,9 @@ class ProductsPlanController extends Controller
                 $ended_at = $start->copy();
                 $ended_at->addHours($duration)->addMinutes((int) Setting::get('interval_pack', 15));
 
-                $boil_end = Carbon::parse($plan->ended_at)->addMinutes((int) Setting::get('interval_boil', 10))->addMinutes($delay);
+                $boil_end = Carbon::parse($plan->ended_at)
+                    // ->addMinutes((int) Setting::get('interval_boil', 10))
+                    ->addMinutes($delay);
 
                 if ($ended_at < $boil_end && $slot->line->type_id != 3) {
                     $ended_at = $boil_end;
